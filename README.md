@@ -38,7 +38,7 @@ This script will:
 - Copy **ProjectSettings**
 - Merge and update **Packages/manifest.json**
 - Sync **packages-lock.json**
-- Copy `.gitignore` (optional)
+- Copy `.gitignore`
 - Copy `Settings/` and `AddressableAssetsData/` into your `Assets/`
 
 > ⚠️ **Warning**: This operation will **overwrite existing settings**. You will be prompted before proceeding.
@@ -50,7 +50,7 @@ This script will:
 ```
 Assets/
 ├── Template/               ← Template submodule lives here
-├── Settings/               ← Synced into from template
+├── Settings/               ← Synced from template
 ├── AddressableAssetsData/  ← Synced from template
 ```
 
