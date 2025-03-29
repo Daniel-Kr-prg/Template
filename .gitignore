@@ -1,0 +1,111 @@
+## Unity Project Specific
+
+# Unity project directories and files
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Unity3D generated meta files
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity3D crash report file
+sysinfo.txt
+
+# Unity builds
+*.apk
+*.aab
+*.unitypackage
+*.unitypackage.meta
+*.app
+
+# Packed Addressables
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+
+# Temporary auto-generated Android Assets
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Visual Studio/MonoDevelop generated files
+*.rsuser
+*.suo
+*.user
+*.userprefs
+*.userosscache
+*.sln.docstates
+
+# Mono auto-generated files
+mono_crash.*
+
+# Visual Studio specific
+.vs/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.pidb
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+ExportedObj/
+
+# Gradle cache directory
+.gradle/
+
+# JetBrains Rider plugin
+/[Aa]ssets/Plugins/Editor/JetBrains*
+
+## Ignore Build Results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+
+# Node.js Tools
+node_modules/
+
+# NuGet Packages
+*.nupkg
+*.snupkg
+!**/[Pp]ackages/build/
+
+# Azure and Publish Files
+PublishScripts/
+*.pubxml
+*.publishproj
+
+# Backup and auto-generated files
+~$*
+*~
+*.tmp_proj
+*.log
+*.bak
+
+# Fody auto-generated XML schema
+FodyWeavers.xsd
+
+# Local History for Visual Studio
+.localhistory/
+
+# Unity Addressables
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+
+# Temporary Android Assets
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*

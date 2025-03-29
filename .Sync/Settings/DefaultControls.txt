@@ -1,0 +1,15 @@
+{
+  "Map": {
+    "EXIT": "Escape",
+    "CONFIRM": "Return",
+    "MOVE_FORWARD": "W",
+    "MOVE_BACKWARD": "S",
+    "MOVE_LEFT": "A",
+    "MOVE_RIGHT": "D",
+    "JUMP": "Space",
+    "CROUNCH": "LeftControl",
+    "RUN": "LeftShift",
+    "TEXT_CHAT": "T",
+    "VOICE_CHAT": "V"
+  }
+}

@@ -1,0 +1,47 @@
+/// <summary>
+/// Keynames for settings. Can be used to update settings from UI.
+/// UI object -> ConfigManager.UpdateSettings(Keyname, value) -> Config manager will call configValuesChangedCallbacks[Keyname].Invoke(value);
+/// </summary>
+public enum SettingsKeyname
+{
+    GAME_FOV,
+    GAME_LANGUAGE,
+
+    VIDEO_RESOLUTION,
+    VIDEO_FULLSCREEN,
+    VIDEO_LIMIT_REFRESHRATE,
+    VIDEO_REFRESHRATE,
+    VIDEO_VSYNC,
+    VIDEO_BRIGHTNESS,
+
+
+    QUALITY_TEXTURES_RESOLUTION,
+    QUALITY_ANISOTROPIC_FILTRATION,
+    QUALITY_LOD,
+    QUALITY_DRAW_DISTANCE,
+
+    QUALITY_ANTI_ALIASING,
+    QUALITY_MSAA_SAMPLES,
+    
+    QUALITY_SHADOWS_RESOLUTION,
+    QUALITY_SHADOWS_CASCADES,
+    QUALITY_SHADOWS_DISTANCE,
+
+    QUALITY_LIGHT_QUALITY,
+    QUALITY_LIGHT_VOLUMETRIC,
+    QUALITY_LIGHT_DISTANCE,
+    QUALITY_LIGHT_AMBIENT_OCCLUSION,
+
+    QUALITY_WATER_QUALITY,
+    QUALITY_REFLECTION_QUALITY,
+    QUALITY_PARTICLE_QUALITY,
+
+    PP_BLOOM,
+    PP_MOTION_BLUR,
+    PP_DEPTH_OF_FIELD,
+
+    AUDIO_MASTER,
+    AUDIO_MUSIC,
+    AUDIO_EFFECTS,
+    AUDIO_VOICE_CHAT
+}
