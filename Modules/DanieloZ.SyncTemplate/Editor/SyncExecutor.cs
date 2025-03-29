@@ -6,38 +6,34 @@ using Newtonsoft.Json.Linq;
 
 public static class SyncExecutor
 {
+    private const string SyncRoot = "Assets/Template/.Sync";
+
     [MenuItem("Template/Run Full Template Sync")]
     public static void RunFullSync()
     {
-        CopyFolder("Assets/Template/.Sync/Settings", "Assets/Settings");
-        CopyFolder("Assets/Template/.Sync/AddressableAssetsData", "Assets/AddressableAssetsData");
+        SyncSettings();
+        SyncAddressables();
         SyncProjectSettings();
         SyncPackages();
+        SyncGitignore();
     }
 
-    static void CopyFolder(string sourcePath, string targetPath)
+    [MenuItem("Template/Sync Settings")]
+    public static void SyncSettings()
     {
-        if (!Directory.Exists(sourcePath))
-        {
-            Debug.LogWarning($"⚠️ Source folder missing: {sourcePath}");
-            return;
-        }
-
-        foreach (string filePath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
-        {
-            string relativePath = filePath.Substring(sourcePath.Length + 1);
-            string destPath = Path.Combine(targetPath, relativePath);
-
-            Directory.CreateDirectory(Path.GetDirectoryName(destPath));
-            File.Copy(filePath, destPath, true);
-        }
-
-        Debug.Log($"📁 Copied from {sourcePath} to {targetPath}");
+        CopyFolder($"{SyncRoot}/Settings", "Assets/Settings");
     }
 
-    static void SyncProjectSettings()
+    [MenuItem("Template/Sync Addressables")]
+    public static void SyncAddressables()
     {
-        string source = "Assets/Template/.Sync/ProjectSettings/";
+        CopyFolder($"{SyncRoot}/AddressableAssetsData", "Assets/AddressableAssetsData");
+    }
+
+    [MenuItem("Template/Sync ProjectSettings")]
+    public static void SyncProjectSettings()
+    {
+        string source = $"{SyncRoot}/ProjectSettings/";
         string target = "ProjectSettings/";
 
         if (!Directory.Exists(source))
@@ -55,9 +51,10 @@ public static class SyncExecutor
         Debug.Log("✅ ProjectSettings synced.");
     }
 
-    static void SyncPackages()
+    [MenuItem("Template/Sync Packages")]
+    public static void SyncPackages()
     {
-        string sourceManifest = "Assets/Template/.Sync/Packages/manifest.json";
+        string sourceManifest = $"{SyncRoot}/Packages/manifest.json";
         string targetManifest = "Packages/manifest.json";
 
         if (!File.Exists(sourceManifest) || !File.Exists(targetManifest))
@@ -94,7 +91,7 @@ public static class SyncExecutor
             Debug.Log("🟢 All packages already present.");
         }
 
-        string srcLock = "Assets/Template/.Sync/Packages/packages-lock.json";
+        string srcLock = $"{SyncRoot}/Packages/packages-lock.json";
         string dstLock = "Packages/packages-lock.json";
 
         if (File.Exists(srcLock))
@@ -104,6 +101,43 @@ public static class SyncExecutor
         }
 
         AssetDatabase.Refresh();
+    }
+
+    [MenuItem("Template/Sync .gitignore")]
+    public static void SyncGitignore()
+    {
+        string source = $"{SyncRoot}/.gitignore";
+        string target = ".gitignore";
+
+        if (!File.Exists(source))
+        {
+            Debug.LogWarning("⚠️ No .gitignore found in template.");
+            return;
+        }
+
+        File.Copy(source, target, true);
+        Debug.Log("📄 .gitignore synced from template.");
+        AssetDatabase.Refresh();
+    }
+
+    private static void CopyFolder(string sourcePath, string targetPath)
+    {
+        if (!Directory.Exists(sourcePath))
+        {
+            Debug.LogWarning($"⚠️ Source folder missing: {sourcePath}");
+            return;
+        }
+
+        foreach (string filePath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
+        {
+            string relativePath = filePath.Substring(sourcePath.Length + 1);
+            string destPath = Path.Combine(targetPath, relativePath);
+
+            Directory.CreateDirectory(Path.GetDirectoryName(destPath));
+            File.Copy(filePath, destPath, true);
+        }
+
+        Debug.Log($"📁 Copied from {sourcePath} to {targetPath}");
     }
 }
 #endif
