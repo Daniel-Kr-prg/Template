@@ -140,7 +140,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Button!
+  m_text: Levels
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -221,7 +221,8 @@ GameObject:
   m_Component:
   - component: {fileID: 8411943690372614913}
   - component: {fileID: 8688016706426542350}
-  - component: {fileID: 5272401505089048524}
+  - component: {fileID: 4089758445277418413}
+  - component: {fileID: 3507850068753690739}
   m_Layer: 0
   m_Name: Background
   m_TagString: Untagged
@@ -256,7 +257,7 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3499562229009518243}
   m_CullTransparentMesh: 1
---- !u!114 &5272401505089048524
+--- !u!114 &4089758445277418413
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -265,18 +266,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 3499562229009518243}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4fdcd123b16675c438a4b6c775252a8e, type: 3}
+  m_Script: {fileID: 11500000, guid: 41f1c5417c9d7ab4b84e531f83f60a4b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0, g: 0, b: 0, a: 0.5882353}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: 3f91331724a9da84197e9b6d94f0483c, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -286,17 +287,21 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
-  _strength: 50
-  _quality: 2
-  _resolution: 4
-  _iterations: 1
-  _additiveColor: {r: 0, g: 0, b: 0, a: 0}
-  CameraOverride: {fileID: 0}
-  _useCameraRect: 0
-  _FOVOffset: {x: 0, y: 0}
-  _FOVScale: {x: 1, y: 1}
-  UseCustomMesh: 0
-  CustomMeshDivisions: 16
+  borderWidth: 0
+  falloffDistance: 0.5
+--- !u!114 &3507850068753690739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3499562229009518243}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8714c362c0c8a6449a9559a31cdab9a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  radius: 6
 --- !u!1 &7153739317702831329
 GameObject:
   m_ObjectHideFlags: 0
@@ -309,7 +314,7 @@ GameObject:
   - component: {fileID: 7818343815289598995}
   - component: {fileID: 429831506711326391}
   m_Layer: 0
-  m_Name: Blur Button
+  m_Name: UI_Button_Base
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -366,11 +371,11 @@ MonoBehaviour:
     m_SelectOnRight: {fileID: 0}
   m_Transition: 1
   m_Colors:
-    m_NormalColor: {r: 0.32941177, g: 0.32941177, b: 0.32941177, a: 0}
-    m_HighlightedColor: {r: 0.32941177, g: 0.32941177, b: 0.32941177, a: 0.05882353}
-    m_PressedColor: {r: 0.3301887, g: 0.3301887, b: 0.3301887, a: 0.23529412}
-    m_SelectedColor: {r: 0.32941177, g: 0.32941177, b: 0.32941177, a: 0.11764706}
-    m_DisabledColor: {r: 0.32941177, g: 0.32941177, b: 0.32941177, a: 0}
+    m_NormalColor: {r: 0, g: 0, b: 0, a: 0}
+    m_HighlightedColor: {r: 0, g: 0, b: 0, a: 0.19607843}
+    m_PressedColor: {r: 0, g: 0, b: 0, a: 0.27450982}
+    m_SelectedColor: {r: 0, g: 0, b: 0, a: 0.11764706}
+    m_DisabledColor: {r: 1, g: 1, b: 1, a: 0.039215688}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
