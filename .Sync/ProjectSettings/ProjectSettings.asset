@@ -17,7 +17,7 @@ PlayerSettings:
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
-  m_ShowUnitySplashScreen: 1
+  m_ShowUnitySplashScreen: 0
   m_ShowUnitySplashLogo: 1
   m_SplashScreenOverlayOpacity: 1
   m_SplashScreenAnimation: 1
@@ -817,24 +817,24 @@ PlayerSettings:
   webGLCloseOnQuit: 0
   webWasm2023: 0
   scriptingDefineSymbols:
-    Android: DOTWEEN
-    EmbeddedLinux: DOTWEEN
+    Android: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
+    EmbeddedLinux: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
     GameCoreScarlett: DOTWEEN
-    GameCoreXboxOne: DOTWEEN
-    LinuxHeadlessSimulation: DOTWEEN
-    Nintendo Switch: DOTWEEN
-    PS4: DOTWEEN
-    PS5: DOTWEEN
-    QNX: DOTWEEN
-    ReservedCFE: DOTWEEN
+    GameCoreXboxOne: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
+    LinuxHeadlessSimulation: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
+    Nintendo Switch: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
+    PS4: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
+    PS5: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
+    QNX: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
+    ReservedCFE: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
     Stadia: DOTWEEN
-    Standalone: DOTWEEN;ODIN_INSPECTOR;ODIN_INSPECTOR_3;ODIN_INSPECTOR_3_1;ODIN_INSPECTOR_3_2;ODIN_INSPECTOR_3_3;ODIN_VALIDATOR;ODIN_VALIDATOR_3_1;ODIN_VALIDATOR_3_2;ODIN_VALIDATOR_3_3
-    VisionOS: DOTWEEN
-    WebGL: DOTWEEN
-    Windows Store Apps: DOTWEEN
-    XboxOne: DOTWEEN
-    iPhone: DOTWEEN
-    tvOS: DOTWEEN
+    Standalone: DOTWEEN;ODIN_INSPECTOR;ODIN_INSPECTOR_3;ODIN_INSPECTOR_3_1;ODIN_INSPECTOR_3_2;ODIN_INSPECTOR_3_3;ODIN_VALIDATOR;ODIN_VALIDATOR_3_1;ODIN_VALIDATOR_3_2;ODIN_VALIDATOR_3_3;KAMGAM_UGUI_BLURRED_BACKGROUND
+    VisionOS: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
+    WebGL: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
+    Windows Store Apps: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
+    XboxOne: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
+    iPhone: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
+    tvOS: DOTWEEN;KAMGAM_UGUI_BLURRED_BACKGROUND
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend: {}
@@ -945,12 +945,12 @@ PlayerSettings:
   qnxGraphicConfPath: 
   apiCompatibilityLevel: 6
   captureStartupLogs: {}
-  activeInputHandler: 0
+  activeInputHandler: 2
   windowsGamepadBackendHint: 0
-  cloudProjectId: a7adf65a-4e7e-4fcd-bacb-22ccc2240af8
+  cloudProjectId: efd25761-d1b3-4ae7-b3a3-5d3ebda5c06b
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: ProjectBlueprint
+  projectName: Pongtai
   organizationId: daniilkryvarot
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0

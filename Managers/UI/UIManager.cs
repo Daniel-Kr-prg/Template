@@ -1,9 +1,16 @@
+using Sirenix.OdinInspector;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class UIManager : SingletonManager<UIManager>
 {
+    [Header("Canvas setup")]
+    [SerializeField] private List<Canvas> canvasesToSetWorldCamera;
+
     private void Start()
     {
+        ReassignCamera();
+
         StagesManager.Instance.AppStages.stages[AppStageName.AppInit].RegisterStageEndAction("LoadingScreen_Show", () => 
         {
             ShowLoadingScreen();
@@ -17,6 +24,15 @@ public class UIManager : SingletonManager<UIManager>
         StagesManager.Instance.AppStages.currentStage.SatisfyCondition("StagesManager_UIManagerReady");
     }
 
+    [Button("Reassign camera")]
+    public void ReassignCamera()
+    {
+        foreach (var c in canvasesToSetWorldCamera)
+        {
+            if (c != null/* && c.renderMode == RenderMode.ScreenSpaceCamera*/)
+                c.worldCamera = CameraManager.CurrentCamera;
+        }
+    }
 
     #region Screens
 

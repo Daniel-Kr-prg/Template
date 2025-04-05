@@ -6,7 +6,7 @@ using UnityEngine.Events;
 public class UI_Management_PageSwitcher : MonoBehaviour
 {
     [Header("Settings")]
-    [SerializeField] private bool ShowFirstPageOnStart = true;
+    [SerializeField] private UI_Elements_Page PageToShowAtStart;
 
     [Header("Pages")]
     public SerializedDictionary<string, UI_Elements_Page> pages;
@@ -18,10 +18,10 @@ public class UI_Management_PageSwitcher : MonoBehaviour
 
     private void Start()
     {
-        if (ShowFirstPageOnStart && pages.Count > 0)
+        if (PageToShowAtStart != null && pages.Values.Contains(PageToShowAtStart))
         {
-            currentPage = pages.Values.First();
-            currentPage.Show(true);
+            currentPage = PageToShowAtStart;
+            currentPage.Show();
         }
     }
 
