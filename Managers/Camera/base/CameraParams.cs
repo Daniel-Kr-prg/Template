@@ -1,3 +1,4 @@
+using Cinemachine;
 using UnityEngine;
 
 public interface IBaseCameraParams
@@ -52,21 +53,42 @@ public interface IOrbitalCameraParams : IBaseCameraParams
 // Base params
 
 [System.Serializable]
-public class BaseCameraParams : IBaseCameraParams
+public class BaseCameraParams<CameraType>
 {
-    public float TransitionDuration { get; set; } = 0.5f;
-    public AnimationCurve TransitionCurve { get; set; } = AnimationCurve.EaseInOut(0, 0, 1, 1);
+    protected CameraParamsBuilderBase<CameraType> builder;
 
-    public BaseCameraParams()
+    public BaseCameraParams(CameraParamsBuilderBase<CameraType> builder)
     {
-        TransitionDuration = 0.5f;
-        TransitionCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
+        if (builder == null)
+        {
+            CameraManager.Instance.DebugError("Builder is null. Can't create params");
+            return;
+        }
+        this.builder = builder
+            .SetTransitionCurve(AnimationCurve.EaseInOut(0, 0, 1, 1))
+            .SetTransitionDuration(0.5f);
     }
 
-    public BaseCameraParams(float transitionDuration, AnimationCurve transitionCurve)
+    public BaseCameraParams(CameraParamsBuilderBase<CameraType> builder, float transitionDuration, AnimationCurve transitionCurve)
     {
-        TransitionDuration = transitionDuration;
-        TransitionCurve = transitionCurve;
+        if (builder == null)
+        {
+            CameraManager.Instance.DebugError("Builder is null. Can't create params");
+            return;
+        }
+        this.builder = builder
+            .SetTransitionCurve(transitionCurve)
+            .SetTransitionDuration(transitionDuration);
+    }
+
+    public void ApplyTo(CameraType camera)
+    {
+        builder.Build(camera);
+    }
+
+    public CameraParamsBuilderBase<CameraType> GetBuilder()
+    {
+        return builder;
     }
 }
 
@@ -78,29 +100,52 @@ public class BaseCameraParams_SO : ScriptableObject, IBaseCameraParams
 
     public float TransitionDuration { get => transitionDuration; set => transitionDuration = value; }
     public AnimationCurve TransitionCurve { get => transitionCurve; set => transitionCurve = value; }
+
+    public virtual void ApplyTo<CameraType>(CameraParamsBuilderBase<CameraType> builder, CameraType camera)
+    {
+        if (builder == null)
+        {
+            CameraManager.Instance.DebugError("Builder is null. Cannot apply parameters.");
+            return;
+        }
+
+        builder
+            .SetTransitionDuration(transitionDuration)
+            .SetTransitionCurve(transitionCurve)
+            .Build(camera);
+    }
 }
 
 // Follow camera
 
 [System.Serializable]
-public class FollowCameraParams : BaseCameraParams, IFollowCameraParams
+public class FollowCameraParams<CameraType> : BaseCameraParams<CameraType>
 {
-    public Transform FollowingObject { get; set; }
-    public Vector3 FollowOffset { get; set; } = new Vector3(0, 1f, 0);
-    public float FollowSmoothing { get; set; } = 0.2f;
-
-    public FollowCameraParams() : base()
+    public FollowCameraParams(CameraParamsBuilderBase<CameraType> builder)
+        : base(builder)
     {
-        FollowOffset = new Vector3(0, 1f, 0);
-        FollowSmoothing = 0.2f;
+        builder
+            .SetFollowOffset(new Vector3(0, 1f, 0))
+            .SetFollowSmoothing(0.2f)
+            .SetLookaheadTime(0.2f)
+            .SetLookaheadSmoothing(0.2f)
+            .SetCameraDistance(10f)
+            .SetDeadZoneWidth(0.1f)
+            .SetDeadZoneHeight(0.1f);
     }
 
-    public FollowCameraParams(Transform followingObject, Vector3 followOffset, float followSmoothing, float transitionDuration, AnimationCurve transitionCurve)
-        : base(transitionDuration, transitionCurve)
+    public FollowCameraParams(CameraParamsBuilderBase<CameraType> builder, Transform target, Vector3 offset, float smoothing, float lookaheadTime, float lookaheadSmoothing, float cameraDistance, float deadZoneWidth, float deadZoneHeight, float duration, AnimationCurve curve)
+        : base(builder, duration, curve)
     {
-        FollowingObject = followingObject;
-        FollowOffset = followOffset;
-        FollowSmoothing = followSmoothing;
+        builder
+            .SetFollowingObject(target)
+            .SetFollowOffset(offset)
+            .SetFollowSmoothing(smoothing)
+            .SetLookaheadTime(lookaheadTime)
+            .SetLookaheadSmoothing(lookaheadSmoothing)
+            .SetCameraDistance(cameraDistance)
+            .SetDeadZoneWidth(deadZoneWidth)
+            .SetDeadZoneHeight(deadZoneHeight);
     }
 }
 
@@ -110,31 +155,59 @@ public class FollowCameraParams_SO : BaseCameraParams_SO, IFollowCameraParams
     [SerializeField] private Transform followingObject;
     [SerializeField] private Vector3 followOffset = new Vector3(0, 5, -10);
     [SerializeField] private float followSmoothing = 0.2f;
+    [SerializeField] private float lookaheadTime = 0.2f;
+    [SerializeField] private float lookaheadSmoothing = 0.2f;
+    [SerializeField] private float cameraDistance = 10f;
+    [SerializeField] private float deadZoneWidth = 0.1f;
+    [SerializeField] private float deadZoneHeight = 0.1f;
 
     public Transform FollowingObject { get => followingObject; set => followingObject = value; }
     public Vector3 FollowOffset { get => followOffset; set => followOffset = value; }
     public float FollowSmoothing { get => followSmoothing; set => followSmoothing = value; }
+    public float LookaheadTime { get => lookaheadTime; set => lookaheadTime = value; }
+    public float LookaheadSmoothing { get => lookaheadSmoothing; set => lookaheadSmoothing = value; }
+    public float CameraDistance { get => cameraDistance; set => cameraDistance = value; }
+    public float DeadZoneWidth { get => deadZoneWidth; set => deadZoneWidth = value; }
+    public float DeadZoneHeight { get => deadZoneHeight; set => deadZoneHeight = value; }
+
+    public override void ApplyTo<CameraType>(CameraParamsBuilderBase<CameraType> builder, CameraType cam)
+    {
+        builder
+            .SetFollowingObject(followingObject)
+            .SetFollowOffset(followOffset)
+            .SetFollowSmoothing(followSmoothing)
+            .SetLookaheadTime(lookaheadTime)
+            .SetLookaheadSmoothing(lookaheadSmoothing)
+            .SetCameraDistance(cameraDistance)
+            .SetDeadZoneWidth(deadZoneWidth)
+            .SetDeadZoneHeight(deadZoneHeight)
+            .SetTransitionDuration(TransitionDuration)
+            .SetTransitionCurve(TransitionCurve)
+            .Build(cam);
+    }
 }
 
 // TopDown camera
 
-[System.Serializable]
-public class TopDownCameraParams : BaseCameraParams, ITopDownCameraParams
-{
-    public Vector3 CameraAngle { get; set; } = new Vector3(90, 0, 0);
-    public Vector3 PositionOffset { get; set; } = Vector3.zero;
+// TopDown camera
 
-    public TopDownCameraParams() : base()
+[System.Serializable]
+public class TopDownCameraParams<CameraType> : BaseCameraParams<CameraType>
+{
+    public TopDownCameraParams(CameraParamsBuilderBase<CameraType> builder)
+        : base(builder)
     {
-        CameraAngle = new Vector3(90, 0, 0);
-        PositionOffset = Vector3.zero;
+        builder
+            .SetCameraAngle(new Vector3(90, 0, 0))
+            .SetPositionOffset(Vector3.zero);
     }
 
-    public TopDownCameraParams(Vector3 cameraAngle, Vector3 positionOffset, float transitionDuration, AnimationCurve transitionCurve)
-        : base(transitionDuration, transitionCurve)
+    public TopDownCameraParams(CameraParamsBuilderBase<CameraType> builder, Vector3 cameraAngle, Vector3 positionOffset, float duration, AnimationCurve curve)
+        : base(builder, duration, curve)
     {
-        CameraAngle = cameraAngle;
-        PositionOffset = positionOffset;
+        builder
+            .SetCameraAngle(cameraAngle)
+            .SetPositionOffset(positionOffset);
     }
 }
 
@@ -146,27 +219,37 @@ public class TopDownCameraParams_SO : BaseCameraParams_SO, ITopDownCameraParams
 
     public Vector3 CameraAngle { get => cameraAngle; set => cameraAngle = value; }
     public Vector3 PositionOffset { get => positionOffset; set => positionOffset = value; }
+
+    public override void ApplyTo<CameraType>(CameraParamsBuilderBase<CameraType> builder, CameraType cam)
+    {
+        builder
+            .SetCameraAngle(cameraAngle)
+            .SetPositionOffset(positionOffset)
+            .SetTransitionDuration(TransitionDuration)
+            .SetTransitionCurve(TransitionCurve)
+            .Build(cam);
+    }
 }
 
 // FPS camera
 
 [System.Serializable]
-public class FirstPersonCameraParams : BaseCameraParams, IFirstPersonCameraParams
+public class FirstPersonCameraParams<CameraType> : BaseCameraParams<CameraType>
 {
-    public float HeadBobbingIntensity { get; set; } = 0.1f;
-    public float LookSensitivity { get; set; } = 1.0f;
-
-    public FirstPersonCameraParams() : base()
+    public FirstPersonCameraParams(CameraParamsBuilderBase<CameraType> builder)
+        : base(builder)
     {
-        HeadBobbingIntensity = 0.1f;
-        LookSensitivity = 1.0f;
+        builder
+            .SetHeadBobbingIntensity(0.1f)
+            .SetLookSensitivity(1.0f);
     }
 
-    public FirstPersonCameraParams(float headBobbingIntensity, float lookSensitivity, float transitionDuration, AnimationCurve transitionCurve)
-        : base(transitionDuration, transitionCurve)
+    public FirstPersonCameraParams(CameraParamsBuilderBase<CameraType> builder, float headBobbingIntensity, float lookSensitivity, float duration, AnimationCurve curve)
+        : base(builder, duration, curve)
     {
-        HeadBobbingIntensity = headBobbingIntensity;
-        LookSensitivity = lookSensitivity;
+        builder
+            .SetHeadBobbingIntensity(headBobbingIntensity)
+            .SetLookSensitivity(lookSensitivity);
     }
 }
 
@@ -178,27 +261,36 @@ public class FirstPersonCameraParams_SO : BaseCameraParams_SO, IFirstPersonCamer
 
     public float HeadBobbingIntensity { get => headBobbingIntensity; set => headBobbingIntensity = value; }
     public float LookSensitivity { get => lookSensitivity; set => lookSensitivity = value; }
+
+    public override void ApplyTo<CameraType>(CameraParamsBuilderBase<CameraType> builder, CameraType cam)
+    {
+        builder
+            .SetHeadBobbingIntensity(headBobbingIntensity)
+            .SetLookSensitivity(lookSensitivity)
+            .SetTransitionDuration(TransitionDuration)
+            .SetTransitionCurve(TransitionCurve)
+            .Build(cam);
+    }
 }
 
 // TPS camera
-
 [System.Serializable]
-public class ThirdPersonCameraParams : BaseCameraParams, IThirdPersonCameraParams
+public class ThirdPersonCameraParams<CameraType> : BaseCameraParams<CameraType>
 {
-    public Vector3 FollowOffset { get; set; } = new Vector3(0, 3, -6);
-    public float RotationSmoothing { get; set; } = 0.1f;
-
-    public ThirdPersonCameraParams() : base()
+    public ThirdPersonCameraParams(CameraParamsBuilderBase<CameraType> builder)
+        : base(builder)
     {
-        FollowOffset = new Vector3(0, 3, -6);
-        RotationSmoothing = 0.1f;
+        builder
+            .SetFollowOffset(new Vector3(0, 3, -6))
+            .SetRotationSmoothing(0.1f);
     }
 
-    public ThirdPersonCameraParams(Vector3 followOffset, float rotationSmoothing, float transitionDuration, AnimationCurve transitionCurve)
-        : base(transitionDuration, transitionCurve)
+    public ThirdPersonCameraParams(CameraParamsBuilderBase<CameraType> builder, Vector3 offset, float smoothing, float duration, AnimationCurve curve)
+        : base(builder, duration, curve)
     {
-        FollowOffset = followOffset;
-        RotationSmoothing = rotationSmoothing;
+        builder
+            .SetFollowOffset(offset)
+            .SetRotationSmoothing(smoothing);
     }
 }
 
@@ -210,27 +302,37 @@ public class ThirdPersonCameraParams_SO : BaseCameraParams_SO, IThirdPersonCamer
 
     public Vector3 FollowOffset { get => followOffset; set => followOffset = value; }
     public float RotationSmoothing { get => rotationSmoothing; set => rotationSmoothing = value; }
+
+    public override void ApplyTo<CameraType>(CameraParamsBuilderBase<CameraType> builder, CameraType cam)
+    {
+        builder
+            .SetFollowOffset(followOffset)
+            .SetRotationSmoothing(rotationSmoothing)
+            .SetTransitionDuration(TransitionDuration)
+            .SetTransitionCurve(TransitionCurve)
+            .Build(cam);
+    }
 }
 
 // Isometric camera
 
 [System.Serializable]
-public class IsometricCameraParams : BaseCameraParams, IIsometricCameraParams
+public class IsometricCameraParams<CameraType> : BaseCameraParams<CameraType>
 {
-    public Vector3 CameraRotation { get; set; } = new Vector3(45, 45, 0);
-    public float OrthographicSize { get; set; } = 10f;
-
-    public IsometricCameraParams() : base()
+    public IsometricCameraParams(CameraParamsBuilderBase<CameraType> builder)
+        : base(builder)
     {
-        CameraRotation = new Vector3(45, 45, 0);
-        OrthographicSize = 10f;
+        builder
+            .SetCameraAngle(new Vector3(45, 45, 0))
+            .SetOrthographicSize(10f);
     }
 
-    public IsometricCameraParams(Vector3 cameraRotation, float orthographicSize, float transitionDuration, AnimationCurve transitionCurve)
-        : base(transitionDuration, transitionCurve)
+    public IsometricCameraParams(CameraParamsBuilderBase<CameraType> builder, Vector3 rotation, float size, float duration, AnimationCurve curve)
+        : base(builder, duration, curve)
     {
-        CameraRotation = cameraRotation;
-        OrthographicSize = orthographicSize;
+        builder
+            .SetCameraAngle(rotation)
+            .SetOrthographicSize(size);
     }
 }
 
@@ -242,27 +344,37 @@ public class IsometricCameraParams_SO : BaseCameraParams_SO, IIsometricCameraPar
 
     public Vector3 CameraRotation { get => cameraRotation; set => cameraRotation = value; }
     public float OrthographicSize { get => orthographicSize; set => orthographicSize = value; }
+
+    public override void ApplyTo<CameraType>(CameraParamsBuilderBase<CameraType> builder, CameraType cam)
+    {
+        builder
+            .SetCameraAngle(cameraRotation)
+            .SetOrthographicSize(orthographicSize)
+            .SetTransitionDuration(TransitionDuration)
+            .SetTransitionCurve(TransitionCurve)
+            .Build(cam);
+    }
 }
 
 // Fixed camera
 
 [System.Serializable]
-public class FixedCameraParams : BaseCameraParams, IFixedCameraParams
+public class FixedCameraParams<CameraType> : BaseCameraParams<CameraType>
 {
-    public Vector3 FixedPosition { get; set; } = Vector3.zero;
-    public Quaternion FixedRotation { get; set; } = Quaternion.identity;
-
-    public FixedCameraParams() : base()
+    public FixedCameraParams(CameraParamsBuilderBase<CameraType> builder)
+        : base(builder)
     {
-        FixedPosition = Vector3.zero;
-        FixedRotation = Quaternion.identity;
+        builder
+            .SetPosition(Vector3.zero)
+            .SetRotation(Quaternion.identity);
     }
 
-    public FixedCameraParams(Vector3 fixedPosition, Quaternion fixedRotation, float transitionDuration, AnimationCurve transitionCurve)
-        : base(transitionDuration, transitionCurve)
+    public FixedCameraParams(CameraParamsBuilderBase<CameraType> builder, Vector3 position, Quaternion rotation, float duration, AnimationCurve curve)
+        : base(builder, duration, curve)
     {
-        FixedPosition = fixedPosition;
-        FixedRotation = fixedRotation;
+        builder
+            .SetPosition(position)
+            .SetRotation(rotation);
     }
 }
 
@@ -274,27 +386,37 @@ public class FixedCameraParams_SO : BaseCameraParams_SO, IFixedCameraParams
 
     public Vector3 FixedPosition { get => fixedPosition; set => fixedPosition = value; }
     public Quaternion FixedRotation { get => fixedRotation; set => fixedRotation = value; }
+
+    public override void ApplyTo<CameraType>(CameraParamsBuilderBase<CameraType> builder, CameraType cam)
+    {
+        builder
+            .SetPosition(fixedPosition)
+            .SetRotation(fixedRotation)
+            .SetTransitionDuration(TransitionDuration)
+            .SetTransitionCurve(TransitionCurve)
+            .Build(cam);
+    }
 }
 
 // Orbital camera
 
 [System.Serializable]
-public class OrbitalCameraParams : BaseCameraParams, IOrbitalCameraParams
+public class OrbitalCameraParams<CameraType> : BaseCameraParams<CameraType>
 {
-    public float OrbitRadius { get; set; } = 5f;
-    public float OrbitSpeed { get; set; } = 20f;
-
-    public OrbitalCameraParams() : base()
+    public OrbitalCameraParams(CameraParamsBuilderBase<CameraType> builder)
+        : base(builder)
     {
-        OrbitRadius = 5f;
-        OrbitSpeed = 20f;
+        builder
+            .SetOrbitRadius(5f)
+            .SetOrbitSpeed(20f);
     }
 
-    public OrbitalCameraParams(float orbitRadius, float orbitSpeed, float transitionDuration, AnimationCurve transitionCurve)
-        : base(transitionDuration, transitionCurve)
+    public OrbitalCameraParams(CameraParamsBuilderBase<CameraType> builder, float radius, float speed, float duration, AnimationCurve curve)
+        : base(builder, duration, curve)
     {
-        OrbitRadius = orbitRadius;
-        OrbitSpeed = orbitSpeed;
+        builder
+            .SetOrbitRadius(radius)
+            .SetOrbitSpeed(speed);
     }
 }
 
@@ -306,5 +428,15 @@ public class OrbitalCameraParams_SO : BaseCameraParams_SO, IOrbitalCameraParams
 
     public float OrbitRadius { get => orbitRadius; set => orbitRadius = value; }
     public float OrbitSpeed { get => orbitSpeed; set => orbitSpeed = value; }
+
+    public override void ApplyTo<CameraType>(CameraParamsBuilderBase<CameraType> builder, CameraType cam)
+    {
+        builder
+            .SetOrbitRadius(orbitRadius)
+            .SetOrbitSpeed(orbitSpeed)
+            .SetTransitionDuration(TransitionDuration)
+            .SetTransitionCurve(TransitionCurve)
+            .Build(cam);
+    }
 }
 

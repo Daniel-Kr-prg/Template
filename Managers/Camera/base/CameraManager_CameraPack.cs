@@ -26,7 +26,7 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
 
     // Dictionary storing base metadata for main cameras.
     // Key: Camera type enum; Value: Tuple (camera ID, switch callback, disable callback).
-    [SerializeField] protected SerializedDictionary<CameraManager_MainCameraCameraType, (Key, Action<CameraType, BaseCameraParams>, Action<CameraType, BaseCameraParams>)> mainCameraBaseMetadata;
+    [SerializeField] protected SerializedDictionary<CameraManager_MainCameraCameraType, (Key, Action<CameraType, CameraParamsBuilderBase<CameraType>>, Action<CameraType, CameraParamsBuilderBase<CameraType>>)> mainCameraBaseMetadata;
 
     // Dictionary of main virtual cameras, keyed by their ID.
     [SerializeField] protected SerializedDictionary<Key, CameraManager_CameraController<Key, CameraType>> mainVirtualCameras;
@@ -55,7 +55,7 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
 
     // Library of camera parameters (presets) stored as ScriptableObjects.
     [Header("Camera Params Library")]
-    [SerializeField] protected SerializedDictionary<string, BaseCameraParams> cameraParams;
+    [SerializeField] protected SerializedDictionary<string, BaseCameraParams_SO> cameraParams;
 
     // Callback to set the default camera.
     protected Action DefaultCameraCallback;
@@ -101,7 +101,7 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
     /// <summary>
     /// Switch the camera by its ID. It checks custom cameras first, then main cameras.
     /// </summary>
-    public virtual void SwitchCameraByID(Key cameraID, BaseCameraParams switchData = null, BaseCameraParams disableData = null)
+    public virtual void SwitchCameraByID(Key cameraID, CameraParamsBuilderBase<CameraType> switchData = null, CameraParamsBuilderBase<CameraType> disableData = null)
     {
         if (customVirtualCameras.TryGetValue(cameraID, out var cam))
         {
@@ -126,8 +126,8 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
         CameraManager_CameraControllerBase prefab,
         Transform parent,
         Key cameraID,
-        Action<CameraType, BaseCameraParams> switchCallback,
-        Action<CameraType, BaseCameraParams> disableCallback,
+        Action<CameraType, CameraParamsBuilderBase<CameraType>> switchCallback,
+        Action<CameraType, CameraParamsBuilderBase<CameraType>> disableCallback,
         GameObject cameraObject)
     {
         // Check if the camera exists in the dictionary.
@@ -197,7 +197,7 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
     /// <summary>
     /// Update a main camera using its ID. This method calls UpdateCamera with the main virtual cameras data.
     /// </summary>
-    public virtual bool UpdateCamera_MainCameras(Key cameraID, Action<CameraType, BaseCameraParams> switchCallback = null, Action<CameraType, BaseCameraParams> disableCallback = null, GameObject cameraObject = null)
+    public virtual bool UpdateCamera_MainCameras(Key cameraID, Action<CameraType, CameraParamsBuilderBase<CameraType>> switchCallback = null, Action<CameraType, CameraParamsBuilderBase<CameraType>> disableCallback = null, GameObject cameraObject = null)
     {
         return UpdateCamera(mainVirtualCameras, mainVirtualCameraPrefab, mainVirtualCamerasFolder, cameraID, switchCallback, disableCallback, cameraObject);
     }
@@ -283,7 +283,7 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
     /// </summary>
     /// <param name="target">The object the camera will follow.</param>
     /// <param name="cameraParams">FollowCameraParams with all required settings.</param>
-    public abstract void SwitchCamera_Follow(Transform target, FollowCameraParams cameraParams);
+    public abstract void SwitchCamera_Follow(Transform target, FollowCameraParams<CameraType> cameraParams);
 
     /// <summary>
     /// Switches to a Top-Down Camera using parameters from a ScriptableObject.
@@ -293,7 +293,7 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
     /// <summary>
     /// Switches to a Top-Down Camera with the given parameters.
     /// </summary>
-    public abstract void SwitchCamera_TopDown(Transform target, TopDownCameraParams cameraParams);
+    public abstract void SwitchCamera_TopDown(Transform target, TopDownCameraParams<CameraType> cameraParams);
 
     /// <summary>
     /// Switches to a First-Person Camera using parameters from a ScriptableObject.
@@ -303,7 +303,7 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
     /// <summary>
     /// Switches to a First-Person Camera with the given parameters.
     /// </summary>
-    public abstract void SwitchCamera_FirstPerson(Transform target, FirstPersonCameraParams cameraParams);
+    public abstract void SwitchCamera_FirstPerson(Transform target, FirstPersonCameraParams<CameraType> cameraParams);
 
     /// <summary>
     /// Switches to a Third-Person Camera using parameters from a ScriptableObject.
@@ -313,7 +313,7 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
     /// <summary>
     /// Switches to a Third-Person Camera with the given parameters.
     /// </summary>
-    public abstract void SwitchCamera_ThirdPerson(Transform target, ThirdPersonCameraParams cameraParams);
+    public abstract void SwitchCamera_ThirdPerson(Transform target, ThirdPersonCameraParams<CameraType> cameraParams);
 
     /// <summary>
     /// Switches to an Isometric Camera using parameters from a ScriptableObject.
@@ -323,7 +323,7 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
     /// <summary>
     /// Switches to an Isometric Camera with the given parameters.
     /// </summary>
-    public abstract void SwitchCamera_IsometricCamera(Transform target, IsometricCameraParams cameraParams);
+    public abstract void SwitchCamera_IsometricCamera(Transform target, IsometricCameraParams<CameraType> cameraParams);
 
     /// <summary>
     /// Switches to a Fixed Camera using parameters from a ScriptableObject.
@@ -333,7 +333,7 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
     /// <summary>
     /// Switches to a Fixed Camera with the given parameters.
     /// </summary>
-    public abstract void SwitchCamera_FixedCamera(FixedCameraParams cameraParams);
+    public abstract void SwitchCamera_FixedCamera(FixedCameraParams<CameraType> cameraParams);
 
     /// <summary>
     /// Switches to an Orbital Camera using parameters from a ScriptableObject.
@@ -343,7 +343,7 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
     /// <summary>
     /// Switches to an Orbital Camera with the given parameters.
     /// </summary>
-    public abstract void SwitchCamera_OrbitalCamera(Transform target, OrbitalCameraParams cameraParams);
+    public abstract void SwitchCamera_OrbitalCamera(Transform target, OrbitalCameraParams<CameraType> cameraParams);
 
     #endregion
 
@@ -352,7 +352,7 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
     /// <summary>
     /// Update a custom camera using its ID. Similar to main cameras but uses the custom camera data.
     /// </summary>
-    public virtual bool UpdateCamera_CustomCameras(Key cameraID, Action<CameraType, BaseCameraParams> switchCallback = null, Action<CameraType, BaseCameraParams> disableCallback = null, GameObject cameraObject = null)
+    public virtual bool UpdateCamera_CustomCameras(Key cameraID, Action<CameraType, CameraParamsBuilderBase<CameraType>> switchCallback = null, Action<CameraType, CameraParamsBuilderBase<CameraType>> disableCallback = null, GameObject cameraObject = null)
     {
         return UpdateCamera(customVirtualCameras, customVirtualCameraPrefab, customVirtualCamerasFolder, cameraID, switchCallback, disableCallback, cameraObject);
     }
@@ -361,7 +361,8 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
     /// Register a new custom camera with the given ID and callbacks.
     /// Returns false if the camera is already registered.
     /// </summary>
-    public virtual bool RegisterCustomCamera(Key cameraID, Action<CameraType, BaseCameraParams> switchCallback = null, Action<CameraType, BaseCameraParams> disableCallback = null)
+    /// 
+    public virtual bool RegisterCustomCamera(Key cameraID, Action<CameraType, CameraParamsBuilderBase<CameraType>> switchCallback = null, Action<CameraType, CameraParamsBuilderBase<CameraType>> disableCallback = null)
     {
         if (customVirtualCameras.ContainsKey(cameraID)) return false;
 
@@ -403,7 +404,7 @@ public abstract class CameraManager_CameraPack<Key, CameraType> : CameraManager_
     /// <summary>
     /// Switch a custom camera by its ID using the provided switch and disable data.
     /// </summary>
-    public virtual void SwitchCamera_CustomCamera_ByID(Key cameraID, BaseCameraParams switchData = null, BaseCameraParams disableData = null)
+    public virtual void SwitchCamera_CustomCamera_ByID(Key cameraID, CameraParamsBuilderBase<CameraType> switchData = null, CameraParamsBuilderBase<CameraType> disableData = null)
     {
         if (customVirtualCameras.TryGetValue(cameraID, out var cam))
         {

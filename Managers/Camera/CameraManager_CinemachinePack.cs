@@ -10,9 +10,15 @@ public class CameraManager_CinemachinePack : CameraManager_CameraPack<string, Ci
 
     protected override void SetupPack()
     {
-        mainCameraBaseMetadata = new Dictionary<CameraManager_MainCameraCameraType, (string, Action<CinemachineVirtualCamera, BaseCameraParams> switchCallback, Action<CinemachineVirtualCamera, BaseCameraParams>)>()
+        mainCameraBaseMetadata = new SerializedDictionary<CameraManager_MainCameraCameraType, (string, Action<CinemachineVirtualCamera, CameraParamsBuilderBase<CinemachineVirtualCamera>>, Action<CinemachineVirtualCamera, CameraParamsBuilderBase<CinemachineVirtualCamera>>)>()
         {
-            { CameraManager_MainCameraCameraType.FOLLOW, ("main_follow", switchCallback_Follow, disableCallback_Follow) },
+            { CameraManager_MainCameraCameraType.FOLLOW,
+                (
+                    "main_follow",
+                    (cam, builder) => switchCallback_Follow(cam, builder as CameraParamsBuilder_Cinemachine),
+                    (cam, builder) => disableCallback_Follow(cam, builder as CameraParamsBuilder_Cinemachine)
+                ) 
+            },
             { CameraManager_MainCameraCameraType.FPS, ("main_fps", null, null) },
             { CameraManager_MainCameraCameraType.FIXED, ("main_fixed", null, null) },
             { CameraManager_MainCameraCameraType.ORBITAL, ("main_orbital", null, null) },
@@ -54,7 +60,7 @@ public class CameraManager_CinemachinePack : CameraManager_CameraPack<string, Ci
         throw new System.NotImplementedException();
     }
 
-    public override void SwitchCamera_FirstPerson(Transform target, FirstPersonCameraParams cameraParams)
+    public override void SwitchCamera_FirstPerson(Transform target, FirstPersonCameraParams<CinemachineVirtualCamera> cameraParams)
     {
         throw new System.NotImplementedException();
     }
@@ -64,7 +70,7 @@ public class CameraManager_CinemachinePack : CameraManager_CameraPack<string, Ci
         throw new System.NotImplementedException();
     }
 
-    public override void SwitchCamera_FixedCamera(FixedCameraParams cameraParams)
+    public override void SwitchCamera_FixedCamera(FixedCameraParams<CinemachineVirtualCamera> cameraParams)
     {
         throw new System.NotImplementedException();
     }
@@ -74,7 +80,7 @@ public class CameraManager_CinemachinePack : CameraManager_CameraPack<string, Ci
         throw new System.NotImplementedException();
     }
 
-    public override void SwitchCamera_Follow(Transform target, FollowCameraParams cameraParams)
+    public override void SwitchCamera_Follow(Transform target, FollowCameraParams<CinemachineVirtualCamera> cameraParams)
     {
         if (target == null)
         {
@@ -82,10 +88,9 @@ public class CameraManager_CinemachinePack : CameraManager_CameraPack<string, Ci
             return;
         }
         if (cameraParams == null)
-            cameraParams = new FollowCameraParams();
+            cameraParams = new FollowCameraParams<CinemachineVirtualCamera>(new CameraParamsBuilder_Cinemachine().SetFollowingObject(target));
 
-        cameraParams.FollowingObject = target;
-        SwitchCameraByID(mainCameraBaseMetadata[CameraManager_MainCameraCameraType.FOLLOW].Item1, cameraParams, null);
+        SwitchCameraByID(mainCameraBaseMetadata[CameraManager_MainCameraCameraType.FOLLOW].Item1, cameraParams.GetBuilder(), null);
     }
 
     public override void SwitchCamera_IsometricCamera(Transform target, string paramsKey = "", string disableParamsKey = "")
@@ -93,7 +98,7 @@ public class CameraManager_CinemachinePack : CameraManager_CameraPack<string, Ci
         throw new System.NotImplementedException();
     }
 
-    public override void SwitchCamera_IsometricCamera(Transform target, IsometricCameraParams cameraParams)
+    public override void SwitchCamera_IsometricCamera(Transform target, IsometricCameraParams<CinemachineVirtualCamera> cameraParams)
     {
         throw new System.NotImplementedException();
     }
@@ -103,7 +108,7 @@ public class CameraManager_CinemachinePack : CameraManager_CameraPack<string, Ci
         throw new System.NotImplementedException();
     }
 
-    public override void SwitchCamera_OrbitalCamera(Transform target, OrbitalCameraParams cameraParams)
+    public override void SwitchCamera_OrbitalCamera(Transform target, OrbitalCameraParams<CinemachineVirtualCamera> cameraParams)
     {
         throw new System.NotImplementedException();
     }
@@ -113,7 +118,7 @@ public class CameraManager_CinemachinePack : CameraManager_CameraPack<string, Ci
         throw new System.NotImplementedException();
     }
 
-    public override void SwitchCamera_ThirdPerson(Transform target, ThirdPersonCameraParams cameraParams)
+    public override void SwitchCamera_ThirdPerson(Transform target, ThirdPersonCameraParams<CinemachineVirtualCamera> cameraParams)
     {
         throw new System.NotImplementedException();
     }
@@ -123,7 +128,7 @@ public class CameraManager_CinemachinePack : CameraManager_CameraPack<string, Ci
         throw new System.NotImplementedException();
     }
 
-    public override void SwitchCamera_TopDown(Transform target, TopDownCameraParams cameraParams)
+    public override void SwitchCamera_TopDown(Transform target, TopDownCameraParams<CinemachineVirtualCamera> cameraParams)
     {
         throw new System.NotImplementedException();
     }
@@ -137,17 +142,11 @@ public class CameraManager_CinemachinePack : CameraManager_CameraPack<string, Ci
     /// </summary>
     /// <param name="cam">The Cinemachine Virtual Camera to configure.</param>
     /// <param name="parameters">The base parameters, which should be cast to FollowCameraParams.</param>
-    Action<CinemachineVirtualCamera, BaseCameraParams> switchCallback_Follow = (cam, parameters) =>
+    Action<CinemachineVirtualCamera, CameraParamsBuilder_Cinemachine> switchCallback_Follow = (cam, parameters) =>
     {
         if (parameters == null)
         {
             CameraManager.Instance.DebugError("FollowCameraParams not provided");
-            return;
-        }
-
-        if (parameters is not FollowCameraParams followParams)
-        {
-            CameraManager.Instance.DebugError("Invalid camera parameters type. Expected FollowCameraParams.");
             return;
         }
 
@@ -157,39 +156,35 @@ public class CameraManager_CinemachinePack : CameraManager_CameraPack<string, Ci
             return;
         }
 
-        if (followParams.FollowingObject == null)
-        {
-            CameraManager.Instance.DebugError("FollowingObject is not assigned in FollowCameraParams");
-            return;
-        }
-
         cam.Priority = 100;
-        cam.Follow = followParams.FollowingObject;
 
-        var currentBody = cam.GetCinemachineComponent<CinemachineComponentBase>();
+        parameters.Build(cam);
+        //cam.Follow = followParams.FollowingObject;
 
-        if (currentBody == null || currentBody is not CinemachineFramingTransposer)
-        {
-            cam.DestroyCinemachineComponent<CinemachineComponentBase>();
+        //var currentBody = cam.GetCinemachineComponent<CinemachineComponentBase>();
 
-            var framingTransposer = cam.AddCinemachineComponent<CinemachineFramingTransposer>();
+        //if (currentBody == null || currentBody is not CinemachineFramingTransposer)
+        //{
+        //    cam.DestroyCinemachineComponent<CinemachineComponentBase>();
 
-            if (framingTransposer != null)
-            {
-                framingTransposer.m_TrackedObjectOffset = followParams.FollowOffset;
-                framingTransposer.m_LookaheadTime = 0.2f;
-                framingTransposer.m_LookaheadSmoothing = followParams.FollowSmoothing;
-                framingTransposer.m_CameraDistance = 10f;
-                framingTransposer.m_DeadZoneWidth = 0.1f;
-                framingTransposer.m_DeadZoneHeight = 0.1f; // TODO add these params to the follow params class
-            }
-            else
-            {
-                CameraManager.Instance.DebugError("Failed to add CinemachineFramingTransposer to the camera.");
-            }
-        }
+        //    var framingTransposer = cam.AddCinemachineComponent<CinemachineFramingTransposer>();
 
-        CameraManager.Instance.DebugMessage($"Switched to Main Follow Camera. Following: {followParams.FollowingObject.name}");
+        //    if (framingTransposer != null)
+        //    {
+        //        framingTransposer.m_TrackedObjectOffset = followParams.FollowOffset;
+        //        framingTransposer.m_LookaheadTime = 0.2f;
+        //        framingTransposer.m_LookaheadSmoothing = followParams.FollowSmoothing;
+        //        framingTransposer.m_CameraDistance = 10f;
+        //        framingTransposer.m_DeadZoneWidth = 0.1f;
+        //        framingTransposer.m_DeadZoneHeight = 0.1f; // TODO add these params to the follow params class
+        //    }
+        //    else
+        //    {
+        //        CameraManager.Instance.DebugError("Failed to add CinemachineFramingTransposer to the camera.");
+        //    }
+        //}
+
+        //CameraManager.Instance.DebugMessage($"Switched to Main Follow Camera. Following: {followParams.FollowingObject.name}");
     };
 
     /// <summary>
@@ -198,9 +193,10 @@ public class CameraManager_CinemachinePack : CameraManager_CameraPack<string, Ci
     /// </summary>
     /// <param name="cam">The Cinemachine Virtual Camera being disabled.</param>
     /// <param name="parameters">The base parameters, expected to be FollowCameraParams.</param>
-    Action<CinemachineVirtualCamera, BaseCameraParams> disableCallback_Follow = (cam, parameters) =>
+    Action<CinemachineVirtualCamera, CameraParamsBuilder_Cinemachine> disableCallback_Follow = (cam, parameters) =>
     {
         cam.Priority = 0;
+        parameters.Build(cam);
     };
 
     #endregion

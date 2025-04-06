@@ -9,8 +9,8 @@ public abstract class CameraManager_CameraController<cameraIDType, CameraType> :
     [SerializeField] private cameraIDType cameraID;
     [SerializeField] private CameraType cameraComponent;
 
-    private Action<CameraType, BaseCameraParams> switchCallback;
-    private Action<CameraType, BaseCameraParams> disableCallback;
+    private Action<CameraType, CameraParamsBuilderBase<CameraType>> switchCallback;
+    private Action<CameraType, CameraParamsBuilderBase<CameraType>> disableCallback;
 
     public cameraIDType FetchCameraID_Simple()
     {
@@ -62,7 +62,7 @@ public abstract class CameraManager_CameraController<cameraIDType, CameraType> :
         handleDataCallback?.Invoke(cameraComponent);
     }
 
-    public bool SwitchCamera(BaseCameraParams data)
+    public bool SwitchCamera(CameraParamsBuilderBase<CameraType> data)
     {
         if (switchCallback == null)
             return false;
@@ -71,7 +71,7 @@ public abstract class CameraManager_CameraController<cameraIDType, CameraType> :
         return true;
     }
 
-    public bool DisableCamera(BaseCameraParams data)
+    public bool DisableCamera(CameraParamsBuilderBase<CameraType> data)
     {
         if (disableCallback == null)
             return false;
@@ -80,7 +80,7 @@ public abstract class CameraManager_CameraController<cameraIDType, CameraType> :
         return true;
     }
 
-    public void Setup(cameraIDType cameraID, Action<CameraType, BaseCameraParams> switchCallback = null, Action<CameraType, BaseCameraParams> disableCallback = null)
+    public void Setup(cameraIDType cameraID, Action<CameraType, CameraParamsBuilderBase<CameraType>> switchCallback = null, Action<CameraType, CameraParamsBuilderBase<CameraType>> disableCallback = null)
     {
         this.cameraID = cameraID;
         cameraComponent = GetComponent<CameraType>();
