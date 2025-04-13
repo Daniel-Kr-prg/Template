@@ -12,9 +12,9 @@ public class InputManager : SingletonManager<InputManager>
 
     private KeysMap KeysMap = new KeysMap();
 
-    private SerializedDictionary<InputActionKey, SortedSet<InputAction>> KeyDownMap = new SerializedDictionary<InputActionKey, SortedSet<InputAction>>();
-    private SerializedDictionary<InputActionKey, SortedSet<InputAction>> KeyUpMap = new SerializedDictionary<InputActionKey, SortedSet<InputAction>>();
-    private SerializedDictionary<InputActionKey, SortedSet<InputAction>> KeyHoldMap = new SerializedDictionary<InputActionKey, SortedSet<InputAction>>();
+    private SerializedDictionary<InputActionKey, SortedDictionary<int, List<InputAction>>> KeyDownMap = new();
+    private SerializedDictionary<InputActionKey, SortedDictionary<int, List<InputAction>>> KeyUpMap = new();
+    private SerializedDictionary<InputActionKey, SortedDictionary<int, List<InputAction>>> KeyHoldMap = new();
 
     private static string defaultControlsKey = "DefaultControls";
 
@@ -24,9 +24,9 @@ public class InputManager : SingletonManager<InputManager>
 
         foreach (InputActionKey key in Enum.GetValues(typeof(InputActionKey)))
         {
-            KeyDownMap[key] = new SortedSet<InputAction>();
-            KeyUpMap[key] = new SortedSet<InputAction>();
-            KeyHoldMap[key] = new SortedSet<InputAction>();
+            KeyDownMap[key] = new();
+            KeyUpMap[key] = new();
+            KeyHoldMap[key] = new();
         }
     }
     // Handle keys after steam init
@@ -44,27 +44,39 @@ public class InputManager : SingletonManager<InputManager>
         // Satisfy stage condition
         StagesManager.Instance.AppStages.currentStage.SatisfyCondition("StagesManager_InputManagerReady");
     }
-    private int GetHighestPriority(SortedSet<InputAction> set)
+    private int GetHighestPriority(SortedDictionary<int, List<InputAction>> dict)
     {
-        if (set.Count == 0)
-            return 0;
-
-        var topAction = set.First();
-        return topAction?.priority ?? 0;
+        return dict.Count > 0 ? dict.Keys.First() : 0;
     }
 
-    private int GetPriority(InputPriority priority, SortedSet<InputAction> set)
+    private int GetPriority(InputPriority priority, SortedDictionary<int, List<InputAction>> dict)
     {
-        switch (priority)
+        return priority switch
         {
-            case InputPriority.Base:
-                return 0;
-            case InputPriority.SameAsHighest:
-                return GetHighestPriority(set);
-            case InputPriority.Highest:
-                return GetHighestPriority(set) + 1;
-            default:
-                return 0;
+            InputPriority.Base => 0,
+            InputPriority.SameAsHighest => GetHighestPriority(dict),
+            InputPriority.Highest => GetHighestPriority(dict) + 1,
+            _ => 0
+        };
+    }
+
+    private void AddToPriorityDict(SortedDictionary<int, List<InputAction>> dict, InputAction action)
+    {
+        if (!dict.TryGetValue(action.priority, out var list))
+        {
+            list = new List<InputAction>();
+            dict[action.priority] = list;
+        }
+        list.Add(action);
+    }
+
+    private void RemoveFromPriorityDict(SortedDictionary<int, List<InputAction>> dict, string actionName)
+    {
+        foreach (var kvp in dict.ToList())
+        {
+            var removed = kvp.Value.RemoveAll(a => a.actionName == actionName);
+            if (removed > 0 && kvp.Value.Count == 0)
+                dict.Remove(kvp.Key);
         }
     }
 
@@ -150,17 +162,15 @@ public class InputManager : SingletonManager<InputManager>
 
     #region Dictionaries register/unregister methods
     private InputAction RegisterKeyAction(
-        SerializedDictionary<InputActionKey, SortedSet<InputAction>> dict,
+        SerializedDictionary<InputActionKey, SortedDictionary<int, List<InputAction>>> dict,
         InputActionKey key,
         string actionName,
         Action keyAction,
-
         int priority,
         Func<bool> hasError,
         Func<bool> canHandle,
         Action userUnregisterAction,
-        bool oneTimeAction
-    )
+        bool oneTimeAction)
     {
         InputAction inputAction = new InputAction(
             key,
@@ -169,17 +179,17 @@ public class InputManager : SingletonManager<InputManager>
             systemUnregisterAction: () => { UnregisterKeyAction(dict, key, actionName); },
             priority: priority,
             hasError: hasError,
-            canHandle,
-            userUnregisterAction,
-            oneTimeAction);
+            canHandle: canHandle,
+            userUnregisterAction: userUnregisterAction,
+            oneTimeAction: oneTimeAction);
 
-        dict[key].Add(inputAction);
+        AddToPriorityDict(dict[key], inputAction);
         return inputAction;
     }
 
-    public InputAction RegisterKeyAction(Dictionary<InputActionKey, SortedSet<InputAction>> dictionary, InputAction inputAction)
+    public InputAction RegisterKeyAction(Dictionary<InputActionKey, SortedDictionary<int, List<InputAction>>> dictionary, InputAction inputAction)
     {
-        dictionary[inputAction.key].Add(inputAction);
+        AddToPriorityDict(dictionary[inputAction.key], inputAction);
         return inputAction;
     }
 
@@ -230,25 +240,14 @@ public class InputManager : SingletonManager<InputManager>
 
     // **************************** UNREGISTER *******************************
 
-    public void UnregisterKeyAction(Dictionary<InputActionKey, SortedSet<InputAction>> dictionary, InputActionKey key, string actionName)
+    public void UnregisterKeyAction(Dictionary<InputActionKey, SortedDictionary<int, List<InputAction>>> dictionary, InputActionKey key, string actionName)
     {
-        if (!dictionary.TryGetValue(key, out var set) || set.Count == 0)
+        if (!dictionary.TryGetValue(key, out var list) || list.Count == 0)
             return;
-
-        var action = set.FirstOrDefault(a => a.actionName == actionName);
-        if (action != null)
-        {
-            action.Unregister();
-            set.Remove(action);
-            DebugMessage($"Unregistered key action: {key}, {actionName}");
-        }
-        else
-        {
-            DebugError($"Key action not found for unregister: {key}, {actionName}");
-        }
+        RemoveFromPriorityDict(list, actionName);
     }
 
-    public void UnregisterKeyAction(Dictionary<InputActionKey, SortedSet<InputAction>> dictionary, InputAction inputAction)
+    public void UnregisterKeyAction(Dictionary<InputActionKey, SortedDictionary<int, List<InputAction>>> dictionary, InputAction inputAction)
     {
         UnregisterKeyAction(dictionary, inputAction.key, inputAction.actionName);
     }
@@ -310,36 +309,31 @@ public class InputManager : SingletonManager<InputManager>
         HandleKeyEvents(KeyHoldMap, Input.GetKey);
     }
 
-    private void HandleKeyEvents(Dictionary<InputActionKey, SortedSet<InputAction>> dict, Func<KeyCode, bool> inputCheck)
+    private void HandleKeyEvents(Dictionary<InputActionKey, SortedDictionary<int, List<InputAction>>> map, Func<KeyCode, bool> inputCheck)
     {
-        foreach (var kvp in dict)
+        foreach (var (key, dict) in map)
         {
-            var inputActionKey = kvp.Key;
-            var actionSet = kvp.Value;
-            if (actionSet.Count == 0)
+            if (dict.Count == 0 || !KeysMap.Map.TryGetValue(key, out var keyCode))
                 continue;
 
-            var errorActions = actionSet.Where(a => a.HasError()).ToList();
-            foreach (var errorAction in errorActions)
+            foreach (var p in dict.ToList())
             {
-                errorAction.Unregister(false);
-                actionSet.Remove(errorAction);
+                var list = p.Value;
+                var errorList = list.Where(a => a.HasError()).ToList();
+                foreach (var action in errorList)
+                {
+                    action.Unregister(false);
+                    list.Remove(action);
+                }
+                if (list.Count == 0) dict.Remove(p.Key);
             }
 
-            if (actionSet.Count == 0)
-                continue;
+            if (!inputCheck(keyCode)) continue;
 
-            if (KeysMap.Map.TryGetValue(inputActionKey, out KeyCode code))
+            var highest = dict.Keys.First();
+            foreach (var action in dict[highest])
             {
-                if (inputCheck(code))
-                {
-                    int topPriority = actionSet.First().priority;
-                    var topActions = actionSet.Where(a => a.priority == topPriority).ToList();
-                    foreach (var action in topActions)
-                    {
-                        action.Handle();
-                    }
-                }
+                action.Handle();
             }
         }
     }
