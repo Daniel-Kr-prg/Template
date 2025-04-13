@@ -1,5 +1,8 @@
 using DanieloZ.Managers.Config;
+using DG.Tweening;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -9,7 +12,7 @@ namespace DanieloZ.Managers.Sound
     {
         [Header("Audio Mixer References")]
         [SerializeField] private AudioMixer masterMixer;
-        private SerializedDictionary<AudioMixerGroupName, AudioMixerGroup> mixerGroups;
+        [SerializeField] private SerializedDictionary<AudioMixerGroupName, AudioMixerGroup> mixerGroups;
 
         [Header("Volume Parameters")]
         private const string MasterVolumeParam = "MasterVolume";
@@ -35,16 +38,20 @@ namespace DanieloZ.Managers.Sound
         [Header("Global Audio Sources")]
         [SerializeField] private Transform globalSoundPoint;
 
-        [Space, SerializeField] private AudioSource globalMusicSource;
-        /// <summary>
-        /// Used to play effects sound right at player
-        /// </summary>
-        [SerializeField] private AudioSource globalEffectsSource;
         /// <summary>
         /// Used to play voice sound right at player
         /// </summary>
         [SerializeField] private AudioSource globalVoiceChatSource;
+
         private Transform globalFollowPoint;
+
+        [Header("Music Sources")]
+        [SerializeField] private List<AudioSource> globalMusicSources;
+        private Dictionary<AudioMixerGroupName, AudioSource> musicSourceMap;
+
+        [Header("Effect Sources")]
+        [SerializeField] private List<AudioSource> globalEffectSources;
+        private Dictionary<AudioMixerGroupName, AudioSource> effectSourceMap;
 
         [Header("Local Audio Settings")]
         [SerializeField] private SoundManager_SourcePool localAudioSourcePool;
@@ -72,13 +79,31 @@ namespace DanieloZ.Managers.Sound
                     poolInitialized = true;
             }
 
-            mixerGroups = new SerializedDictionary<AudioMixerGroupName, AudioMixerGroup>()
+            effectSourceMap = new Dictionary<AudioMixerGroupName, AudioSource>();
+            foreach (var source in globalEffectSources)
             {
-                { AudioMixerGroupName.Master, masterMixer.FindMatchingGroups("Master")[0] },
-                { AudioMixerGroupName.Effects, masterMixer.FindMatchingGroups("Effects")[0] },
-                { AudioMixerGroupName.Music, masterMixer.FindMatchingGroups("Music")[0] },
-                { AudioMixerGroupName.VC, masterMixer.FindMatchingGroups("VoiceChat")[0] }
-            };
+                if (source.outputAudioMixerGroup != null)
+                {
+                    var groupName = mixerGroups.FirstOrDefault(kvp => kvp.Value == source.outputAudioMixerGroup).Key;
+                    if (groupName != AudioMixerGroupName.NONE && !effectSourceMap.ContainsKey(groupName))
+                    {
+                        effectSourceMap[groupName] = source;
+                    }
+                }
+            }
+
+            musicSourceMap = new Dictionary<AudioMixerGroupName, AudioSource>();
+            foreach (var source in globalMusicSources)
+            {
+                if (source.outputAudioMixerGroup != null)
+                {
+                    var groupName = mixerGroups.FirstOrDefault(kvp => kvp.Value == source.outputAudioMixerGroup).Key;
+                    if (groupName != AudioMixerGroupName.NONE && !musicSourceMap.ContainsKey(groupName))
+                    {
+                        musicSourceMap[groupName] = source;
+                    }
+                }
+            }
         }
 
         private void Start()
@@ -148,43 +173,79 @@ namespace DanieloZ.Managers.Sound
             }
         }
 
-        /// <summary>
-        /// Plays a sound effect.
-        /// </summary>
-        public void PlayGlobalEffect(SoundCategory category, SoundName soundName)
+        public void FadeAudio(AudioMixerGroupName groupName, float targetVolume, float duration, Ease ease)
         {
-            // ѕолучаем звуковой клип из библиотеки
-            var clip = soundLibrary.GetSound(category, soundName);
-
-            if (globalEffectsSource != null && clip != null)
+            if (musicSourceMap.TryGetValue(groupName, out var musicSource))
             {
-                globalEffectsSource.PlayOneShot(clip);
-                Debug.Log($"[SoundManager] Playing effect: {soundName} from category: {category}");
+                DOTween.To(() => musicSource.volume, x => musicSource.volume = x, targetVolume, duration).SetEase(ease);
+            }
+            else if (effectSourceMap.TryGetValue(groupName, out var effectSource))
+            {
+                DOTween.To(() => effectSource.volume, x => effectSource.volume = x, targetVolume, duration).SetEase(ease);
             }
             else
             {
-                Debug.LogWarning($"[SoundManager] Failed to play effect: {soundName}. Either source or clip is null.");
+                Debug.LogWarning($"[SoundManager] No AudioSource found for group {groupName} to fade volume.");
+            }
+        }
+
+        public void FadeIn(AudioMixerGroupName groupName, float duration, Ease ease)
+        {
+            FadeAudio(groupName, 1f, duration, ease);
+        }
+
+        public void FadeOut(AudioMixerGroupName groupName, float duration, Ease ease)
+        {
+            FadeAudio(groupName, 0f, duration, ease);
+        }
+
+        /// <summary>
+        /// Plays a sound effect.
+        /// </summary>
+        public void PlayGlobalEffect(SoundCategory category, SoundName soundName, AudioMixerGroupName groupName = AudioMixerGroupName.Effects)
+        {
+            var clip = soundLibrary.GetSound(category, soundName);
+
+            if (clip == null)
+            {
+                Debug.LogWarning($"[SoundManager] Clip for {soundName} is null");
+                return;
+            }
+
+            if (effectSourceMap.TryGetValue(groupName, out var source))
+            {
+                source.PlayOneShot(clip);
+                Debug.Log($"[SoundManager] Playing effect: {soundName} in group: {groupName}");
+            }
+            else
+            {
+                Debug.LogWarning($"[SoundManager] No AudioSource mapped to group: {groupName}");
             }
         }
 
         /// <summary>
         /// Plays background music.
         /// </summary>
-        public void PlayGlobalMusic(SoundCategory category, SoundName soundName, bool loop = true)
+        public void PlayGlobalMusic(SoundCategory category, SoundName soundName, AudioMixerGroupName groupName = AudioMixerGroupName.Music, bool loop = true)
         {
-            // ѕолучаем звуковой клип из библиотеки
             var clip = soundLibrary.GetSound(category, soundName);
 
-            if (globalMusicSource != null && clip != null)
+            if (clip == null)
             {
-                globalMusicSource.clip = clip;
-                globalMusicSource.loop = loop;
-                globalMusicSource.Play();
-                Debug.Log($"[SoundManager] Playing music: {soundName} from category: {category}");
+                Debug.LogWarning($"[SoundManager] Clip for {soundName} is null");
+                return;
+            }
+
+            if (musicSourceMap.TryGetValue(groupName, out var source))
+            {
+                source.clip = clip;
+                source.loop = loop;
+                source.Play();
+                Debug.Log($"[SoundManager] Playing music: {soundName} in group: {groupName}");
             }
             else
             {
-                Debug.LogWarning($"[SoundManager] Failed to play music: {soundName}. Either source or clip is null.");
+                Debug.LogWarning($"[SoundManager] No AudioSource mapped to music group: {groupName}");
             }
         }
 
@@ -193,11 +254,11 @@ namespace DanieloZ.Managers.Sound
         /// </summary>
         public void StopGlobalMusic()
         {
-            if (globalMusicSource != null)
+            foreach (var source in musicSourceMap.Values)
             {
-                globalMusicSource.Stop();
-                Debug.Log("[SoundManager] Music stopped.");
+                source.Stop();
             }
+            Debug.Log("[SoundManager] Music stopped.");
         }
 
         ///// <summary>
@@ -221,8 +282,16 @@ namespace DanieloZ.Managers.Sound
         /// </summary>
         public void StopAllGlobalSounds()
         {
-            globalMusicSource?.Stop();
-            globalEffectsSource?.Stop();
+            foreach (var source in musicSourceMap.Values)
+            {
+                source.Stop();
+            }
+
+            foreach (var source in effectSourceMap.Values)
+            {
+                source.Stop();
+            }
+
             globalVoiceChatSource?.Stop();
             Debug.Log("[SoundManager] All sounds stopped.");
         }
@@ -305,7 +374,10 @@ namespace DanieloZ.Managers.Sound
     {
         Master,
         Effects,
+        Effects_UI_1,
+        Effects_UI_2,
         Music,
+        Music_UI_1,
         VC,
         NONE
     }

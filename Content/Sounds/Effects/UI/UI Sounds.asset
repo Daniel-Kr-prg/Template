@@ -9,13 +9,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0f28124cc5495084eb3cb665cffaa468, type: 3}
-  m_Name: Sound Library
+  m_Script: {fileID: 11500000, guid: cd9d1bb38814a99488b87649f734a982, type: 3}
+  m_Name: UI Sounds
   m_EditorClassIdentifier: 
-  categories:
+  sounds:
     pairs:
-    - key: 0
-      value: {fileID: 11400000, guid: ab7faaf0ff33f28428bd0ff662dfe153, type: 2}
     - key: 2
-      value: {fileID: 11400000, guid: 370b0871002243c43aef199e66fed8e2, type: 2}
+      value: {fileID: 8300000, guid: 9dc074d3a01fbce43bf1edbfe6a32dc8, type: 3}
+    - key: 3
+      value: {fileID: 8300000, guid: 9dc074d3a01fbce43bf1edbfe6a32dc8, type: 3}
     error: 0

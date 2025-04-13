@@ -13,5 +13,7 @@ MonoBehaviour:
   m_Name: Music_1_List
   m_EditorClassIdentifier: 
   sounds:
-    pairs: []
+    pairs:
+    - key: 0
+      value: {fileID: 8300000, guid: 98536f87e8437834896411acfdcaed7b, type: 3}
     error: 0
