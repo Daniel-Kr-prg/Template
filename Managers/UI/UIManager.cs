@@ -7,6 +7,9 @@ public class UIManager : SingletonManager<UIManager>
     [Header("Canvas setup")]
     [SerializeField] private List<Canvas> canvasesToSetWorldCamera;
 
+    [Header("Starting Point")]
+    [SerializeField] private UI_Elements_Page StartingPage;
+
     private void Start()
     {
         ReassignCamera();
@@ -43,7 +46,16 @@ public class UIManager : SingletonManager<UIManager>
 
     public static void ShowMainScreen()
     {
-        Debug.LogError("SHOW START");
+        Instance.StartingPage.Show();
+    }
+
+    #endregion
+
+    #region Level Selector
+
+    public void SelectLevel(int level)
+    {
+        LevelsManager.Instance.StartLevel(level);
     }
 
     #endregion

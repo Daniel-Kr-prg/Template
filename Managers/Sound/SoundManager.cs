@@ -18,7 +18,7 @@ namespace DanieloZ.Managers.Sound
         private const string MasterVolumeParam = "MasterVolume";
         private const string EffectsVolumeParam = "EffectsVolume";
         private const string MusicVolumeParam = "MusicVolume";
-        private const string VCVolumeParam = "VCVolume";
+        private const string VCVolumeParam = "VoiceChatVolume";
 
 
         public float MasterVolume => ConfigManager.Instance.configData.AudioSettings.MasterVolume;

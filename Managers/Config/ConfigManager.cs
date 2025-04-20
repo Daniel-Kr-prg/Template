@@ -48,7 +48,6 @@ namespace DanieloZ.Managers.Config
         {
             InitializeConfigData();
             InitializeCallbacks();
-            UpdateAllSettings();
 
             IsInitialized = true;
 
@@ -587,7 +586,10 @@ namespace DanieloZ.Managers.Config
         [ContextMenu("Load config local")]
         public void LoadConfig()
         {
-            ConfigManagerIO.LoadConfig_Local(ImportantFilepaths.SettingsConfigPath, configData);
+            ConfigManagerIO.LoadConfig_Local(ImportantFilepaths.SettingsConfigPath, configData, () =>
+            {
+                UpdateAllSettings();
+            });
         }
         #endregion
 

@@ -1,4 +1,7 @@
+using DanieloZ.InputManagement;
 using DanieloZ.Managers;
+using Newtonsoft.Json;
+using Steamworks;
 using System;
 using System.Collections;
 using System.Threading.Tasks;
@@ -11,6 +14,9 @@ public class SaveManager : SingletonManager<SaveManager>
     private FileReceiver<Save> receiver;
 
     private int _itemsCount;
+
+
+    bool _haveSavefile = false;
 
     protected override void Awake()
     {
@@ -26,6 +32,16 @@ public class SaveManager : SingletonManager<SaveManager>
 
         // Satisfy stage condition
         StagesManager.Instance.AppStages.currentStage.SatisfyCondition("StagesManager_SaveManagerReady");
+
+        StagesManager.Instance.AppStages.RegisterStageChangeCondition(AppStageName.ConfigSetup, "SaveManager_Loaded", new StageCondition(() =>
+        {
+            return _haveSavefile;
+        }));
+
+        StagesManager.Instance.AppStages.RegisterStageStartAction(AppStageName.ConfigSetup, "SaveManager_Load", () =>
+        {
+            Load(onSuccess: () => { _haveSavefile = true; StagesManager.Instance.AppStages.currentStage.SatisfyCondition("SaveManager_Loaded"); }, onFail: () => { EventManager.CallEvent(EventName.SaveManager_LoadFailure); });
+        });
     }
 
     public static void IncrementSaveItemsCount()
@@ -153,6 +169,11 @@ public class SaveManager : SingletonManager<SaveManager>
         //_ = LoadAsync(onProgress, onSuccess, onFail);
     }
 
+    public static void SetSaveFile(string newFilename)
+    {
+        Instance.receiver = new FileReceiver_Local<Save>(newFilename);
+    }
+
     /// <summary>
     /// Coroutine-based load process for legacy systems or environments where coroutines are required.
     /// Handles loading files, applying data, and invoking events, similar to <see cref="LoadAsync"/>.
@@ -166,7 +187,18 @@ public class SaveManager : SingletonManager<SaveManager>
         DebugMessage("Starting load process...");
         try
         {
-            save = receiver.LoadFile();
+            if (!receiver.FileExists())
+            {
+                LoadDefaultSave(() =>
+                {
+                    save = receiver.LoadFile();
+                });
+            }
+            else
+            {
+                save = receiver.LoadFile();
+            }
+
 
             if (save == null)
             {
@@ -234,6 +266,36 @@ public class SaveManager : SingletonManager<SaveManager>
             onFail?.Invoke();
         }
     }
+
+
+    public static void LoadDefaultSave(Action onSuccess)
+    {
+        Save(onSuccess: onSuccess);
+
+        //AddressablesManager.LoadAssetAsync<TextAsset>(defaultControlsKey, (textAsset) =>
+        //{
+        //    if (textAsset != null)
+        //    {
+        //        try
+        //        {
+        //            KeysMap keysMap = JsonConvert.DeserializeObject<KeysMap>(textAsset.text);
+        //            if (keysMap != null)
+        //            {
+        //                onSuccess.Invoke(keysMap);
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Instance.DebugWarning($"Error deserializing default controls: {ex.Message}");
+        //        }
+        //    }
+        //    else
+        //    {
+        //        Instance.DebugWarning("Default controls TextAsset is null.");
+
+        //    }
+        //});
+    }
     #endregion
 
     #region Save-load SaveItem
@@ -262,7 +324,7 @@ public class SaveManager : SingletonManager<SaveManager>
         }
         else
         {
-            Instance.DebugError($"can't find the value with the key {key}");
+            Instance.DebugWarning($"can't find the value with the key {key}");
             return default;
         }
     }

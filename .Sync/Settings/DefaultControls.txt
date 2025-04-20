@@ -1,7 +1,7 @@
 {
   "Map": {
     "EXIT": "Escape",
-    "CONFIRM": "Enter",
+    "CONFIRM": "Return",
     "MOVE_FORWARD": "W",
     "MOVE_BACKWARD": "S",
     "MOVE_LEFT": "A",

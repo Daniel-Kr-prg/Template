@@ -1,3 +1,4 @@
+using DanieloZ.InputManagement;
 using DanieloZ.Managers;
 using DanieloZ.Managers.Config;
 using DanieloZ.Managers.Sound;
@@ -24,9 +25,9 @@ public class StagesManager : SingletonManager<StagesManager>
         StageLines = new Dictionary<string, StageLine<string>>();
 
         AppStages = new StageLine<AppStageName>(
-            (AppStageName.AppInit, new Stage<AppStageName>(AppStageName.AppInit, () => AppStages.SetStage(AppStageName.ConnectServices))),
-            (AppStageName.ConnectServices, new Stage<AppStageName>(AppStageName.ConnectServices, () => AppStages.SetStage(AppStageName.ConfigSetup))),
-            (AppStageName.ConfigSetup, new Stage<AppStageName>(AppStageName.ConfigSetup, () => AppStages.SetStage(AppStageName.Start))),
+            (AppStageName.AppInit, new Stage<AppStageName>(AppStageName.AppInit, () => { Debug.Log("ConnectServices"); AppStages.SetStage(AppStageName.ConnectServices); })),
+            (AppStageName.ConnectServices, new Stage<AppStageName>(AppStageName.ConnectServices, () => { Debug.Log("ConfigSetup"); AppStages.SetStage(AppStageName.ConfigSetup); })),
+            (AppStageName.ConfigSetup, new Stage<AppStageName>(AppStageName.ConfigSetup, () => { Debug.Log("Start"); AppStages.SetStage(AppStageName.Start); })),
             (AppStageName.Start, new Stage<AppStageName>(AppStageName.Start))
         );
 
@@ -416,6 +417,12 @@ public class StageLine<T>
     }
     #endregion
     #region Stage conditions
+    /// <summary>
+    /// Same as RegisterTransitionCondition but through the Manager
+    /// </summary>
+    /// <param name="stage"></param>
+    /// <param name="key"></param>
+    /// <param name="condition"></param>
     public void RegisterStageChangeCondition(T stage, string key, StageCondition condition)
     {
         stages[stage]?.RegisterTransitionCondition(key, condition);

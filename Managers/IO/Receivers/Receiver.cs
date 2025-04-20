@@ -90,6 +90,7 @@ public class FileReceiver_Steam<T> : FileReceiver<T>
                 string json = JsonConvert.SerializeObject(objectToSave, Formatting.Indented);
                 byte[] buffer = Encoding.UTF8.GetBytes(json);
                 bool success = SteamRemoteStorage.FileWrite(path, buffer);
+                Debug.Log("KEYS MAP DEFAULT SAVED");
                 if (success)
                 {
                     onSuccess?.Invoke();

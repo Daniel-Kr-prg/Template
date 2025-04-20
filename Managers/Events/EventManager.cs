@@ -136,7 +136,8 @@ namespace DanieloZ.Managers
 
         SaveManager_Save,
         SaveManager_ItemsCount,
-        SaveManager_Load
+        SaveManager_Load,
+        SaveManager_LoadFailure
     }
 
 }

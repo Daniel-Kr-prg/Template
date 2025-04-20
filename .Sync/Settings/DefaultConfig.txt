@@ -1,59 +1,34 @@
 {
-  "GameSettings": {
-    "FOV": 80,
-    "Language": 0,
-    "CFG_KEY": "GAME"
-  },
-  "GraphicsSettings": {
-    "Resolution": {
-      "Width": 55,
-      "Height": 55,
-      "W_Scale": 0,
-      "H_Scale": 0,
-      "CFG_KEY": "RES"
-    },
-    "FullscreenMode": 2,
-    "LimitRefreshRate": false,
-    "vSync": 0,
-    "RefreshRate": 60,
-    "Brightness": 0.5,
-    "CFG_KEY": "VIDEO"
-  },
-  "QualitySettings": {
-    "DrawDistance": 90.0,
-    "TextureQuality": 1,
-    "AnisotropicFiltering": 4,
-    "LODQuality": 2,
-    "AntiAliasing": 1,
-    "MSAA_Sampling": 2,
-    "ShadowRes": 2048,
-    "ShadowCascades": 2,
-    "ShadowsDistance": 90.0,
-    "LightQuality": 1,
-    "VolumetricLighting": false,
-    "LightDistance": 90.0,
-    "AmbientOcclusion": 0,
-    "WaterQuality": 1,
-    "ReflectionQuality": 1,
-    "ParticleQuality": 0,
-    "CFG_KEY": "QUALITY"
-  },
-  "PostProcessingSettings": {
-    "CFG_KEY": "POST-PROCESSING",
-    "Bloom": 0,
-    "MotionBlur": 0,
-    "DepthOfField": 0
-  },
-  "AudioSettings": {
-    "MasterVolume": 0.2,
-    "MusicVolume": 1.0,
-    "EffectsVolume": 1.0,
-    "VoiceChatVolume": 1.0,
-    "CFG_KEY": "AUDIO"
-  },
-  "InterfaceSettings": {
-    "CFG_KEY": "UI"
-  },
-  "customSettings": {},
-  "CFG_KEY": "CORE"
+  "GAME_FOV": "80",
+  "GAME_Language": "en",
+  "RES_Width": "55",
+  "RES_Height": "55",
+  "RES_W_Scale": "0",
+  "RES_H_Scale": "0",
+  "VIDEO_FullscreenMode": "MaximizedWindow",
+  "VIDEO_LimitRefreshRate": "False",
+  "VIDEO_vSync": "0",
+  "VIDEO_RefreshRate": "60",
+  "VIDEO_Brightness": "0.5",
+  "QUALITY_DrawDistance": "90",
+  "QUALITY_TextureQuality": "Medium",
+  "QUALITY_AnisotropicFiltering": "x4",
+  "QUALITY_LODQuality": "High",
+  "QUALITY_AntiAliasing": "FastApproximateAntialiasing",
+  "QUALITY_MSAA_Sampling": "x2",
+  "QUALITY_ShadowRes": "High",
+  "QUALITY_ShadowCascades": "Two",
+  "QUALITY_ShadowsDistance": "90",
+  "QUALITY_LightQuality": "Medium",
+  "QUALITY_VolumetricLighting": "False",
+  "QUALITY_LightDistance": "90",
+  "QUALITY_AmbientOcclusion": "Disabled",
+  "QUALITY_WaterQuality": "Medium",
+  "QUALITY_ReflectionQuality": "Low",
+  "QUALITY_ParticleQuality": "Low",
+  "AUDIO_MasterVolume": "0.8",
+  "AUDIO_MusicVolume": "0.8",
+  "AUDIO_EffectsVolume": "0.8",
+  "AUDIO_VoiceChatVolume": "0.8",
+  "UI_meow": "cat"
 }

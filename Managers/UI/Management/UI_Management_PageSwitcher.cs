@@ -25,7 +25,7 @@ public class UI_Management_PageSwitcher : MonoBehaviour
         }
     }
 
-    public void Switch(UI_Elements_Page page, bool instantly = false)
+    public void Switch(UI_Elements_Page page, bool instantly)
     {
         if (!pages.Values.Contains(page))
         {
@@ -44,7 +44,9 @@ public class UI_Management_PageSwitcher : MonoBehaviour
         OnPageSwitched?.Invoke(currentPage);
     }
 
-    public void Switch(string pageName, bool instantly = false)
+    public void Switch(UI_Elements_Page page) => Switch(page, false);
+
+    public void Switch(string pageName, bool instantly)
     {
         if (pages.TryGetValue(pageName, out UI_Elements_Page page))
         {
@@ -55,6 +57,8 @@ public class UI_Management_PageSwitcher : MonoBehaviour
             Debug.LogWarning($"[PageSwitcher] '{pageName}' not found.");
         }
     }
+
+    public void Switch(string pageName) => Switch(pageName, false);
 
     public void Scroll(int scrollValue, bool instantly = false)
     {
@@ -92,6 +96,8 @@ public class UI_Management_PageSwitcher : MonoBehaviour
     {
         foreach (var page in pages.Values)
         {
+            if (page == null) continue;
+
             if (!page.Hidden)
             {
                 page.Hide(instantly);

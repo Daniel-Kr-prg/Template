@@ -11,6 +11,7 @@ using UnityEngine;
 public class SteamManager : SingletonManager<SteamManager>
 {
     [SerializeField] private uint appID;
+    [SerializeField] private bool UseSteam = true;
 
     private Lobby? _lobby = null;
 
@@ -27,13 +28,21 @@ public class SteamManager : SingletonManager<SteamManager>
     {
         StagesManager.Instance.AppStages.RegisterStageStartAction(AppStageName.ConnectServices, "SteamConnection", () =>
         {
+            if (!UseSteam)
+            {
+                StagesManager.Instance.AppStages.currentStage.SatisfyCondition("SteamConnection_Success");
+                return;
+            }
+
             if (appID != 0)
             {
                 InitializeSteam(appID);
             }
         });
         StagesManager.Instance.AppStages.RegisterStageChangeCondition(AppStageName.ConnectServices, "SteamConnection_Success", new StageCondition(new Func<bool>(
-            () => IsInitialized
+            () => { 
+                return IsInitialized || !UseSteam; 
+            }
             )));
         
         StagesManager.Instance.AppStages.currentStage.SatisfyCondition("StagesManager_SteamManagerReady");

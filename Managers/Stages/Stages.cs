@@ -108,6 +108,11 @@ public class Stage<T>
 
     #region Transition conditions
 
+    /// <summary>
+    /// Same as RegisterStageChangeCondition but in the Stage
+    /// </summary>
+    /// <param name="key"></param>
+    /// <param name="condition"></param>
     public void RegisterTransitionCondition(string key, StageCondition condition)
     {
         conditionsToChangeStage ??= new Dictionary<string, StageCondition>();

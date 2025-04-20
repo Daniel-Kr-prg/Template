@@ -3,6 +3,7 @@ using DanieloZ.Managers;
 using Newtonsoft.Json;
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -13,7 +14,7 @@ namespace DanieloZ.Managers.Config
     {
         private static string defaultConfigKey = "DefaultConfig";
 
-        public static void LoadDefaultConfig(ConfigData cfg)
+        public static void LoadDefaultConfig(ConfigData cfg, Action onSuccess = null)
         {
             AddressablesManager.LoadAssetAsync<TextAsset>(defaultConfigKey, (textAsset) =>
             {
@@ -152,7 +153,7 @@ namespace DanieloZ.Managers.Config
 
             if (!File.Exists(path))
             {
-                LoadDefaultConfig(cfg);
+                LoadDefaultConfig(cfg, onSuccess);
                 return;
             }
 
