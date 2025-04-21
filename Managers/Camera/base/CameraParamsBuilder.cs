@@ -220,7 +220,8 @@ public class CameraParamsBuilder_Cinemachine : CameraParamsBuilderBase<Cinemachi
     {
         _paramSetters[CameraParamKey.OrthographicSize] = (cam) =>
         {
-            CameraManager.CurrentCamera.orthographicSize = size;
+            //CameraManager.CurrentCamera.orthographicSize = size;
+            cam.m_Lens.OrthographicSize = size;
         };
         return this;
     }
