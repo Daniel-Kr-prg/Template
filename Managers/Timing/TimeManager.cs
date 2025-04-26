@@ -5,11 +5,17 @@ using System.Collections;
 
 public class TimeManager : SingletonManager<TimeManager>
 {
-    private Dictionary<string, AsyncTimer> asyncTimers = new Dictionary<string, AsyncTimer>();
-    private Dictionary<string, AsyncStopwatch> asyncStopwatches = new Dictionary<string, AsyncStopwatch>();
+    private Dictionary<string, ScaledAsyncTimer> scaledAsyncTimers = new();
+    private Dictionary<string, ScaledAsyncStopwatch> scaledAsyncStopwatches = new();
 
-    private List<Timer> syncTimers = new List<Timer>();
-    private List<Stopwatch> syncStopwatches = new List<Stopwatch>();
+    private Dictionary<string, UnscaledAsyncTimer> unscaledAsyncTimers = new();
+    private Dictionary<string, UnscaledAsyncStopwatch> unscaledAsyncStopwatches = new();
+
+    private List<ScaledTimer> scaledTimers = new();
+    private List<ScaledStopwatch> scaledStopwatches = new();
+
+    private List<UnscaledTimer> unscaledTimers = new();
+    private List<UnscaledStopwatch> unscaledStopwatches = new();
 
     private void Start()
     {
@@ -21,128 +27,124 @@ public class TimeManager : SingletonManager<TimeManager>
 
     void Update()
     {
-        UpdateSyncTimers();
-        UpdateSyncStopwatches();
+        UpdateTimers(scaledTimers, Time.deltaTime);
+        UpdateTimers(unscaledTimers, Time.unscaledDeltaTime);
+        UpdateStopwatches(scaledStopwatches, Time.deltaTime);
+        UpdateStopwatches(unscaledStopwatches, Time.unscaledDeltaTime);
     }
 
-    #region Async timers/stopwatches
-    public void StartAsyncTimer(string id, float duration, float multiplier = 1f, Action onTimerEnd = null, float updateInterval = 0f, Action<float> onUpdate = null)
+    #region Async
+    public void StartScaledAsyncTimer(string id, float duration, float multiplier = 1f, Action onEnd = null, float updateInterval = 0f, Action<float> onUpdate = null)
     {
-        if (asyncTimers.ContainsKey(id))
-        {
-            Debug.LogWarning($"[M] TimeManager / StartAsyncTimer: Async timer with ID '{id}' already exists.");
-            return;
-        }
-
-        AsyncTimer timer = new AsyncTimer(duration, multiplier, onTimerEnd, updateInterval, onUpdate);
+        if (scaledAsyncTimers.ContainsKey(id)) return;
+        var timer = new ScaledAsyncTimer(duration, multiplier, onEnd, updateInterval, onUpdate);
         timer.coroutine = StartCoroutine(timer.TimerCoroutine());
-        asyncTimers[id] = timer;
+        scaledAsyncTimers[id] = timer;
     }
 
-    public void StartAsyncStopwatch(string id, float multiplier = 1f, float updateInterval = 1f, Action<float> onUpdate = null)
+    public void StartUnscaledAsyncTimer(string id, float duration, float multiplier = 1f, Action onEnd = null, float updateInterval = 0f, Action<float> onUpdate = null)
     {
-        if (asyncStopwatches.ContainsKey(id))
-        {
-            Debug.LogWarning($"[M] TimeManager / StartAsyncStopwatch: Async stopwatch with ID '{id}' already exists.");
-            return;
-        }
+        if (unscaledAsyncTimers.ContainsKey(id)) return;
+        var timer = new UnscaledAsyncTimer(duration, multiplier, onEnd, updateInterval, onUpdate);
+        timer.coroutine = StartCoroutine(timer.TimerCoroutine());
+        unscaledAsyncTimers[id] = timer;
+    }
 
-        AsyncStopwatch stopwatch = new AsyncStopwatch(multiplier, updateInterval, onUpdate);
+    public void StartScaledAsyncStopwatch(string id, float multiplier = 1f, float updateInterval = 1f, Action<float> onUpdate = null)
+    {
+        if (scaledAsyncStopwatches.ContainsKey(id)) return;
+        var stopwatch = new ScaledAsyncStopwatch(multiplier, updateInterval, onUpdate);
         stopwatch.coroutine = StartCoroutine(stopwatch.StopwatchCoroutine());
-        asyncStopwatches[id] = stopwatch;
+        scaledAsyncStopwatches[id] = stopwatch;
     }
 
-    public void StopAsyncTimer(string id)
+    public void StartUnscaledAsyncStopwatch(string id, float multiplier = 1f, float updateInterval = 1f, Action<float> onUpdate = null)
     {
-        if (asyncTimers.TryGetValue(id, out AsyncTimer timer))
+        if (unscaledAsyncStopwatches.ContainsKey(id)) return;
+        var stopwatch = new UnscaledAsyncStopwatch(multiplier, updateInterval, onUpdate);
+        stopwatch.coroutine = StartCoroutine(stopwatch.StopwatchCoroutine());
+        unscaledAsyncStopwatches[id] = stopwatch;
+    }
+
+    public void StopScaledAsyncTimer(string id)
+    {
+        if (scaledAsyncTimers.TryGetValue(id, out var timer))
         {
             StopCoroutine(timer.coroutine);
-            asyncTimers.Remove(id);
+            scaledAsyncTimers.Remove(id);
         }
     }
 
-    public void StopAsyncStopwatch(string id)
+    public void StopUnscaledAsyncTimer(string id)
     {
-        if (asyncStopwatches.TryGetValue(id, out AsyncStopwatch stopwatch))
+        if (unscaledAsyncTimers.TryGetValue(id, out var timer))
+        {
+            StopCoroutine(timer.coroutine);
+            unscaledAsyncTimers.Remove(id);
+        }
+    }
+
+    public void StopScaledAsyncStopwatch(string id)
+    {
+        if (scaledAsyncStopwatches.TryGetValue(id, out var stopwatch))
         {
             StopCoroutine(stopwatch.coroutine);
-            asyncStopwatches.Remove(id);
+            scaledAsyncStopwatches.Remove(id);
+        }
+    }
+
+    public void StopUnscaledAsyncStopwatch(string id)
+    {
+        if (unscaledAsyncStopwatches.TryGetValue(id, out var stopwatch))
+        {
+            StopCoroutine(stopwatch.coroutine);
+            unscaledAsyncStopwatches.Remove(id);
         }
     }
     #endregion
 
-    #region Sync timers/stopwatches
-    public Timer CreateSyncTimer(float duration, float multiplier = 1f, Action onTimerEnd = null, float updateInterval = 0f, Action<float> onUpdate = null)
+    #region Sync
+    public ScaledTimer CreateScaledTimer(float duration, float multiplier = 1f, Action onEnd = null, float updateInterval = 0f, Action<float> onUpdate = null)
     {
-        Timer timer = new Timer(duration, multiplier, onTimerEnd, updateInterval, onUpdate);
-        syncTimers.Add(timer);
+        var timer = new ScaledTimer(duration, multiplier, onEnd, updateInterval, onUpdate);
+        scaledTimers.Add(timer);
         return timer;
     }
 
-    public Stopwatch CreateSyncStopwatch(float updateInterval = 1f, float multiplier = 1f, Action<float> onUpdate = null)
+    public UnscaledTimer CreateUnscaledTimer(float duration, float multiplier = 1f, Action onEnd = null, float updateInterval = 0f, Action<float> onUpdate = null)
     {
-        Stopwatch stopwatch = new Stopwatch(updateInterval, multiplier, onUpdate);
-        syncStopwatches.Add(stopwatch);
+        var timer = new UnscaledTimer(duration, multiplier, onEnd, updateInterval, onUpdate);
+        unscaledTimers.Add(timer);
+        return timer;
+    }
+
+    public ScaledStopwatch CreateScaledStopwatch(float updateInterval = 1f, float multiplier = 1f, Action<float> onUpdate = null)
+    {
+        var stopwatch = new ScaledStopwatch(multiplier, updateInterval, onUpdate);
+        scaledStopwatches.Add(stopwatch);
         return stopwatch;
     }
-    public void StopSyncTimer(Timer timer)
+
+    public UnscaledStopwatch CreateUnscaledStopwatch(float updateInterval = 1f, float multiplier = 1f, Action<float> onUpdate = null)
     {
-        if (syncTimers.Contains(timer))
-        {
-            syncTimers.Remove(timer);
-        }
+        var stopwatch = new UnscaledStopwatch(multiplier, updateInterval, onUpdate);
+        unscaledStopwatches.Add(stopwatch);
+        return stopwatch;
+    }
+    #endregion
+
+    #region Private
+    private void UpdateTimers<T>(List<T> timers, float deltaTime) where T : TimeBase
+    {
+        for (int i = timers.Count - 1; i >= 0; i--)
+            if (timers[i].Update(deltaTime))
+                timers.RemoveAt(i);
     }
 
-    public void StopSyncStopwatch(Stopwatch stopwatch)
+    private void UpdateStopwatches<T>(List<T> stopwatches, float deltaTime) where T : TimeBase
     {
-        if (syncStopwatches.Contains(stopwatch))
-        {
-            syncStopwatches.Remove(stopwatch);
-        }
-    }
-    public void ClearAllSyncTimers()
-    {
-        syncTimers.Clear();
-    }
-
-    public void ClearAllSyncStopwatches()
-    {
-        syncStopwatches.Clear();
-    }
-
-    private void UpdateSyncTimers()
-    {
-        for (int i = syncTimers.Count - 1; i >= 0; i--)
-        {
-            if (syncTimers[i].Update(Time.deltaTime))
-            {
-                syncTimers.RemoveAt(i); // Удаляем таймер, который завершился
-            }
-        }
-    }
-
-    private void UpdateSyncStopwatches()
-    {
-        foreach (var stopwatch in syncStopwatches)
-        {
-            stopwatch.Update(Time.deltaTime);
-        }
-    }
-
-    public void PauseSyncTimer(Timer timer)
-    {
-        if (syncTimers.Contains(timer))
-        {
-            timer.Pause();
-        }
-    }
-
-    public void ResumeSyncTimer(Timer timer)
-    {
-        if (syncTimers.Contains(timer))
-        {
-            timer.Resume();
-        }
+        foreach (var stopwatch in stopwatches)
+            stopwatch.Update(deltaTime);
     }
     #endregion
 
@@ -153,56 +155,39 @@ public class TimeManager : SingletonManager<TimeManager>
         protected float updateInterval;
         protected float updateTime;
         protected float multiplier;
-
         protected Action<float> onUpdate;
+        protected bool isPaused;
+        public bool UseUnscaled { get; protected set; }
 
-        protected bool isPaused = false;
-
-        public TimeBase(float updateInterval, float multiplier, Action<float> onUpdate)
+        public TimeBase(float multiplier, float interval, Action<float> onUpdate, bool unscaled)
         {
             this.multiplier = multiplier;
-            this.updateInterval = updateInterval;
+            this.updateInterval = interval;
             this.onUpdate = onUpdate;
-
-            elapsedTime = 0f;
-            updateTime = 0f;
+            UseUnscaled = unscaled;
         }
 
-        public virtual bool Update(float deltaTime)
+        public virtual bool Update(float delta)
         {
             if (isPaused) return false;
 
-            elapsedTime += deltaTime * multiplier;
-            updateTime += deltaTime * multiplier;
+            float scaledDelta = delta * multiplier;
+            elapsedTime += scaledDelta;
+            updateTime += scaledDelta;
 
             if (updateInterval > 0 && updateTime >= updateInterval)
             {
-                updateTime = 0f;
+                updateTime = 0;
                 onUpdate?.Invoke(elapsedTime);
             }
 
             return false;
         }
 
-        public void Pause()
-        {
-            isPaused = true;
-        }
-
-        public void Resume()
-        {
-            isPaused = false;
-        }
-
-        public float GetElapsedTime()
-        {
-            return elapsedTime;
-        }
-
-        public void SetMultiplier(float newMultiplier)
-        {
-            multiplier = Mathf.Max(newMultiplier, 0.01f);
-        }
+        public void Pause() => isPaused = true;
+        public void Resume() => isPaused = false;
+        public float GetElapsedTime() => elapsedTime;
+        public void SetMultiplier(float newMultiplier) => multiplier = Mathf.Max(newMultiplier, 0.01f);
     }
 
     public class Timer : TimeBase
@@ -210,75 +195,36 @@ public class TimeManager : SingletonManager<TimeManager>
         protected float duration;
         protected Action onTimerEnd;
 
-        public Timer(float duration, float multiplier, Action onTimerEnd, float updateInterval, Action<float> onUpdate)
-            : base(multiplier, updateInterval, onUpdate)
+        public Timer(float duration, float multiplier, Action onEnd, float interval, Action<float> onUpdate, bool unscaled)
+            : base(multiplier, interval, onUpdate, unscaled)
         {
             this.duration = duration;
-            this.onTimerEnd = onTimerEnd;
+            this.onTimerEnd = onEnd;
         }
 
         public override bool Update(float deltaTime)
         {
             base.Update(deltaTime);
-
             if (elapsedTime >= duration)
             {
                 onTimerEnd?.Invoke();
                 return true;
             }
-
             return false;
         }
 
-        public void AddTime(float additionalTime)
+        public void ResetTimer()
         {
-            duration += additionalTime;
+            elapsedTime = 0f;
         }
-
-        public float GetRemainingTime()
-        {
-            return Math.Max(duration - elapsedTime, 0f);
-        }
-    }
-
-    public class AsyncTimer : Timer
-    {
-        public Coroutine coroutine;
-
-        public AsyncTimer(float duration, float multiplier, Action onTimerEnd, float updateInterval, Action<float> onUpdate) : base(duration, multiplier, onTimerEnd, updateInterval, onUpdate)
-        {
-        }
-
-        public IEnumerator TimerCoroutine()
-        {
-            float remainingTime = GetRemainingTime();
-            while (remainingTime > 0)
-            {
-                if (updateInterval > 0 && onUpdate != null)
-                {
-                    onUpdate.Invoke(remainingTime); // Вызываем onUpdate для таймера
-                    yield return new WaitForSeconds(updateInterval);
-                    remainingTime -= updateInterval * multiplier; // Учитываем множитель времени
-                }
-                else
-                {
-                    yield return null;
-                    remainingTime -= Time.deltaTime * multiplier; // Учитываем множитель времени
-                }
-            }
-
-            onTimerEnd?.Invoke();
-        }
+        public float GetRemainingTime() => Mathf.Max(duration - elapsedTime, 0f);
+        public void AddTime(float extraTime) => duration += extraTime;
     }
 
     public class Stopwatch : TimeBase
     {
         private List<float> laps = new List<float>();
-
-        public Stopwatch(float multiplier, float updateInterval, Action<float> onUpdate)
-            : base(multiplier, updateInterval, onUpdate)
-        {
-        }
+        public Stopwatch(float multiplier, float updateInterval, Action<float> onUpdate) : base(multiplier, updateInterval, onUpdate) { }
 
         public void RecordLap()
         {
@@ -290,32 +236,61 @@ public class TimeManager : SingletonManager<TimeManager>
         {
             return laps;
         }
+        public void ResetStopwatch()
+        {
+            elapsedTime = 0f;
+            laps.Clear();
+        }
     }
 
-    public class AsyncStopwatch : Stopwatch
+    public abstract class AsyncTimer : Timer
     {
         public Coroutine coroutine;
+        protected bool unscaled;
 
-        public AsyncStopwatch(float multiplier, float updateInterval, Action<float> onUpdate) : base(multiplier, updateInterval, onUpdate)
+        protected AsyncTimer(float duration, float multiplier, Action onEnd, float updateInterval, Action<float> onUpdate)
+            : base(duration, multiplier, onEnd, updateInterval, onUpdate) { }
+
+        public IEnumerator TimerCoroutine()
         {
+            while (GetRemainingTime() > 0f)
+            {
+                if (updateInterval > 0 && onUpdate != null)
+                {
+                    onUpdate.Invoke(GetRemainingTime());
+                    yield return unscaled ? new WaitForSecondsRealtime(updateInterval) : new WaitForSeconds(updateInterval);
+                }
+                else
+                    yield return null;
+
+                elapsedTime += (unscaled ? Time.unscaledDeltaTime : Time.deltaTime) * multiplier;
+            }
+
+            onTimerEnd?.Invoke();
         }
+    }
+
+    public abstract class AsyncStopwatch : Stopwatch
+    {
+        public Coroutine coroutine;
+        protected bool unscaled;
+
+        protected AsyncStopwatch(float multiplier, float updateInterval, Action<float> onUpdate)
+            : base(multiplier, updateInterval, onUpdate) { }
 
         public IEnumerator StopwatchCoroutine()
         {
-            float elapsedTime = 0f;
             while (true)
             {
                 if (updateInterval > 0 && onUpdate != null)
                 {
-                    onUpdate.Invoke(elapsedTime); // Вызываем onUpdate для секундомера
-                    yield return new WaitForSeconds(updateInterval);
-                    elapsedTime += updateInterval * multiplier; // Учитываем множитель времени
+                    onUpdate.Invoke(elapsedTime);
+                    yield return unscaled ? new WaitForSecondsRealtime(updateInterval) : new WaitForSeconds(updateInterval);
                 }
                 else
-                {
                     yield return null;
-                    elapsedTime += Time.deltaTime * multiplier; // Учитываем множитель времени
-                }
+
+                elapsedTime += (unscaled ? Time.unscaledDeltaTime : Time.deltaTime) * multiplier;
             }
         }
     }
