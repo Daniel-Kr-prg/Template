@@ -131,13 +131,35 @@ namespace DanieloZ.Managers
         // Steam Lobby (!)
         Steam_OnLobbyChatMessage, // <Data.Lobby, Friend, string> 
 
-
         // Save Management
-
         SaveManager_Save,
         SaveManager_ItemsCount,
         SaveManager_Load,
-        SaveManager_LoadFailure
+        SaveManager_LoadFailure,
+
+        // Game Flow
+        Game_OnLevelStarted,
+        Game_OnLevelFinished,
+        Game_OnBrickDestroyed,    // payload: [BrickController]
+        Game_OnXpGained,          // payload: [float xpAmount]
+        Game_OnAllWavesCompleted, // no payload
+
+        // Ball
+        Game_OnBallSpawned,       // payload: [Game_DefaultBall]
+        Game_OnBallLost,          // payload: [Game_DefaultBall]
+        Game_OnBallBounced,
+        Game_OnBallXPChanged,           
+        Game_OnBallEaten,              
+        Game_OnBallCreatedWithNoFreeBall,
+        Game_OnBallCreatedWithFreeBall,  
+
+        // Wave
+        Game_OnWaveStarted,       // payload: [int waveIndex]
+        Game_OnWavesReset,                    
+        Game_OnWaveStep,                       
+
+        Game_OnComboChanged,           
+        Game_OnCoinsChanged         
     }
 
 }

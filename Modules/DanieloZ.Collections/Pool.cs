@@ -5,6 +5,7 @@ using UnityEngine;
 public class Pool<T> where T : Component
 {
     private readonly Queue<T> poolQueue = new Queue<T>();
+    private readonly List<T> allObjects = new List<T>();
     private readonly T prefab;
     private readonly Transform parent;
     private readonly int initialSize;
@@ -31,6 +32,7 @@ public class Pool<T> where T : Component
         T obj = UnityEngine.Object.Instantiate(prefab, parent);
         obj.gameObject.SetActive(false);
         poolQueue.Enqueue(obj);
+        allObjects.Add(obj);
     }
 
     public T Get()
@@ -51,6 +53,18 @@ public class Pool<T> where T : Component
         OnReturn?.Invoke(obj);
         obj.gameObject.SetActive(false);
         poolQueue.Enqueue(obj);
+    }
+
+    public void ReturnAll()
+    {
+        for (int i = 0; i < allObjects.Count; i++)
+        {
+            var obj = allObjects[i];
+            if (obj != null && obj.gameObject.activeSelf)
+            {
+                ReturnToPool(obj);
+            }
+        }
     }
 
     public int PoolSize => poolQueue.Count;
