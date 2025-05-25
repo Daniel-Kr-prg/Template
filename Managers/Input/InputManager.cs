@@ -412,6 +412,16 @@ namespace DanieloZ.InputManagement
             for (int i = 0; i < _keysToDeactivate.Count; i++)
                 activeKeys.Remove(_keysToDeactivate[i]);
         }
+
+        public bool IsKeyHeld(InputActionKey key)
+        {
+            if (!Active) return false;
+
+            if (!KeysMap.Map.TryGetValue(key, out var keyCode))
+                return false;
+
+            return Input.GetKey(keyCode);
+        }
     }
 
     public class MousePositionData

@@ -156,7 +156,9 @@ namespace DanieloZ.Managers
         // Wave
         Game_OnWaveStarted,       // payload: [int waveIndex]
         Game_OnWavesReset,                    
-        Game_OnWaveStep,                       
+        Game_OnWaveStep,   
+        Game_OnWaveMaxStepsDecreased,
+        Game_OnWaveMaxStepsIncreased,
 
         Game_OnComboChanged,           
         Game_OnCoinsChanged         
