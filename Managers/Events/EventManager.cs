@@ -148,7 +148,7 @@ namespace DanieloZ.Managers
         Game_OnBallSpawned,       // payload: [Game_DefaultBall]
         Game_OnBallLost,          // payload: [Game_DefaultBall]
         Game_OnBallBounced,
-        Game_OnBallXPChanged,           
+        Game_OnBallXPChanged,
         Game_OnBallEaten,              
         Game_OnBallCreatedWithNoFreeBall,
         Game_OnBallCreatedWithFreeBall,  
@@ -159,6 +159,9 @@ namespace DanieloZ.Managers
         Game_OnWaveStep,   
         Game_OnWaveMaxStepsDecreased,
         Game_OnWaveMaxStepsIncreased,
+        Game_OnWaveStepTimeChanged,
+        Game_OnWaveDifficultyChanged,
+
 
         Game_OnComboChanged,           
         Game_OnCoinsChanged         
