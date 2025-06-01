@@ -164,7 +164,11 @@ namespace DanieloZ.Managers
 
 
         Game_OnComboChanged,           
-        Game_OnCoinsChanged         
+        Game_OnCoinsChanged,         
+
+        // Triggered when a new wave is about to appear (for ghost ball logic, etc)
+        Game_OnNewWaveComing, // Triggered when new wave movement starts (bricks move)
+        Game_OnNewWaveCame    // Triggered when new wave movement ends (bricks stop)
     }
 
 }
