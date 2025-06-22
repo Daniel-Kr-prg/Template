@@ -150,7 +150,7 @@ GameObject:
   - component: {fileID: 6415100239774723722}
   - component: {fileID: 8716561393218304906}
   m_Layer: 0
-  m_Name: UI_Button_Sprited_1
+  m_Name: '[Element] UI_Button_Sprited_1'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
