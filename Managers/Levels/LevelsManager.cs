@@ -19,7 +19,7 @@ public class LevelsManager : SingletonManager<LevelsManager>
     public event Action<string, LevelProgress> LevelCompleted;
 
     private string currentLevelName;
-    private Game_LevelController currentLevel;
+    private ILevelController currentLevel;
 
     protected override void Awake()
     {
@@ -51,7 +51,7 @@ public class LevelsManager : SingletonManager<LevelsManager>
         
         var level = Instantiate(prefab, levelContainer);
         level.transform.position = Vector3.zero;
-        currentLevel = level.GetComponent<Game_LevelController>();
+        currentLevel = level.GetComponent<ILevelController>();
 
         LevelStarted?.Invoke(levelName);
 
@@ -70,7 +70,7 @@ public class LevelsManager : SingletonManager<LevelsManager>
 
         var level = Instantiate(prefab, levelContainer);
         level.transform.position = Vector3.zero;
-        currentLevel = level.GetComponent<Game_LevelController>();
+        currentLevel = level.GetComponent<ILevelController>();
 
         LevelStarted?.Invoke(prefab.name);
 
