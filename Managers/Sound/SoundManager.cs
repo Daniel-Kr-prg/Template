@@ -72,8 +72,8 @@ namespace DanieloZ.Managers.Sound
             if (localAudioSourcePool != null)
             {
                 localAudioSourcePool.Initialize(5, 
-                    new Action<SoundManager_LocalAudioSource>(x => { x.Init(); }),
-                    new Action<SoundManager_LocalAudioSource>(x => { }));
+                    onGet: new Action<SoundManager_LocalAudioSource>(x => { x.Init(); }),
+                    onReturn: new Action<SoundManager_LocalAudioSource>(x => { }));
 
                 if (localAudioSourcePool.Initialized)
                     poolInitialized = true;

@@ -11,14 +11,20 @@ namespace DanieloZ.Managers.Sound
         private Pool<SoundManager_LocalAudioSource> pool;
         public bool Initialized { get; private set; }
 
-        public bool Initialize(int initialSize = 5, Action<SoundManager_LocalAudioSource> onGet = null, Action<SoundManager_LocalAudioSource> onReturn = null)
+        public bool Initialize(int initialSize = 5, int? maxSize = null, Action<SoundManager_LocalAudioSource> onGet = null, Action<SoundManager_LocalAudioSource> onReturn = null)
         {
             Initialized = false;
 
             if (LocalAudioSourcePrefab == null)
                 return false;
 
-            pool = new Pool<SoundManager_LocalAudioSource>(LocalAudioSourcePrefab, 5, transform, onGet, onReturn);
+            pool = new Pool<SoundManager_LocalAudioSource>(
+                factoryMethod: () => Instantiate(LocalAudioSourcePrefab, transform),
+                initialSize: initialSize,
+                maxSize: maxSize,
+                onGet: onGet,
+                onReturn: onReturn
+            );
             if (pool == null)
                 return false;
 

@@ -695,7 +695,7 @@ namespace DanieloZ.Managers.Config
         {
             configData.QualitySettings.LODQuality = quality;
 
-            Transform contentFolder = ContentManager.Instance?.GetComponent<Transform>();
+            Transform contentFolder = GameManager.Instance?.GetComponent<Transform>();
             if (contentFolder != null)
             {
                 contentFolder.GetComponentsInChildren<LODQualityHandler>().ToList().ForEach(x => x.UpdateLODQuality(quality));
@@ -708,7 +708,7 @@ namespace DanieloZ.Managers.Config
         {
             configData.QualitySettings.DrawDistance = distance;
 
-            Transform contentFolder = ContentManager.Instance?.GetComponent<Transform>();
+            Transform contentFolder = GameManager.Instance?.GetComponent<Transform>();
             if (contentFolder != null)
             {
                 contentFolder.GetComponentsInChildren<DrawDistanceHandler>().ToList().ForEach(x => x.UpdateDrawDistance(distance));
@@ -1077,7 +1077,7 @@ namespace DanieloZ.Managers.Config
             if (configData?.QualitySettings.LODQuality != null)
             {
                 var quality = configData.QualitySettings.LODQuality;
-                Transform contentFolder = ContentManager.Instance?.GetComponent<Transform>();
+                Transform contentFolder = GameManager.Instance?.GetComponent<Transform>();
                 if (contentFolder != null)
                 {
                     contentFolder.GetComponentsInChildren<LODQualityHandler>().ToList().ForEach(x => x.UpdateLODQuality(quality));
@@ -1095,7 +1095,7 @@ namespace DanieloZ.Managers.Config
             if (configData?.QualitySettings.DrawDistance != null)
             {
                 float distance = configData.QualitySettings.DrawDistance;
-                Transform contentFolder = ContentManager.Instance?.GetComponent<Transform>();
+                Transform contentFolder = GameManager.Instance?.GetComponent<Transform>();
                 if (contentFolder != null)
                 {
                     contentFolder.GetComponentsInChildren<DrawDistanceHandler>().ToList().ForEach(x => x.UpdateDrawDistance(distance));

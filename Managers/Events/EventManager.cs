@@ -168,7 +168,17 @@ namespace DanieloZ.Managers
 
         // Triggered when a new wave is about to appear (for ghost ball logic, etc)
         Game_OnNewWaveComing, // Triggered when new wave movement starts (bricks move)
-        Game_OnNewWaveCame    // Triggered when new wave movement ends (bricks stop)
+        Game_OnNewWaveCame,   // Triggered when new wave movement ends (bricks stop)
+
+        // LettersBag events
+        LettersBag_Changed,         // payload: [Dictionary<Letter, int> currentBag]
+        LettersBag_LetterTaken,     // payload: [Letter letter, int countLeft]
+        LettersBag_LetterAdded,     // payload: [Letter letter, int countNow]
+        LettersBag_Refilled,        // payload: [Dictionary<Letter, int> currentBag]
+        LettersBag_Emptied,         // payload: []
+        
+        // WordPath specific events
+        Game_OnWordConfirmed        // payload: [string word] - when player confirms a word
     }
 
 }

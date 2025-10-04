@@ -3,23 +3,35 @@ using System;
 using UnityEngine;
 using System.Linq;
 
+/// <summary>
+/// Простой менеджер уровней WordPath.
+/// Загружает данные из LevelSettings и инициализирует игровые компоненты.
+/// </summary>
 public class LevelsManager : SingletonManager<LevelsManager>
 {
     [Header("Data")]
-    [SerializeField]
-    private LevelsCollection levelsCollection;
+    [SerializeField] private LevelsCollection levelsCollection;
 
     [Header("Dependencies")]
-    [SerializeField]
-    private Game_PlayerProgress playerProgress;
+    [SerializeField] private Game_PlayerProgress playerProgress;
 
-    [SerializeField] private Transform levelContainer;
     // Events
-    public event Action<string> LevelStarted;
+    public event Action<string, LevelSettings> LevelStarted;
     public event Action<string, LevelProgress> LevelCompleted;
 
+    // Current level state
     private string currentLevelName;
-    private ILevelController currentLevel;
+    private LevelSettings currentLevelSettings;
+    
+    /// <summary>
+    /// Настройки текущего уровня
+    /// </summary>
+    public LevelSettings CurrentLevelSettings => currentLevelSettings;
+    
+    /// <summary>
+    /// Имя текущего уровня
+    /// </summary>
+    public string CurrentLevelName => currentLevelName;
 
     protected override void Awake()
     {
@@ -37,48 +49,108 @@ public class LevelsManager : SingletonManager<LevelsManager>
     }
 
     /// <summary>
-    /// Starts the given level by instantiating its prefab.
+    /// Запустить уровень по имени
     /// </summary>
     public void StartLevel(string levelName)
     {
-        var prefab = levelsCollection.GetLevel(levelName);
-        if (prefab == null)
+        var levelSettings = levelsCollection.GetLevel(levelName);
+        if (levelSettings == null)
         {
-            DebugError($"Level '{levelName}' not found in collection.");
+            DebugError($"Уровень '{levelName}' не найден в коллекции.");
             return;
         }
-        currentLevelName = levelName;
         
-        var level = Instantiate(prefab, levelContainer);
-        level.transform.position = Vector3.zero;
-        currentLevel = level.GetComponent<ILevelController>();
-
-        LevelStarted?.Invoke(levelName);
-
-        currentLevel.Setup();
-    }
-
-    public void StartLevel(int index)
-    {
-        var prefab = levelsCollection.GetLevel(index);
-        if (prefab == null)
+        if (!levelSettings.IsValid())
         {
-            DebugError($"Level '{prefab.name}' not found in collection.");
+            DebugError($"Уровень '{levelName}' имеет некорректные настройки.");
             return;
         }
-        currentLevelName = prefab.name;
-
-        var level = Instantiate(prefab, levelContainer);
-        level.transform.position = Vector3.zero;
-        currentLevel = level.GetComponent<ILevelController>();
-
-        LevelStarted?.Invoke(prefab.name);
-
-        currentLevel.Setup();
+        
+        currentLevelName = levelName;
+        currentLevelSettings = levelSettings;
+        
+        InitializeLevel(levelSettings);
+        
+        LevelStarted?.Invoke(levelName, levelSettings);
+        
+        Debug.Log($"Уровень '{levelName}' ({levelSettings.displayName}) запущен");
     }
 
     /// <summary>
-    /// Marks the current level as completed with stars and time, saves progress.
+    /// Запустить уровень по индексу
+    /// </summary>
+    public void StartLevel(int index)
+    {
+        var levelName = levelsCollection.GetLevelName(index);
+        if (levelName == null)
+        {
+            DebugError($"Уровень с индексом {index} не найден.");
+            return;
+        }
+        
+        StartLevel(levelName);
+    }
+    
+    /// <summary>
+    /// Инициализировать игровые компоненты на основе настроек уровня
+    /// </summary>
+    private void InitializeLevel(LevelSettings levelSettings)
+    {
+        var currentLanguage = GetCurrentLanguageCode();
+        var langSettings = levelSettings.GetLanguageSettings(currentLanguage);
+        
+        if (langSettings == null)
+        {
+            DebugError($"Настройки для языка '{currentLanguage}' не найдены в уровне '{levelSettings.name}'");
+            return;
+        }
+        
+        // Инициализируем игровое поле
+        InitializePlayfield(levelSettings);
+        
+        // Инициализируем сумку букв
+        InitializeLettersBag(langSettings);
+        
+        // Инициализируем UI
+        InitializeUI(levelSettings);
+        
+        Debug.Log($"Уровень инициализирован: сетка {levelSettings.gridSize}, язык {currentLanguage}");
+    }
+    
+    private void InitializePlayfield(LevelSettings levelSettings)
+    {
+        var playfieldHandler = GameManager.Instance?.PlayfieldHandler;
+        if (playfieldHandler != null)
+        {
+            playfieldHandler.Init(
+                levelSettings.gridSize,
+                levelSettings.startTile,
+                levelSettings.finishTile
+            );
+        }
+    }
+    
+    private void InitializeLettersBag(LevelSettings.LanguageDependentSettings langSettings)
+    {
+        var lettersBagHandler = GameManager.Instance?.LettersBagHandler;
+        if (lettersBagHandler != null && langSettings.lettersBagSettings != null)
+        {
+            lettersBagHandler.settings = langSettings.lettersBagSettings;
+            lettersBagHandler.InitBags();
+        }
+    }
+    
+    private void InitializeUI(LevelSettings levelSettings)
+    {
+        var uiPlayfieldController = FindObjectOfType<UI_PlayfieldController>();
+        if (uiPlayfieldController != null)
+        {
+            uiPlayfieldController.InitializePlayfield(levelSettings.gridSize);
+        }
+    }
+
+    /// <summary>
+    /// Завершить текущий уровень с указанным количеством звезд и времени
     /// </summary>
     public void CompleteCurrentLevel(int stars, float completionTime)
     {
@@ -96,14 +168,14 @@ public class LevelsManager : SingletonManager<LevelsManager>
     }
 
     /// <summary>
-    /// Gets the prefab for a given level name.
+    /// Получить настройки уровня по имени
     /// </summary>
-    public LevelData GetLevelPrefab(string levelName) => levelsCollection.GetLevel(levelName);
+    public LevelSettings GetLevelSettings(string levelName) => levelsCollection.GetLevel(levelName);
 
     /// <summary>
-    /// Gets the prefab for the next level after the given one.
+    /// Получить настройки следующего уровня
     /// </summary>
-    public LevelData GetNextLevelPrefab(string levelName) => levelsCollection.GetNextLevel(levelName);
+    public LevelSettings GetNextLevelSettings(string levelName) => levelsCollection.GetNextLevel(levelName);
 
     /// <summary>
     /// Retrieves saved progress for a level.
@@ -145,4 +217,19 @@ public class LevelsManager : SingletonManager<LevelsManager>
     /// Utility: returns all level names in the collection.
     /// </summary>
     public IEnumerable<string> GetAllLevelNames() => levelsCollection.LevelNames;
+    
+    /// <summary>
+    /// Получить строковый код текущего языка из конфигурации
+    /// </summary>
+    private string GetCurrentLanguageCode()
+    {
+        var configManager = DanieloZ.Managers.Config.ConfigManager.Instance;
+        if (configManager?.configData?.GameSettings != null)
+        {
+            var language = configManager.configData.GameSettings.Language;
+            return language.ToString();
+        }
+        
+        return "ru"; // Fallback
+    }
 }
