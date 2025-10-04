@@ -60,12 +60,6 @@ public class LevelsManager : SingletonManager<LevelsManager>
             return;
         }
         
-        if (!levelSettings.IsValid())
-        {
-            DebugError($"Уровень '{levelName}' имеет некорректные настройки.");
-            return;
-        }
-        
         currentLevelName = levelName;
         currentLevelSettings = levelSettings;
         
@@ -96,57 +90,7 @@ public class LevelsManager : SingletonManager<LevelsManager>
     /// </summary>
     private void InitializeLevel(LevelSettings levelSettings)
     {
-        var currentLanguage = GetCurrentLanguageCode();
-        var langSettings = levelSettings.GetLanguageSettings(currentLanguage);
-        
-        if (langSettings == null)
-        {
-            DebugError($"Настройки для языка '{currentLanguage}' не найдены в уровне '{levelSettings.name}'");
-            return;
-        }
-        
-        // Инициализируем игровое поле
-        InitializePlayfield(levelSettings);
-        
-        // Инициализируем сумку букв
-        InitializeLettersBag(langSettings);
-        
-        // Инициализируем UI
-        InitializeUI(levelSettings);
-        
-        Debug.Log($"Уровень инициализирован: сетка {levelSettings.gridSize}, язык {currentLanguage}");
-    }
-    
-    private void InitializePlayfield(LevelSettings levelSettings)
-    {
-        var playfieldHandler = GameManager.Instance?.PlayfieldHandler;
-        if (playfieldHandler != null)
-        {
-            playfieldHandler.Init(
-                levelSettings.gridSize,
-                levelSettings.startTile,
-                levelSettings.finishTile
-            );
-        }
-    }
-    
-    private void InitializeLettersBag(LevelSettings.LanguageDependentSettings langSettings)
-    {
-        var lettersBagHandler = GameManager.Instance?.LettersBagHandler;
-        if (lettersBagHandler != null && langSettings.lettersBagSettings != null)
-        {
-            lettersBagHandler.settings = langSettings.lettersBagSettings;
-            lettersBagHandler.InitBags();
-        }
-    }
-    
-    private void InitializeUI(LevelSettings levelSettings)
-    {
-        var uiPlayfieldController = FindObjectOfType<UI_PlayfieldController>();
-        if (uiPlayfieldController != null)
-        {
-            uiPlayfieldController.InitializePlayfield(levelSettings.gridSize);
-        }
+
     }
 
     /// <summary>
@@ -217,19 +161,4 @@ public class LevelsManager : SingletonManager<LevelsManager>
     /// Utility: returns all level names in the collection.
     /// </summary>
     public IEnumerable<string> GetAllLevelNames() => levelsCollection.LevelNames;
-    
-    /// <summary>
-    /// Получить строковый код текущего языка из конфигурации
-    /// </summary>
-    private string GetCurrentLanguageCode()
-    {
-        var configManager = DanieloZ.Managers.Config.ConfigManager.Instance;
-        if (configManager?.configData?.GameSettings != null)
-        {
-            var language = configManager.configData.GameSettings.Language;
-            return language.ToString();
-        }
-        
-        return "ru"; // Fallback
-    }
 }
