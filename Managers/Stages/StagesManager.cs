@@ -114,11 +114,11 @@ public class StagesManager : SingletonManager<StagesManager>
             }
             return true;
         })));
-        AppStages.currentStage.RegisterTransitionCondition("StagesManager_StateManagerReady", new StageCondition(new Func<bool>(() =>
+        AppStages.currentStage.RegisterTransitionCondition("StagesManager_GlobalVarsManagerReady", new StageCondition(new Func<bool>(() =>
         {
-            if (!StateManager.HaveInstance())
+            if (!GlobalVarsManager.HaveInstance())
             {
-                DebugError($"StateManager is not initialized");
+                DebugError($"GlobalVarsManager is not initialized");
                 return false;
             }
             return true;
