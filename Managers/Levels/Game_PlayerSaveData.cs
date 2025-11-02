@@ -12,9 +12,8 @@ public class Game_PlayerSaveData : MonoBehaviour
 
     private PlayerSaveDataSaveItem saveItem;
 
-    private void Awake()
+    private void Start()
     {
-        // Регистрируем этот MonoBehaviour в системе сейва
         saveItem = new PlayerSaveDataSaveItem("PlayerSaveData", this);
     }
 }

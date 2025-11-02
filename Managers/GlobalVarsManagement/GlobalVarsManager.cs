@@ -83,7 +83,11 @@ public sealed class GlobalVarsManager : SingletonManager<GlobalVarsManager>
     protected override void Awake()
     {
         base.Awake();
+    }
 
+    private void Start()
+    {
+        StagesManager.Instance.AppStages.currentStage.SatisfyCondition("StagesManager_GlobalVarsManagerReady");
         _saveItem = new GlobalStateSaveItem("GlobalState", this);
     }
 
@@ -270,7 +274,7 @@ public readonly struct PersistSpec
 /// </summary>
 public sealed class GlobalStateSaveItem : SaveItem
 {
-    private readonly GlobalVarsManager _mgr;
+    private readonly GlobalVarsManager globalVarsManager;
 
     private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings
     {
@@ -278,22 +282,22 @@ public sealed class GlobalStateSaveItem : SaveItem
         Formatting = Formatting.None
     };
 
-    public GlobalStateSaveItem(string id, GlobalVarsManager mgr) : base(id, mgr)
+    public GlobalStateSaveItem(string id, GlobalVarsManager globalVars) : base(id, globalVars)
     {
-        _mgr = mgr;
+        globalVarsManager = globalVars;
     }
 
     protected override void LoadCallback()
     {
         var snapshot = SaveManager.Load<GlobalVarsSnapshot>(id);
         if (snapshot != null)
-            _mgr.ApplySnapshot(snapshot, notify: true);
+            globalVarsManager.ApplySnapshot(snapshot, notify: true);
     }
 
     public override string CreateSaveData(object sourceObject)
     {
-        var spec = _mgr.BuildPersistSpec();
-        var snapshot = _mgr.MakeSnapshot(spec);
+        var spec = globalVarsManager.BuildPersistSpec();
+        var snapshot = globalVarsManager.MakeSnapshot(spec);
         return JsonConvert.SerializeObject(snapshot, JsonSettings);
     }
 }

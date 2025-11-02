@@ -1,99 +1,136 @@
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
+using Sirenix.OdinInspector;
 
-/// <summary>
-/// Коллекция настроек уровней WordPath.
-/// Содержит словарь LevelSettings - каждый уровень описывается полностью в ScriptableObject.
-/// </summary>
-[CreateAssetMenu(fileName = "LevelsCollection", menuName = "WordPath/Levels Collection")]
+[CreateAssetMenu(fileName = "LevelsCollection", menuName = "ColorMix/Levels Collection")]
 public class LevelsCollection : ScriptableObject
 {
-    [Header("Collection Info")]
-    public string collectionName = "WordPath Levels";
-    
-    [Header("Levels")]
-    [SerializeField] public SerializedDictionary<string, LevelSettings> levels;
-    
-    /// <summary>
-    /// Имена всех уровней в коллекции
-    /// </summary>
+    #region Collection Info
+
+    [BoxGroup("Collection")]
+    public string collectionName = "Levels";
+
+    [BoxGroup("Collection")]
+    [ReadOnly]
+    public int totalLevels;
+
+    #endregion
+
+    #region Levels Data
+
+    [BoxGroup("Levels")]
+    [SerializeField] public SerializedDictionary<string, LevelData> levels;
+
     public IEnumerable<string> LevelNames => levels?.Keys ?? Enumerable.Empty<string>();
-    
-    /// <summary>
-    /// Количество уровней в коллекции
-    /// </summary>
     public int LevelCount => levels?.Count ?? 0;
 
-    /// <summary>
-    /// Получить настройки уровня по имени
-    /// </summary>
-    public LevelSettings GetLevel(string levelName)
+    #endregion
+
+    #region Validation
+
+    [Button("Validate Collection"), BoxGroup("Collection")]
+    private void ValidateCollection()
     {
-        if (levels != null && levels.ContainsKey(levelName))
-            return levels[levelName];
-        
-        Debug.LogWarning($"Уровень '{levelName}' не найден в коллекции {name}");
+        if (levels == null) return;
+
+        totalLevels = levels.Count;
+        int index = 1;
+
+        foreach (var kvp in levels)
+        {
+            if (kvp.Value != null)
+            {
+                kvp.Value.levelNumber = index++;
+                if (string.IsNullOrEmpty(kvp.Value.levelID))
+                {
+                    Debug.LogWarning($"Level at index {index} has empty ID");
+                }
+            }
+        }
+
+        Debug.Log($"Collection validated: {totalLevels} levels");
+    }
+
+    #endregion
+
+    #region Level Access
+
+    public LevelData GetLevel(string levelID)
+    {
+        if (levels != null && levels.ContainsKey(levelID))
+            return levels[levelID];
+
+        Debug.LogWarning($"Level '{levelID}' not found in collection {name}");
         return null;
     }
 
-    /// <summary>
-    /// Получить настройки уровня по индексу
-    /// </summary>
-    public LevelSettings GetLevel(int index)
+    public LevelData GetLevel(int index)
     {
         if (levels == null || index < 0 || index >= levels.Count)
         {
-            Debug.LogError($"Индекс {index} вне границ коллекции (размер: {levels?.Count ?? 0})");
+            Debug.LogError($"Index {index} out of bounds (size: {levels?.Count ?? 0})");
             return null;
         }
-        
+
         return levels.ElementAt(index).Value;
     }
 
-    /// <summary>
-    /// Получить настройки следующего уровня
-    /// </summary>
-    public LevelSettings GetNextLevel(string currentLevelName)
+    public LevelData GetNextLevel(string currentLevelID)
     {
         if (levels == null) return null;
-        
-        var levelNames = levels.Keys.ToList();
-        int currentIndex = levelNames.IndexOf(currentLevelName);
-        
+
+        var levelIDs = levels.Keys.ToList();
+        int currentIndex = levelIDs.IndexOf(currentLevelID);
+
         if (currentIndex < 0)
         {
-            Debug.LogWarning($"Уровень '{currentLevelName}' не найден в коллекции");
+            Debug.LogWarning($"Level '{currentLevelID}' not found in collection");
             return null;
         }
-        
+
         int nextIndex = currentIndex + 1;
-        if (nextIndex >= levelNames.Count)
+        if (nextIndex >= levelIDs.Count)
         {
-            Debug.Log($"Уровень '{currentLevelName}' - последний в коллекции");
             return null;
         }
-        
-        return levels[levelNames[nextIndex]];
+
+        return levels[levelIDs[nextIndex]];
     }
-    
-    /// <summary>
-    /// Получить имя уровня по индексу
-    /// </summary>
+
+    public LevelData GetPreviousLevel(string currentLevelID)
+    {
+        if (levels == null) return null;
+
+        var levelIDs = levels.Keys.ToList();
+        int currentIndex = levelIDs.IndexOf(currentLevelID);
+
+        if (currentIndex <= 0) return null;
+
+        return levels[levelIDs[currentIndex - 1]];
+    }
+
     public string GetLevelName(int index)
     {
         if (levels == null || index < 0 || index >= levels.Count)
             return null;
-            
+
         return levels.Keys.ElementAt(index);
     }
-    
-    /// <summary>
-    /// Проверить существует ли уровень
-    /// </summary>
-    public bool HasLevel(string levelName)
+
+    public bool HasLevel(string levelID)
     {
-        return levels != null && levels.ContainsKey(levelName);
+        return levels != null && levels.ContainsKey(levelID);
     }
+
+    public int GetLevelIndex(string levelID)
+    {
+        if (levels == null) return -1;
+
+        var levelIDs = levels.Keys.ToList();
+        return levelIDs.IndexOf(levelID);
+    }
+
+    #endregion
 }
+

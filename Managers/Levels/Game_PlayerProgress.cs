@@ -10,7 +10,7 @@ public class Game_PlayerProgress : MonoBehaviour
 
     private PlayerProgressSaveItem saveItem;
 
-    private void Awake()
+    private void Start()
     {
         // Register this MonoBehaviour with the save system
         saveItem = new PlayerProgressSaveItem("PlayerProgress", this);
