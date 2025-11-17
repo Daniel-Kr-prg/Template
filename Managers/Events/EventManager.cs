@@ -178,7 +178,18 @@ namespace DanieloZ.Managers
         LettersBag_Emptied,         // payload: []
         
         // WordPath specific events
-        Game_OnWordConfirmed        // payload: [string word] - when player confirms a word
+        Game_OnWordConfirmed,        // payload: [string word] - when player confirms a word
+        
+        // ColorMix Graph Events
+        ColorMix_OnCircleMixed,              // payload: [GraphNode fromNode, GraphNode toNode, CircleData resultCircle] - when two circles are mixed
+        ColorMix_OnCircleInteracted,         // payload: [GraphNode circleNode, GraphNode specialNode, InteractionResult result] - when circle interacts with special object
+        ColorMix_OnObjectDestroyed,          // payload: [GraphNode node, GameObjectType objectType] - when object is destroyed
+        ColorMix_OnObjectChanged,            // payload: [GraphNode node, CircleData newData] - when object changes (color/size)
+        ColorMix_OnObjectMoved,              // payload: [GraphNode fromNode, GraphNode toNode] - when object moves between nodes
+        ColorMix_OnColorLockActivated,       // payload: [GraphNode lockNode] - when ColorLock is activated
+        ColorMix_OnConsumerFilled,           // payload: [GraphNode consumerNode, CircleData consumedCircle] - when Consumer consumes a circle
+        ColorMix_OnInteractionStarted,       // payload: [GraphNode fromNode, GraphNode toNode] - when interaction starts
+        ColorMix_OnInteractionCompleted      // payload: [GraphNode fromNode, GraphNode toNode, InteractionResult result] - when interaction completes
     }
 
 }
