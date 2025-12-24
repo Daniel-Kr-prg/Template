@@ -26,8 +26,6 @@ public enum GlobalKey
     // Gameplay
     CurrentLevelId,  // int
     CurrentChapter,  // int
-    QuantStep,       // int
-    QuantMode,       // int (или свой enum)
     TutorialDone,    // bool
 
     // Monetization
