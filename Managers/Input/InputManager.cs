@@ -342,7 +342,7 @@ namespace DanieloZ.InputManagement
         #endregion
 
         // ********************************************** HANDLE **********************************************
-
+        #region Unity Lifecycle
         private void Update()
         {
             if (!Active) return;
@@ -422,6 +422,53 @@ namespace DanieloZ.InputManagement
 
             return Input.GetKey(keyCode);
         }
+
+        #endregion
+
+        #region LeanTouch Integration
+
+        public event System.Action<Lean.Touch.LeanFinger> OnTouchDown;
+        public event System.Action<Lean.Touch.LeanFinger> OnTouchUp;
+        public event System.Action<Lean.Touch.LeanFinger> OnTap;
+        public event System.Action<Lean.Touch.LeanFinger> OnSwipe;
+        public event System.Action<System.Collections.Generic.List<Lean.Touch.LeanFinger>> OnGesture;
+
+        public void HandleTouchDown(Lean.Touch.LeanFinger finger)
+        {
+            if (finger == null) return;
+
+            OnTouchDown?.Invoke(finger);
+        }
+
+        public void HandleTouchUp(Lean.Touch.LeanFinger finger)
+        {
+            if (finger == null) return;
+
+            OnTouchUp?.Invoke(finger);
+        }
+
+        public void HandleTap(Lean.Touch.LeanFinger finger)
+        {
+            if (finger == null) return;
+
+            OnTap?.Invoke(finger);
+        }
+
+        public void HandleSwipe(Lean.Touch.LeanFinger finger)
+        {
+            if (finger == null) return;
+
+            OnSwipe?.Invoke(finger);
+        }
+
+        public void HandleGesture(System.Collections.Generic.List<Lean.Touch.LeanFinger> fingers)
+        {
+            if (fingers == null || fingers.Count == 0) return;
+
+            OnGesture?.Invoke(fingers);
+        }
+
+        #endregion
     }
 
     public class MousePositionData
