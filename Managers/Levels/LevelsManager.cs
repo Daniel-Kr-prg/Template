@@ -26,6 +26,7 @@ public class LevelsManager : SingletonManager<LevelsManager>
     private string currentLevelName;
     private LevelData currentLevelData;
     private GameObject currentLevelInstance;
+    private LevelBase currentLevel;
     private float levelStartTime;
 
     public LevelData CurrentLevelData => currentLevelData;
@@ -94,6 +95,20 @@ public class LevelsManager : SingletonManager<LevelsManager>
             currentLevelData = levelData;
             levelStartTime = Time.time;
 
+            // Initialize and start the level
+            // По правилу проекта: компонент уровня ВСЕГДА на корне префаба.
+            currentLevel = currentLevelInstance.GetComponent<LevelBase>();
+            if (currentLevel == null)
+            {
+                DebugWarning($"Level prefab '{levelID}' does not have LevelBase component on root");
+                OnLevelStarted?.Invoke(levelID, levelData);
+                return;
+            }
+
+            SubscribeToCurrentLevel();
+            currentLevel.Initialize(levelData);
+            currentLevel.StartLevel();
+
             OnLevelStarted?.Invoke(levelID, levelData);
             DebugMessage($"Level loaded: {levelData.displayName}");
         });
@@ -132,6 +147,8 @@ public class LevelsManager : SingletonManager<LevelsManager>
     {
         if (currentLevelInstance != null)
         {
+            UnsubscribeFromCurrentLevel();
+
             UI_LevelManager.GetInstanceAsync(uiLevelManager =>
             {
                 uiLevelManager.DestroyLevel(currentLevelInstance);
@@ -141,7 +158,41 @@ public class LevelsManager : SingletonManager<LevelsManager>
             currentLevelInstance = null;
             currentLevelData = null;
             currentLevelName = null;
+            currentLevel = null;
         }
+    }
+
+    #endregion
+
+    #region LevelBase Integration
+
+    private void SubscribeToCurrentLevel()
+    {
+        if (currentLevel == null)
+            return;
+
+        currentLevel.OnLevelCompleted += HandleLevelCompleted;
+        currentLevel.OnLevelFailed += HandleLevelFailed;
+    }
+
+    private void UnsubscribeFromCurrentLevel()
+    {
+        if (currentLevel == null)
+            return;
+
+        currentLevel.OnLevelCompleted -= HandleLevelCompleted;
+        currentLevel.OnLevelFailed -= HandleLevelFailed;
+    }
+
+    private void HandleLevelCompleted()
+    {
+        // Автозавершение уровня в системе прогресса
+        CompleteCurrentLevel(CalculateStars(CurrentLevelTime));
+    }
+
+    private void HandleLevelFailed()
+    {
+        // Хук под будущую логику поражения
     }
 
     #endregion
