@@ -9,6 +9,7 @@ public class PoolingManager : SingletonManager<PoolingManager>
 {
     // Dictionary for pools by key (usually string or Type)
     private readonly Dictionary<string, object> pools = new();
+    private readonly Dictionary<string, Transform> generatedContainers = new();
 
     /// <summary>
     /// Registers a new pool for a given key.
@@ -98,5 +99,45 @@ public class PoolingManager : SingletonManager<PoolingManager>
     {
         if (pools.ContainsKey(key))
             pools.Remove(key);
+
+        RemoveGeneratedContainer(key);
+    }
+
+    // Container provider
+    public Transform GenerateContainer(string containerName)
+    {
+        if (string.IsNullOrWhiteSpace(containerName))
+        {
+            DebugError("GenerateContainer failed: containerName is null/empty.");
+            return transform;
+        }
+
+        if (generatedContainers.TryGetValue(containerName, out var existing) && existing != null)
+            return existing;
+
+        // Clean up stale entry (e.g., container was destroyed externally)
+        generatedContainers.Remove(containerName);
+
+        var go = new GameObject(containerName);
+        var t = go.transform;
+        t.SetParent(transform, false);
+
+        generatedContainers[containerName] = t;
+        return t;
+    }
+
+    private void RemoveGeneratedContainer(string containerName)
+    {
+        if (!generatedContainers.TryGetValue(containerName, out var t))
+            return;
+
+        generatedContainers.Remove(containerName);
+
+        if (t == null)
+            return;
+
+        var go = t.gameObject;
+        if (Application.isPlaying) Destroy(go);
+        else DestroyImmediate(go);
     }
 } 
