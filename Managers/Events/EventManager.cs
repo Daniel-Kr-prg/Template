@@ -189,7 +189,34 @@ namespace DanieloZ.Managers
         ColorMix_OnColorLockActivated,       // payload: [GraphNode lockNode] - when ColorLock is activated
         ColorMix_OnConsumerFilled,           // payload: [GraphNode consumerNode, CircleData consumedCircle] - when Consumer consumes a circle
         ColorMix_OnInteractionStarted,       // payload: [GraphNode fromNode, GraphNode toNode] - when interaction starts
-        ColorMix_OnInteractionCompleted      // payload: [GraphNode fromNode, GraphNode toNode, InteractionResult result] - when interaction completes
+        ColorMix_OnInteractionCompleted,     // payload: [GraphNode fromNode, GraphNode toNode, InteractionResult result] - when interaction completes
+
+        // ColorMix (this project) - Level / Gameplay events
+        ColorMix_LevelStarted,               // payload: [LevelBase level, LevelData levelData]
+        ColorMix_LevelCompleted,             // payload: [LevelBase level, LevelData levelData]
+        ColorMix_LevelFailed,                // payload: [LevelBase level, LevelData levelData, LevelFailReason reason]
+        ColorMix_LevelReset,                 // payload: [LevelBase level, LevelData levelData]
+        ColorMix_LevelContinued,             // payload: [LevelBase level, LevelData levelData]
+        ColorMix_LevelTimeUpdated,           // payload: [LevelBase level, float elapsed, float remaining, float totalAllowed, bool hasLimit]
+        ColorMix_LevelTimeExtended,          // payload: [LevelBase level, float addedSeconds, float totalExtraSeconds, float remaining]
+
+        ColorMix_MoveApplied,                // payload: [int fromNodeId, int toNodeId, MoveResult result]
+        ColorMix_NodeChangeApplied,          // payload: [NodeChange change]
+        ColorMix_CircleUpdated,              // payload: [int nodeId, CircleState? newState, bool shouldCreateNew]
+        ColorMix_CircleRemoved,              // payload: [int nodeId, int? removedCircleId]
+        ColorMix_LockActivated,              // payload: [int nodeId]
+        ColorMix_ConsumerUpdated,            // payload: [int nodeId, bool completed, SpectrumColor? color, int amount]
+        ColorMix_MovementBlocked,            // payload: [int nodeId, bool allowMovement]
+
+        ColorMix_ObjectCreated,              // payload: [int nodeId, ObjectChangeInfo info]
+        ColorMix_ObjectUpdated,              // payload: [int nodeId, ObjectChangeInfo info]
+        ColorMix_ObjectRemoved,              // payload: [int nodeId, ObjectChangeInfo info]
+        ColorMix_ObjectsApplied,             // payload: [int nodeId, List<int> appliedObjectIds]
+
+        ColorMix_BonusApplied,               // payload: [BonusType bonus, int nodeId, IBoardObject createdObject]
+        ColorMix_CurrentProgressSaved,       // payload: [string levelId, int moveCount, float elapsedSeconds]
+        ColorMix_CurrentProgressLoaded,      // payload: [string levelId, int moveCount, float elapsedSeconds]
+        ColorMix_CurrentProgressCleared      // payload: [string levelId]
     }
 
 }
