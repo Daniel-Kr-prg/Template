@@ -9,7 +9,7 @@ public class LevelsManager : SingletonManager<LevelsManager>
     #region Serialized Fields
 
     [SerializeField] private LevelsCollection levelsCollection;
-    [SerializeField] private Game_PlayerProgress playerProgress;
+    private Statistics_LevelsProgress levelsProgress;
 
     #endregion
 
@@ -47,6 +47,7 @@ public class LevelsManager : SingletonManager<LevelsManager>
     private void Start()
     {
         StagesManager.GetInstanceAsync(RegisterStageActions);
+        StatisticsManager.GetInstanceAsync((x) => levelsProgress = x.LevelsProgress);
     }
 
     #endregion
@@ -56,7 +57,7 @@ public class LevelsManager : SingletonManager<LevelsManager>
     private void ValidateDependencies()
     {
         if (levelsCollection == null) DebugError("LevelsCollection not assigned");
-        if (playerProgress == null) DebugError("Game_PlayerProgress not assigned");
+        if (levelsProgress == null) DebugError("Statistics_LevelsProgress not assigned");
     }
 
     private void RegisterStageActions(StagesManager stagesManager)
@@ -116,8 +117,8 @@ public class LevelsManager : SingletonManager<LevelsManager>
 
     public void LoadLevel(int index)
     {
-        var prefab = levelsCollection.GetLevel(index);
-        if (prefab == null)
+        var levelName = levelsCollection.GetLevelName(index);
+        if (levelName == null)
         {
             DebugError($"Level at index {index} not found");
             return;
@@ -209,11 +210,14 @@ public class LevelsManager : SingletonManager<LevelsManager>
 
         float completionTime = CurrentLevelTime;
         CompleteLevel(currentLevelName, new LevelProgress(stars, completionTime));
+    
+        UIManager.Instance.popupsManager.ShowYouWin();
+
     }
 
     public void CompleteLevel(string levelID, LevelProgress progress)
     {
-        playerProgress.MarkLevelCompleted(levelID, progress);
+        levelsProgress.MarkLevelCompleted(levelID, progress);
         OnLevelCompleted?.Invoke(levelID, progress);
         SaveManager.Save();
         DebugMessage($"Level '{levelID}' completed: {progress.Stars} stars, {progress.CompletionTime:F2}s");
@@ -242,7 +246,7 @@ public class LevelsManager : SingletonManager<LevelsManager>
 
     #region Progress Access
 
-    public LevelProgress GetProgress(string levelID) => playerProgress.GetLevelProgress(levelID);
+    public LevelProgress GetProgress(string levelID) => levelsProgress.GetLevelProgress(levelID);
 
     public bool IsLevelUnlocked(string levelID)
     {
@@ -250,7 +254,7 @@ public class LevelsManager : SingletonManager<LevelsManager>
         int index = allLevels.IndexOf(levelID);
         if (index < 0) return false;
         if (index == 0) return true;
-        return playerProgress.GetLevelProgress(allLevels[index - 1]).Stars > 0;
+        return levelsProgress.GetLevelProgress(allLevels[index - 1]).Stars > 0;
     }
 
     public bool IsLevelCompleted(string levelID) => GetProgress(levelID).Stars > 0;
@@ -266,7 +270,20 @@ public class LevelsManager : SingletonManager<LevelsManager>
         }
     }
 
-    public IEnumerable<string> GetCompletedLevels() => playerProgress.progressByLevel.Keys;
+    public IEnumerable<string> GetCompletedLevels() => levelsProgress.progressByLevel.Keys;
+
+    public int GetTotalStars() => levelsProgress.GetTotalStars();
+
+    public int GetCompletedLevelsCount() => levelsProgress.GetCompletedLevelsCount();
+
+    #endregion
+
+    #region Utilities
+
+    public List<(string levelID, string levelName)> GetListForLevelSelect()
+    {
+        return levelsCollection.levels.Select(x => (x.Key, x.Value.displayName)).ToList();
+    }
 
     #endregion
 }

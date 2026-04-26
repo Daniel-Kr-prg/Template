@@ -25,13 +25,16 @@ public class StagesManager : SingletonManager<StagesManager>
         StageLines = new Dictionary<string, StageLine<string>>();
 
         AppStages = new StageLine<AppStageName>(
-            (AppStageName.AppInit, new Stage<AppStageName>(AppStageName.AppInit, () => { Debug.Log("ConnectServices"); AppStages.SetStage(AppStageName.ConnectServices); })),
-            (AppStageName.ConnectServices, new Stage<AppStageName>(AppStageName.ConnectServices, () => { Debug.Log("ConfigSetup"); AppStages.SetStage(AppStageName.ConfigSetup); })),
-            (AppStageName.ConfigSetup, new Stage<AppStageName>(AppStageName.ConfigSetup, () => { Debug.Log("Start"); AppStages.SetStage(AppStageName.Start); })),
+            (AppStageName.AppInit, new Stage<AppStageName>(AppStageName.AppInit, () => { AppStages.SetStage(AppStageName.PlatformAndLanguage); })),
+            (AppStageName.PlatformAndLanguage, new Stage<AppStageName>(AppStageName.PlatformAndLanguage, () => { AppStages.SetStage(AppStageName.ConfigSetup); })),
+            (AppStageName.ConfigSetup, new Stage<AppStageName>(AppStageName.ConfigSetup, () => { AppStages.SetStage(AppStageName.ConnectServices); })),
+            (AppStageName.ConnectServices, new Stage<AppStageName>(AppStageName.ConnectServices, () => { AppStages.SetStage(AppStageName.LoadPlayerData); })),
+            (AppStageName.LoadPlayerData, new Stage<AppStageName>(AppStageName.LoadPlayerData, () => { AppStages.SetStage(AppStageName.Start); })),
             (AppStageName.Start, new Stage<AppStageName>(AppStageName.Start))
         );
 
         AppStages.SetStage(initialStageName, false);
+
 
         AppStages.currentStage.RegisterTransitionCondition("StagesManager_AppManagerReady", new StageCondition(new Func<bool>(() =>
         {
@@ -304,12 +307,6 @@ public class StageLine<T>
             return;
         }
 
-        //if (!stage.CanChangeState())
-        //{
-        //    Debug.LogWarning($"[M] StagesManager / SetStage: {stageName} can't be set. Conditions are not satisfied");
-        //    return;
-        //}
-
         if (handleCurrentStage)
         {
             bool canHandleCurrentStage = true;
@@ -345,9 +342,14 @@ public class StageLine<T>
 
         lastStableStage = currentStage;
         currentStage = stage;
+        Debug.Log($"[StagesManager] Moving to stage: {stageName}");
         currentStage.InvokeStageStart();
-
         InvokeStageChanged();
+
+        if (currentStage.conditionsToChangeStage == null || currentStage.conditionsToChangeStage.Count == 0)
+        {
+            SetNextStage();
+        }
     }
 
     #endregion
@@ -489,8 +491,10 @@ public class StageCondition
 
 public enum AppStageName
 {
-    AppInit, // ensures that all Main managers and scenes are loaded
-    ConnectServices,
-    ConfigSetup,
-    Start
+    AppInit, // инициализация синглтонов и основ
+    ConfigSetup, // настройки и RemoteConfig
+    PlatformAndLanguage, // определение платформы и языка
+    ConnectServices, // аутентификация и сервисы
+    LoadPlayerData, // загрузка сейва игрока
+    Start // финальная стадия (меню)
 }

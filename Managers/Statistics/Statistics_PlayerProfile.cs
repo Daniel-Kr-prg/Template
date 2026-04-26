@@ -138,15 +138,14 @@ public class Statistics_PlayerProfile : MonoBehaviour
         }
     }
 
-    private void SyncCurrency()
-    {
-        GlobalVarsManager.Set(CURRENCY_KEY, currency);
-    }
+    private void SyncCurrency() => GlobalVarsManager.Set(CURRENCY_KEY, currency);
+    private void SyncLevel() => GlobalVarsManager.Set(LEVEL_KEY, level);
+    private void SyncExperience() => GlobalVarsManager.Set(EXPERIENCE_KEY, experience);
+    private void SyncHp() => GlobalVarsManager.Set(HP_KEY, hp);
+    private void SyncMaxHp() => GlobalVarsManager.Set(MAX_HP_KEY, maxHp);
 
-    private void SyncLevel()
-    {
-        GlobalVarsManager.Set(LEVEL_KEY, level);
-    }
+    private void SyncItem(string itemID, int count) => GlobalVarsManager.Set(itemID, count);
+    private void RemoveItemFromGlobalVars(string itemID) => GlobalVarsManager.Remove(itemID);
 
     private void SyncExperience()
     {
@@ -177,7 +176,7 @@ public class Statistics_PlayerProfile : MonoBehaviour
 
         currency += amount;
         SyncCurrency();
-        SaveManager.Save();
+        TryAutoSave();
     }
 
     public bool SpendCurrency(int amount)
@@ -192,23 +191,67 @@ public class Statistics_PlayerProfile : MonoBehaviour
         {
             currency -= amount;
             SyncCurrency();
-            SaveManager.Save();
+            TryAutoSave();
             return true;
         }
 
         return false;
     }
 
-    public bool HasEnoughCurrency(int amount)
-    {
-        return currency >= amount;
-    }
+    public bool HasEnoughCurrency(int amount) => currency >= amount;
 
     public void SetCurrency(int amount)
     {
         currency = Mathf.Max(0, amount);
         SyncCurrency();
-        SaveManager.Save();
+        TryAutoSave();
+    }
+
+    #endregion
+
+    #region HP Management
+
+    public void SetMaxHp(int value, bool clampCurrent = true)
+    {
+        maxHp = Mathf.Max(1, value);
+        if (clampCurrent)
+            hp = Mathf.Clamp(hp, 0, maxHp);
+
+        SyncMaxHp();
+        SyncHp();
+        TryAutoSave();
+    }
+
+    public void SetHp(int value)
+    {
+        hp = Mathf.Clamp(value, 0, maxHp);
+        SyncHp();
+        TryAutoSave();
+    }
+
+    public void AddHp(int amount)
+    {
+        if (amount <= 0) return;
+        hp = Mathf.Clamp(hp + amount, 0, maxHp);
+        SyncHp();
+        TryAutoSave();
+    }
+
+    public bool SpendHp(int amount)
+    {
+        if (amount <= 0)
+        {
+            Debug.LogWarning($"Invalid HP spend amount: {amount}");
+            return false;
+        }
+
+        if (hp < amount)
+            return false;
+
+        hp -= amount;
+        SyncHp();
+        TryAutoSave();
+        return true;
     }
 
     public bool HasHp(int amount = 1) => hp >= amount;
@@ -241,7 +284,7 @@ public class Statistics_PlayerProfile : MonoBehaviour
         }
 
         SyncItem(itemID, items[itemID]);
-        SaveManager.Save();
+        TryAutoSave();
     }
 
     public bool RemoveItem(string itemID, int count = 1)
@@ -258,23 +301,24 @@ public class Statistics_PlayerProfile : MonoBehaviour
         if (!items.ContainsKey(itemID))
             return false;
 
-        if (items[itemID] >= count)
+        if (items[itemID] < count)
+            return false;
+
+        items[itemID] -= count;
+
+        if (items[itemID] <= 0)
         {
-            items[itemID] -= count;
-
-            if (items[itemID] <= 0)
-            {
-                items.Remove(itemID);
-                RemoveItemFromGlobalVars(itemID);
-            }
-            else
-            {
-                SyncItem(itemID, items[itemID]);
-            }
-
-            SaveManager.Save();
-            return true;
+            items.Remove(itemID);
+            RemoveItemFromGlobalVars(itemID);
         }
+        else
+        {
+            SyncItem(itemID, items[itemID]);
+        }
+
+        TryAutoSave();
+        return true;
+    }
 
         return false;
     }
@@ -300,7 +344,7 @@ public class Statistics_PlayerProfile : MonoBehaviour
         }
 
         items.Clear();
-        SaveManager.Save();
+        TryAutoSave();
     }
 
     #endregion
@@ -309,8 +353,8 @@ public class Statistics_PlayerProfile : MonoBehaviour
 
     public void SetPlayerName(string name)
     {
-        playerName = name;
-        SaveManager.Save();
+        playerName = name ?? "";
+        TryAutoSave();
     }
 
     public void AddExperience(int exp)
@@ -325,14 +369,15 @@ public class Statistics_PlayerProfile : MonoBehaviour
             LevelUp();
         }
 
-        SaveManager.Save();
+        TryAutoSave();
     }
 
     private void LevelUp()
     {
         int required = GetExperienceForNextLevel();
         level++;
-        experience -= GetExperienceForNextLevel();
+        experience -= required;
+
         SyncLevel();
         SyncExperience();
         Debug.Log($"Level up! New level: {level}");
@@ -340,7 +385,7 @@ public class Statistics_PlayerProfile : MonoBehaviour
 
     private int GetExperienceForNextLevel()
     {
-        return level * 100;
+        return Mathf.Max(1, level) * 100;
     }
 
     public void ResetProfile()
@@ -356,7 +401,7 @@ public class Statistics_PlayerProfile : MonoBehaviour
         hp = maxHp;
 
         SyncToGlobalVars();
-        SaveManager.Save();
+        TryAutoSave();
     }
 
     #endregion
@@ -453,7 +498,9 @@ public class PlayerProfileSaveItem : SaveItem
             items = profile.items,
             playerName = profile.playerName,
             level = profile.level,
-            experience = profile.experience
+            experience = profile.experience,
+            hp = profile.hp,
+            maxHp = profile.maxHp
         });
     }
 
@@ -465,13 +512,16 @@ public class PlayerProfileSaveItem : SaveItem
             profile.currency = loaded.currency;
             profile.items = loaded.items ?? new Dictionary<string, int>();
             profile.playerName = loaded.playerName ?? "";
-            profile.level = loaded.level;
-            profile.experience = loaded.experience;
+            profile.level = Mathf.Max(1, loaded.level);
+            profile.experience = Mathf.Max(0, loaded.experience);
+
+            profile.maxHp = Mathf.Max(1, loaded.maxHp);
+            profile.hp = Mathf.Clamp(loaded.hp, 0, profile.maxHp);
         }
         else
         {
             profile.currency = 0;
-            profile.items.Clear();
+            profile.items = new Dictionary<string, int>();
             profile.playerName = "";
             profile.level = 1;
             profile.experience = 0;

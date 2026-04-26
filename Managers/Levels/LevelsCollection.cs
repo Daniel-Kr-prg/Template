@@ -3,7 +3,7 @@ using System.Linq;
 using UnityEngine;
 using Sirenix.OdinInspector;
 
-[CreateAssetMenu(fileName = "LevelsCollection", menuName = "Levels/Levels collection")]
+[CreateAssetMenu(fileName = "LevelsCollection", menuName = "ColorMix/Levels Collection")]
 public class LevelsCollection : ScriptableObject
 {
     #region Collection Info
@@ -67,9 +67,7 @@ public class LevelsCollection : ScriptableObject
 
     public LevelData GetLevel(int index)
     {
-        if (levelPrefabs.Count > index)
-            return levelPrefabs.ElementAt(index).Value;
-        else
+        if (levels == null || index < 0 || index >= levels.Count)
         {
             Debug.LogError($"Index {index} out of bounds (size: {levels?.Count ?? 0})");
             return null;
