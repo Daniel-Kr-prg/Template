@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine;
 using Sirenix.OdinInspector;
-using ColorMix.Gameplay.Model;
 
 public class Statistics_PlayerProfile : MonoBehaviour
 {
@@ -143,24 +142,8 @@ public class Statistics_PlayerProfile : MonoBehaviour
     private void SyncExperience() => GlobalVarsManager.Set(EXPERIENCE_KEY, experience);
     private void SyncHp() => GlobalVarsManager.Set(HP_KEY, hp);
     private void SyncMaxHp() => GlobalVarsManager.Set(MAX_HP_KEY, maxHp);
-
     private void SyncItem(string itemID, int count) => GlobalVarsManager.Set(itemID, count);
     private void RemoveItemFromGlobalVars(string itemID) => GlobalVarsManager.Remove(itemID);
-
-    private void SyncExperience()
-    {
-        GlobalVarsManager.Set(EXPERIENCE_KEY, experience);
-    }
-
-    private void SyncItem(string itemID, int count)
-    {
-        GlobalVarsManager.Set(itemID, count);
-    }
-
-    private void RemoveItemFromGlobalVars(string itemID)
-    {
-        GlobalVarsManager.Remove(itemID);
-    }
 
     #endregion
 
@@ -320,9 +303,6 @@ public class Statistics_PlayerProfile : MonoBehaviour
         return true;
     }
 
-        return false;
-    }
-
     public bool HasItem(string itemID, int count = 1)
     {
         if (string.IsNullOrEmpty(itemID)) return false;
@@ -406,35 +386,6 @@ public class Statistics_PlayerProfile : MonoBehaviour
 
     #endregion
 
-    #region Bonus Helpers
-
-    public static string GetBonusID(BonusType bonusType)
-    {
-        return $"bonus_{bonusType.ToString().ToLower()}";
-    }
-
-    public int GetBonusCount(BonusType bonusType)
-    {
-        return GetItemCount(GetBonusID(bonusType));
-    }
-
-    public void AddBonus(BonusType bonusType, int count = 1)
-    {
-        AddItem(GetBonusID(bonusType), count);
-    }
-
-    public bool SpendBonus(BonusType bonusType, int count = 1)
-    {
-        return RemoveItem(GetBonusID(bonusType), count);
-    }
-
-    public bool HasBonus(BonusType bonusType, int count = 1)
-    {
-        return HasItem(GetBonusID(bonusType), count);
-    }
-
-    #endregion
-
     #region Debug
 
     [Button("Add 100 Currency"), BoxGroup("Debug")]
@@ -453,12 +404,6 @@ public class Statistics_PlayerProfile : MonoBehaviour
     private void Debug_SpendHp()
     {
         SpendHp(1);
-    }
-
-    [Button("Add 1 Rainbow Bonus"), BoxGroup("Debug")]
-    private void Debug_AddRainbow()
-    {
-        AddBonus(BonusType.Rainbow, 1);
     }
 
     [Button("Reset Profile"), BoxGroup("Debug")]

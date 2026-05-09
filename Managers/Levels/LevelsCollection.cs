@@ -3,7 +3,7 @@ using System.Linq;
 using UnityEngine;
 using Sirenix.OdinInspector;
 
-[CreateAssetMenu(fileName = "LevelsCollection", menuName = "ColorMix/Levels Collection")]
+[CreateAssetMenu(fileName = "LevelsCollection", menuName = "Template/Levels Collection")]
 public class LevelsCollection : ScriptableObject
 {
     #region Collection Info

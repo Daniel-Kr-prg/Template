@@ -35,7 +35,7 @@ public class FirestoreSaveManager : SingletonManager<FirestoreSaveManager>
     {
         yield return new WaitForSeconds(1.0f);
         SaveLoaded = true;
-        LoadedData = "{\"currency\":100,\"bonuses\":{\"replace\":2}}";
+        LoadedData = "{\"currency\":100,\"items\":{\"test_item\":2},\"playerName\":\"Player\",\"level\":1,\"experience\":0,\"hp\":5,\"maxHp\":5}";
         Debug.Log("[FirestoreSaveManager] Fake save loaded");
         onSuccess?.Invoke();
     }

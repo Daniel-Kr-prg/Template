@@ -427,6 +427,7 @@ namespace DanieloZ.InputManagement
 
         #region LeanTouch Integration
 
+#if LEAN_TOUCH
         public event System.Action<Lean.Touch.LeanFinger> OnTouchDown;
         public event System.Action<Lean.Touch.LeanFinger> OnTouchUp;
         public event System.Action<Lean.Touch.LeanFinger> OnTap;
@@ -467,6 +468,7 @@ namespace DanieloZ.InputManagement
 
             OnGesture?.Invoke(fingers);
         }
+#endif
 
         #endregion
     }

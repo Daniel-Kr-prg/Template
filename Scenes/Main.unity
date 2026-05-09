@@ -212,37 +212,6 @@ MonoBehaviour:
     - Main
     - UI
     - Game
---- !u!1 &457289763
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 457289764}
-  m_Layer: 0
-  m_Name: Main Virtual Cameras
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &457289764
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 457289763}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1634845055}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &497553853
 GameObject:
   m_ObjectHideFlags: 0
@@ -586,37 +555,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   appID: 480
   Active: 0
---- !u!1 &1210993055
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1210993056}
-  m_Layer: 0
-  m_Name: Custom Virtual Cameras
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1210993056
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1210993055}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1634845055}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1223568912
 GameObject:
   m_ObjectHideFlags: 0
@@ -753,7 +691,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1634845055}
+  m_Father: {fileID: 1353709991}
   m_LocalEulerAnglesHint: {x: 21.725, y: 128.493, z: 0}
 --- !u!114 &1289195660
 MonoBehaviour:
@@ -863,7 +801,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1634845055}
+  - {fileID: 1289195659}
   m_Father: {fileID: 497553854}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1353709992
@@ -878,7 +816,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f60b6a82b214c7f48958bbd01798ab06, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  defaultPack: {fileID: 1634845056}
+  renderCamera: {fileID: 1289195658}
+  cinemachineBrain: {fileID: 1289195661}
+  defaultCameraID: 
+  cameras: []
 --- !u!1 &1558779380
 GameObject:
   m_ObjectHideFlags: 0
@@ -1053,75 +994,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32b70f8dcd15a5142a9b77ceaf253523, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!1 &1634845054
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1634845055}
-  - component: {fileID: 1634845056}
-  m_Layer: 0
-  m_Name: Cinemachine Camerapack
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1634845055
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1634845054}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 457289764}
-  - {fileID: 1210993056}
-  - {fileID: 1289195659}
-  m_Father: {fileID: 1353709991}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1634845056
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1634845054}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 377b7ed3c6724ad4e890c9ab66dc8213, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  mainCamera: {fileID: 1289195658}
-  mainVirtualCamerasFolder: {fileID: 457289764}
-  mainCameraBaseMetadata:
-    pairs: []
-    error: 0
-  mainVirtualCameras:
-    pairs: []
-    error: 0
-  mainVirtualCameraPrefab: {fileID: 6803051501207845731, guid: 6c7950560526eba44b45a61ff64d9e2d,
-    type: 3}
-  defaultMainCameraName: mainVCamera
-  customVirtualCamerasFolder: {fileID: 1210993056}
-  customVirtualCameras:
-    pairs: []
-    error: 0
-  customVirtualCameraPrefab: {fileID: 5512529921997411712, guid: adbfa8bcebbf71c4f955e8b6fe38ff0d,
-    type: 3}
-  defaultCustomCameraName: customVCamera
-  cameraParams:
-    pairs: []
-    error: 0
-  cinemachineBrain: {fileID: 1289195661}
 --- !u!1 &1738524963
 GameObject:
   m_ObjectHideFlags: 0

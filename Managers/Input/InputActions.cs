@@ -84,6 +84,9 @@ public enum InputActionKey
     JUMP,
     CROUNCH,
     RUN,
+    HANDS,
+    PETRIFY,
+    UNSTUCK,
 
     // Social
     TEXT_CHAT,

@@ -1,3 +1,4 @@
+#if LEAN_TOUCH
 using System.Collections.Generic;
 using Lean.Touch;
 using UnityEngine;
@@ -48,4 +49,5 @@ public class LeanTouchInputBridge : MonoBehaviour
         InputManager.Instance?.HandleGesture(fingers);
     }
 }
+#endif
 

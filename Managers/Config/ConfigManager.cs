@@ -695,11 +695,7 @@ namespace DanieloZ.Managers.Config
         {
             configData.QualitySettings.LODQuality = quality;
 
-            Transform contentFolder = GameManager.Instance?.GetComponent<Transform>();
-            if (contentFolder != null)
-            {
-                contentFolder.GetComponentsInChildren<LODQualityHandler>().ToList().ForEach(x => x.UpdateLODQuality(quality));
-            }
+            ApplyLODQualityToScene(quality);
 
             Debug.Log($"[M] ConfigManager: LOD quality set to {quality}");
         }
@@ -708,11 +704,7 @@ namespace DanieloZ.Managers.Config
         {
             configData.QualitySettings.DrawDistance = distance;
 
-            Transform contentFolder = GameManager.Instance?.GetComponent<Transform>();
-            if (contentFolder != null)
-            {
-                contentFolder.GetComponentsInChildren<DrawDistanceHandler>().ToList().ForEach(x => x.UpdateDrawDistance(distance));
-            }
+            ApplyDrawDistanceToScene(distance);
 
             Debug.Log($"[M] ConfigManager: Draw distance set to {distance}");
         }
@@ -1077,11 +1069,7 @@ namespace DanieloZ.Managers.Config
             if (configData?.QualitySettings.LODQuality != null)
             {
                 var quality = configData.QualitySettings.LODQuality;
-                Transform contentFolder = GameManager.Instance?.GetComponent<Transform>();
-                if (contentFolder != null)
-                {
-                    contentFolder.GetComponentsInChildren<LODQualityHandler>().ToList().ForEach(x => x.UpdateLODQuality(quality));
-                }
+                ApplyLODQualityToScene(quality);
                 Debug.Log($"[M] ConfigManager: LOD quality updated to {quality}");
             }
             else
@@ -1095,16 +1083,28 @@ namespace DanieloZ.Managers.Config
             if (configData?.QualitySettings.DrawDistance != null)
             {
                 float distance = configData.QualitySettings.DrawDistance;
-                Transform contentFolder = GameManager.Instance?.GetComponent<Transform>();
-                if (contentFolder != null)
-                {
-                    contentFolder.GetComponentsInChildren<DrawDistanceHandler>().ToList().ForEach(x => x.UpdateDrawDistance(distance));
-                }
+                ApplyDrawDistanceToScene(distance);
                 Debug.Log($"[M] ConfigManager: Draw distance updated to {distance}");
             }
             else
             {
                 Debug.LogWarning("[M] ConfigManager: Cannot update draw distance, configData or distance is null");
+            }
+        }
+
+        private static void ApplyLODQualityToScene(ConfigAvailableSettings.LODQuality quality)
+        {
+            foreach (var handler in UnityEngine.Object.FindObjectsByType<LODQualityHandler>())
+            {
+                handler.UpdateLODQuality(quality);
+            }
+        }
+
+        private static void ApplyDrawDistanceToScene(float distance)
+        {
+            foreach (var handler in UnityEngine.Object.FindObjectsByType<DrawDistanceHandler>())
+            {
+                handler.UpdateDrawDistance(distance);
             }
         }
 
