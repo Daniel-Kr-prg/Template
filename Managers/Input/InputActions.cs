@@ -80,6 +80,8 @@ public enum InputActionKey
     MOVE_BACKWARD,
     MOVE_LEFT,
     MOVE_RIGHT,
+    CAMERA_ROTATE_LEFT,
+    CAMERA_ROTATE_RIGHT,
 
     JUMP,
     CROUNCH,
@@ -90,5 +92,10 @@ public enum InputActionKey
 
     // Social
     TEXT_CHAT,
-    VOICE_CHAT
+    VOICE_CHAT,
+
+    // Pointer
+    MOUSE_LEFT,
+    MOUSE_RIGHT,
+    MOUSE_MIDDLE
 }

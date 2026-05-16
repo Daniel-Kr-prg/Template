@@ -163,7 +163,7 @@ public class Stage<T>
                 conditionsToChangeStage.Remove(key);
                 if (conditionsToChangeStage.Count == 0)
                 {
-                    ConditionSatisfyCallback.Invoke();
+                    ConditionSatisfyCallback?.Invoke();
                 }
             }
         }

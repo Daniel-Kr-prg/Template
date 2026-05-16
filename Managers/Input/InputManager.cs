@@ -105,6 +105,7 @@ namespace DanieloZ.InputManagement
                     (x) => 
                     { 
                         KeysMap = x;
+                        ApplyBuiltInFallbackKeys(KeysMap);
                         receiver.SaveFileAsync(KeysMap, null, null);
                     }
                 );
@@ -112,6 +113,10 @@ namespace DanieloZ.InputManagement
             else
             {
                 KeysMap = receiver.LoadFile();
+                if (ApplyBuiltInFallbackKeys(KeysMap))
+                {
+                    receiver.SaveFileAsync(KeysMap, null, null);
+                }
             }
             Active = KeysMap != null;
 
@@ -132,6 +137,7 @@ namespace DanieloZ.InputManagement
                         KeysMap keysMap = JsonConvert.DeserializeObject<KeysMap>(textAsset.text);
                         if (keysMap != null)
                         {
+                            ApplyBuiltInFallbackKeys(keysMap);
                             onSuccess.Invoke(keysMap);
                         }
                     }
@@ -146,6 +152,47 @@ namespace DanieloZ.InputManagement
                 
                 }
             });
+        }
+
+        private static bool ApplyBuiltInFallbackKeys(KeysMap keysMap)
+        {
+            if (keysMap == null)
+            {
+                return false;
+            }
+
+            keysMap.Map ??= new SerializedDictionary<InputActionKey, KeyCode>();
+            var changed = false;
+
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.EXIT, KeyCode.Escape);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.CONFIRM, KeyCode.Return);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.MOVE_FORWARD, KeyCode.W);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.MOVE_BACKWARD, KeyCode.S);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.MOVE_LEFT, KeyCode.A);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.MOVE_RIGHT, KeyCode.D);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.CAMERA_ROTATE_LEFT, KeyCode.Q);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.CAMERA_ROTATE_RIGHT, KeyCode.E);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.JUMP, KeyCode.Space);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.CROUNCH, KeyCode.LeftControl);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.RUN, KeyCode.LeftShift);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.TEXT_CHAT, KeyCode.T);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.VOICE_CHAT, KeyCode.V);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.MOUSE_LEFT, KeyCode.Mouse0);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.MOUSE_RIGHT, KeyCode.Mouse1);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.MOUSE_MIDDLE, KeyCode.Mouse2);
+
+            return changed;
+        }
+
+        private static bool TryAddFallbackKey(KeysMap keysMap, InputActionKey key, KeyCode fallback)
+        {
+            if (keysMap.Map.ContainsKey(key))
+            {
+                return false;
+            }
+
+            keysMap.Map[key] = fallback;
+            return true;
         }
 
     #if UNITY_EDITOR

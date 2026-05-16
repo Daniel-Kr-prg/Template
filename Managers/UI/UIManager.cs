@@ -12,4 +12,9 @@ public class UIManager : SingletonManager<UIManager>
 
         pageSwitcher ??= GetComponentInChildren<UI_Management_PageSwitcher>(true);
     }
+
+    private void Start()
+    {
+        StagesManager.Instance.AppStages.currentStage.SatisfyCondition("StagesManager_UIManagerReady");
+    }
 }

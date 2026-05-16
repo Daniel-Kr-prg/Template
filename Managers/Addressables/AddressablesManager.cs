@@ -10,6 +10,7 @@ using UnityEngine.UIElements;
 public class AddressablesManager : SingletonManager<AddressablesManager>
 {
     private bool isInitialized = false;
+    private bool readyConditionSatisfied;
 
     protected override void Awake()
     {
@@ -19,8 +20,7 @@ public class AddressablesManager : SingletonManager<AddressablesManager>
 
     private void Start()
     {
-        if (isInitialized)
-            StagesManager.Instance.AppStages.currentStage.SatisfyCondition("StagesManager_AddressablesManagerReady");
+        SatisfyReadyCondition();
     }
 
     private void InitializeAddressables()
@@ -35,12 +35,24 @@ public class AddressablesManager : SingletonManager<AddressablesManager>
         {
             isInitialized = true;
             DebugMessage("Addressables initialized successfully.");
+            SatisfyReadyCondition();
         }
         else
         {
             DebugError("Addressables failed to initialize.");
         }
         yield return handle;
+    }
+
+    private void SatisfyReadyCondition()
+    {
+        if (readyConditionSatisfied || !isInitialized || !StagesManager.HaveInstance())
+        {
+            return;
+        }
+
+        readyConditionSatisfied = true;
+        StagesManager.Instance.AppStages.currentStage.SatisfyCondition("StagesManager_AddressablesManagerReady");
     }
 
     public static void LoadAssetAsync<T>(string key, Action<T> onLoaded)

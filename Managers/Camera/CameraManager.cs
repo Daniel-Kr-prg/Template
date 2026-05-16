@@ -64,6 +64,11 @@ public class CameraManager : SingletonManager<CameraManager>
         Instance.SetCameraInternal(cameraID, null);
     }
 
+    public static CinemachineVirtualCamera GetVirtualCamera(string cameraID)
+    {
+        return HaveInstance() ? Instance.FindCamera(cameraID) : null;
+    }
+
     public static void SetCamera(string cameraID, Transform followTarget, Transform lookAtTarget = null)
     {
         if (!HaveInstance())

@@ -1,3 +1,4 @@
+using System.Collections;
 using DanieloZ.InputManagement;
 using DanieloZ.Managers;
 using DanieloZ.Managers.Config;
@@ -13,6 +14,10 @@ using UnityEngine;
 public class StagesManager : SingletonManager<StagesManager>
 {
     [SerializeField] AppStageName initialStageName = AppStageName.AppInit;
+
+    [Header("Debug")]
+    [SerializeField] private bool logPendingConditions = true;
+    [SerializeField, Min(0.1f)] private float pendingConditionsLogInterval = 2f;
 
     public StageLine<AppStageName> AppStages;
 
@@ -33,7 +38,7 @@ public class StagesManager : SingletonManager<StagesManager>
             (AppStageName.Start, new Stage<AppStageName>(AppStageName.Start))
         );
 
-        AppStages.SetStage(initialStageName, false);
+        AppStages.SetStage(initialStageName, false, false);
 
 
         AppStages.currentStage.RegisterTransitionCondition("StagesManager_AppManagerReady", new StageCondition(new Func<bool>(() =>
@@ -162,15 +167,6 @@ public class StagesManager : SingletonManager<StagesManager>
             }
             return true;
         })));
-        AppStages.currentStage.RegisterTransitionCondition("StagesManager_UIManagerReady", new StageCondition(new Func<bool>(() =>
-        {
-            if (!UIManager.HaveInstance())
-            {
-                DebugError($"SaveManager is not initialized");
-                return false;
-            }
-            return true;
-        })));
         AppStages.currentStage.RegisterTransitionCondition("StagesManager_AddressablesManagerReady", new StageCondition(new Func<bool>(() =>
         {
             if (!AddressablesManager.HaveInstance())
@@ -186,6 +182,28 @@ public class StagesManager : SingletonManager<StagesManager>
     {
         // Additional handling before stage changing
         AppStages.currentStage.SatisfyCondition("StagesManager_StagesManagerReady");
+
+        if (logPendingConditions)
+        {
+            StartCoroutine(LogPendingConditions());
+        }
+    }
+
+    private IEnumerator LogPendingConditions()
+    {
+        while (true)
+        {
+            yield return new WaitForSecondsRealtime(pendingConditionsLogInterval);
+
+            var stage = AppStages?.currentStage;
+            var pending = stage?.conditionsToChangeStage;
+            if (stage == null || pending == null || pending.Count == 0)
+            {
+                continue;
+            }
+
+            Debug.LogWarning($"[StagesManager] Waiting on stage '{stage.StageName}'. Pending conditions: {string.Join(", ", pending.Keys)}", this);
+        }
     }
 }
 
@@ -247,9 +265,11 @@ public class StageLine<T>
 
             currentStage.InvokeStageEnd();
             currentStage = stageList[++stageIndex];
+            Debug.Log($"[StagesManager] Moving to stage: {currentStage.StageName}");
             currentStage.InvokeStageStart();
 
             InvokeStageChanged();
+            TryAdvanceIfCurrentStageHasNoConditions();
         }
         else
         {
@@ -287,6 +307,7 @@ public class StageLine<T>
 
             currentStage.InvokeStageEnd();
             currentStage = stageList[--stageIndex];
+            Debug.Log($"[StagesManager] Moving to stage: {currentStage.StageName}");
             currentStage.InvokeStageStart();
 
             InvokeStageChanged();
@@ -298,7 +319,7 @@ public class StageLine<T>
         }
     }
 
-    public void SetStage(T stageName, bool handleCurrentStage = true)
+    public void SetStage(T stageName, bool handleCurrentStage = true, bool autoAdvance = true)
     {
         Stage<T> stage = stages[stageName];
         if (stage == null)
@@ -346,10 +367,27 @@ public class StageLine<T>
         currentStage.InvokeStageStart();
         InvokeStageChanged();
 
-        if (currentStage.conditionsToChangeStage == null || currentStage.conditionsToChangeStage.Count == 0)
+        if (autoAdvance)
         {
-            SetNextStage();
+            TryAdvanceIfCurrentStageHasNoConditions();
         }
+    }
+
+    private void TryAdvanceIfCurrentStageHasNoConditions()
+    {
+        if (currentStage == null || currentStage.conditionsToChangeStage == null || currentStage.conditionsToChangeStage.Count > 0)
+        {
+            return;
+        }
+
+        List<Stage<T>> stageList = stages.Values.ToList();
+        int stageIndex = stageList.IndexOf(currentStage);
+        if (stageIndex < 0 || stageIndex >= stages.Count - 1)
+        {
+            return;
+        }
+
+        SetNextStage();
     }
 
     #endregion
