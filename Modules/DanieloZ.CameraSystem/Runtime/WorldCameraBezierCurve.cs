@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace DanieloZ.WorldInteraction
+namespace DanieloZ.CameraSystem
 {
     public sealed class WorldCameraBezierCurve : MonoBehaviour
     {

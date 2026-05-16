@@ -138,7 +138,7 @@ namespace DanieloZ.Managers
         SaveManager_LoadFailure,
 
         // World Interaction
-        WorldInteraction_OnMatchingSlotInserted, // payload: [string id, World3DButtonSlotBase slot, World3DPhysicalButton button]
+        WorldInteraction_OnMatchingSlotInserted, // payload: [string id, World3DButtonSlotBase slot, World3DSlotItem item]
 
         // Game Flow
         Game_OnLevelStarted,

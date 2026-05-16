@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Cinemachine;
+using DanieloZ.CameraSystem;
 using DanieloZ.InputManagement;
 using UnityEngine;
 

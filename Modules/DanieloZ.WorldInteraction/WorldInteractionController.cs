@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using DanieloZ.InputManagement;
 using UnityEngine;
@@ -243,6 +244,12 @@ namespace DanieloZ.WorldInteraction
                 return;
             }
 
+            if (draggedObject is World3DSlotItem slotItem && TryInsertHeldSlotItem(slotItem))
+            {
+                draggedObject = null;
+                return;
+            }
+
             var releaseContext = new WorldDragReleaseContext(GetCamera(), Input.mousePosition);
             if (TryGetComponentInParents<IWorldDraggableReleaseHandler>(draggedObject, out var releaseHandler)
                 && releaseHandler.TryReleaseDraggedObject(draggedObject, releaseContext))
@@ -374,9 +381,15 @@ namespace DanieloZ.WorldInteraction
 
         private void UpdateHover()
         {
-            if (!enableHover || WorldInteractionInputGate.HasHeldObject)
+            if (!enableHover)
             {
                 EndHover();
+                return;
+            }
+
+            if (WorldInteractionInputGate.HeldObject is World3DSlotItem heldSlotItem)
+            {
+                UpdateHeldSlotItemHover(heldSlotItem);
                 return;
             }
 
@@ -417,6 +430,46 @@ namespace DanieloZ.WorldInteraction
             hoveredObject = null;
         }
 
+        private void UpdateHeldSlotItemHover(World3DSlotItem heldSlotItem)
+        {
+            var slotMask = CombineMasks(interactionMask, hoverMask);
+            if (!TryFindSlotUnderPointer(heldSlotItem, slotMask, out var context, out var slot))
+            {
+                EndHover();
+                return;
+            }
+
+            if (ReferenceEquals(hoveredObject, slot))
+            {
+                hoveredContext = context;
+                slot.RefreshHeldItemHover();
+                return;
+            }
+
+            EndHover();
+            hoveredObject = slot;
+            hoveredContext = context;
+            slot.HoverStart(context);
+        }
+
+        private bool TryInsertHeldSlotItem(World3DSlotItem slotItem)
+        {
+            var slotMask = CombineMasks(interactionMask, hoverMask);
+            if (!TryFindSlotUnderPointer(slotItem, slotMask, out _, out var slot))
+            {
+                return false;
+            }
+
+            if (!slot.TryInsertHeldItem(slotItem))
+            {
+                return false;
+            }
+
+            EndHover();
+            DebugLog($"Inserted held slot item {slotItem.name} into {slot.name}.");
+            return true;
+        }
+
         private bool TryRaycast(LayerMask mask, out WorldInteractionContext context)
         {
             context = default;
@@ -444,6 +497,55 @@ namespace DanieloZ.WorldInteraction
                 DebugLog($"Raycast hit {hit.collider.name}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}, distance={hit.distance}.");
             }
             return true;
+        }
+
+        private bool TryFindSlotUnderPointer(
+            WorldDraggable ignoredDraggable,
+            LayerMask mask,
+            out WorldInteractionContext context,
+            out World3DButtonSlotBase slot)
+        {
+            context = default;
+            slot = null;
+            var camera = GetCamera();
+            if (camera == null)
+            {
+                return false;
+            }
+
+            var ray = camera.ScreenPointToRay(Input.mousePosition);
+            var hits = Physics.RaycastAll(ray, rayDistance, mask, QueryTriggerInteraction.Collide);
+            if (hits == null || hits.Length == 0)
+            {
+                return false;
+            }
+
+            Array.Sort(hits, static (left, right) => left.distance.CompareTo(right.distance));
+
+            foreach (var hit in hits)
+            {
+                if (ignoredDraggable != null && hit.collider.GetComponentInParent<WorldDraggable>() == ignoredDraggable)
+                {
+                    continue;
+                }
+
+                var foundSlot = hit.collider.GetComponentInParent<World3DButtonSlotBase>();
+                if (foundSlot == null)
+                {
+                    continue;
+                }
+
+                context = new WorldInteractionContext(camera, ray, hit, Input.mousePosition);
+                slot = foundSlot;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static LayerMask CombineMasks(LayerMask first, LayerMask second)
+        {
+            return new LayerMask { value = first.value | second.value };
         }
 
         private bool TryGetPointerPoint(

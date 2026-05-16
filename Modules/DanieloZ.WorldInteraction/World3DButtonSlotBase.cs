@@ -3,36 +3,52 @@ using System.Collections.Generic;
 using DanieloZ.Managers;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Serialization;
 
 namespace DanieloZ.WorldInteraction
 {
     [RequireComponent(typeof(Collider))]
-    public class World3DButtonSlotBase : MonoBehaviour
+    public class World3DButtonSlotBase : MonoBehaviour, IWorldHoverable
     {
         [Header("Slot")]
         [SerializeField] private string slotId;
         [SerializeField] private Transform anchor;
         [SerializeField] private bool isActive;
-        [SerializeField] private List<string> acceptedButtonIds = new();
+        [FormerlySerializedAs("acceptedButtonIds")]
+        [SerializeField] private List<string> acceptedItemIds = new();
 
         [Header("ID Matching")]
         [SerializeField] private bool acceptOnlyMatchingId;
-        [SerializeField] private bool lockButtonOnMatchingId;
+        [FormerlySerializedAs("lockButtonOnMatchingId")]
+        [SerializeField] private bool lockItemOnMatchingId;
         [SerializeField] private bool callEventManagerOnMatchingId = true;
 
         [Header("Indicator")]
         [SerializeField] private GameObject activeIndicator;
+        [SerializeField] private GameObject acceptedHoverIndicator;
+        [SerializeField] private GameObject rejectedHoverIndicator;
 
         [Header("Events")]
-        [SerializeField] private UnityEvent onButtonInserted;
-        [SerializeField] private UnityEvent onButtonRemoved;
+        [FormerlySerializedAs("onButtonInserted")]
+        [SerializeField] private UnityEvent onItemInserted;
+        [FormerlySerializedAs("onButtonRemoved")]
+        [SerializeField] private UnityEvent onItemRemoved;
         [SerializeField] private UnityEvent onSlotActivated;
         [SerializeField] private UnityEvent onSlotDeactivated;
-        [SerializeField] private UnityEvent onMatchingButtonInserted;
+        [FormerlySerializedAs("onMatchingButtonInserted")]
+        [SerializeField] private UnityEvent onMatchingItemInserted;
+        [SerializeField] private UnityEvent onHeldItemHoverAccepted;
+        [SerializeField] private UnityEvent onHeldItemHoverRejected;
+        [SerializeField] private UnityEvent onHeldItemHoverEnded;
 
-        private readonly HashSet<World3DPhysicalButton> candidates = new();
         private Collider triggerCollider;
+        private World3DSlotItem hoveredItem;
+        private bool hasHoverResult;
+        private bool hoverCanInsert;
 
+        public event Action<World3DButtonSlotBase, World3DSlotItem> ItemInserted;
+        public event Action<World3DButtonSlotBase, World3DSlotItem> ItemRemoved;
+        public event Action<World3DButtonSlotBase, World3DSlotItem, string> MatchingItemInserted;
         public event Action<World3DButtonSlotBase, World3DPhysicalButton> ButtonInserted;
         public event Action<World3DButtonSlotBase, World3DPhysicalButton> ButtonRemoved;
         public event Action<World3DButtonSlotBase, World3DPhysicalButton, string> MatchingButtonInserted;
@@ -40,8 +56,10 @@ namespace DanieloZ.WorldInteraction
 
         public string SlotId => slotId;
         public Transform Anchor => anchor != null ? anchor : transform;
-        public World3DPhysicalButton CurrentButton { get; private set; }
-        public bool HasButton => CurrentButton != null;
+        public World3DSlotItem CurrentItem { get; private set; }
+        public World3DPhysicalButton CurrentButton => CurrentItem as World3DPhysicalButton;
+        public bool HasItem => CurrentItem != null;
+        public bool HasButton => HasItem;
         public bool IsActive => isActive;
 
         protected virtual void Reset()
@@ -54,84 +72,159 @@ namespace DanieloZ.WorldInteraction
         {
             triggerCollider = GetComponent<Collider>();
             triggerCollider.isTrigger = true;
+            ClearHeldItemHover();
             SetActiveState(isActive);
+        }
+
+        public virtual bool CanAccept(World3DSlotItem item)
+        {
+            if (item == null)
+            {
+                return false;
+            }
+
+            if (acceptOnlyMatchingId && !MatchesId(item))
+            {
+                return false;
+            }
+
+            return acceptedItemIds == null
+                || acceptedItemIds.Count == 0
+                || acceptedItemIds.Contains(item.ItemId);
         }
 
         public virtual bool CanAccept(World3DPhysicalButton button)
         {
-            if (button == null)
-            {
-                return false;
-            }
+            return CanAccept((World3DSlotItem)button);
+        }
 
-            if (acceptOnlyMatchingId && !MatchesId(button))
-            {
-                return false;
-            }
-
-            return acceptedButtonIds == null
-                || acceptedButtonIds.Count == 0
-                || acceptedButtonIds.Contains(button.ButtonId);
+        public bool MatchesId(World3DSlotItem item)
+        {
+            return item != null && !string.IsNullOrEmpty(slotId) && item.ItemId == slotId;
         }
 
         public bool MatchesId(World3DPhysicalButton button)
         {
-            return button != null && !string.IsNullOrEmpty(slotId) && button.ButtonId == slotId;
+            return MatchesId((World3DSlotItem)button);
         }
 
-        public virtual bool TryInsert(World3DPhysicalButton button)
+        public virtual bool CanInsert(World3DSlotItem item)
         {
-            if (!CanAccept(button))
+            if (!CanAccept(item))
             {
                 return false;
             }
 
-            if (CurrentButton == button)
+            if (item.InteractionsLocked && item.CurrentSlot != this)
             {
-                button.SnapToSlot(this);
+                return false;
+            }
+
+            return CurrentItem == null
+                || CurrentItem == item
+                || !CurrentItem.InteractionsLocked;
+        }
+
+        public virtual bool CanInsert(World3DPhysicalButton button)
+        {
+            return CanInsert((World3DSlotItem)button);
+        }
+
+        public virtual bool TryInsert(World3DSlotItem item)
+        {
+            if (!CanInsert(item))
+            {
+                return false;
+            }
+
+            if (CurrentItem == item)
+            {
+                item.SnapToSlot(this);
                 return true;
             }
 
-            if (CurrentButton != null && CurrentButton != button)
+            if (item.CurrentSlot != null && item.CurrentSlot != this)
             {
-                if (CurrentButton.InteractionsLocked)
+                item.CurrentSlot.RemoveItem(item);
+            }
+
+            if (CurrentItem != null && CurrentItem != item)
+            {
+                if (CurrentItem.InteractionsLocked)
                 {
                     return false;
                 }
 
-                RemoveButton(CurrentButton);
+                RemoveItem(CurrentItem);
             }
 
-            CurrentButton = button;
-            button.AssignSlot(this);
-            button.SnapToSlot(this);
-            onButtonInserted?.Invoke();
-            ButtonInserted?.Invoke(this, button);
+            CurrentItem = item;
+            item.AssignSlot(this);
+            item.SnapToSlot(this);
+            SetActiveState(true);
 
-            if (MatchesId(button))
+            onItemInserted?.Invoke();
+            ItemInserted?.Invoke(this, item);
+            if (item is World3DPhysicalButton button)
             {
-                HandleMatchingButtonInserted(button);
+                ButtonInserted?.Invoke(this, button);
+            }
+
+            if (MatchesId(item))
+            {
+                HandleMatchingItemInserted(item);
             }
 
             return true;
         }
 
-        public virtual void RemoveButton(World3DPhysicalButton button)
+        public virtual bool TryInsert(World3DPhysicalButton button)
         {
-            if (CurrentButton != button)
+            return TryInsert((World3DSlotItem)button);
+        }
+
+        public virtual void RemoveItem(World3DSlotItem item)
+        {
+            if (item == null || CurrentItem != item)
             {
                 return;
             }
 
-            CurrentButton = null;
-            if (lockButtonOnMatchingId && MatchesId(button))
+            CurrentItem = null;
+            SetActiveState(false);
+            if (lockItemOnMatchingId && MatchesId(item))
             {
-                button.SetInteractionsLocked(false);
+                item.SetInteractionsLocked(false);
             }
 
-            button.ClearSlot(this);
-            onButtonRemoved?.Invoke();
-            ButtonRemoved?.Invoke(this, button);
+            item.ClearSlot(this);
+            onItemRemoved?.Invoke();
+            ItemRemoved?.Invoke(this, item);
+            if (item is World3DPhysicalButton button)
+            {
+                ButtonRemoved?.Invoke(this, button);
+            }
+        }
+
+        public virtual void RemoveButton(World3DPhysicalButton button)
+        {
+            RemoveItem(button);
+        }
+
+        public virtual bool TryInsertHeldItem(World3DSlotItem item)
+        {
+            if (item == null || !item.IsHeld || !CanInsert(item))
+            {
+                return false;
+            }
+
+            item.Release();
+            return TryInsert(item);
+        }
+
+        public virtual bool TryInsertHeldButton(World3DPhysicalButton button)
+        {
+            return TryInsertHeldItem(button);
         }
 
         public virtual void SetActiveState(bool active)
@@ -165,72 +258,106 @@ namespace DanieloZ.WorldInteraction
             ActiveStateChanged?.Invoke(this, isActive);
         }
 
-        private void OnTriggerEnter(Collider other)
+        public void HoverStart(WorldInteractionContext context)
         {
-            var button = other.GetComponentInParent<World3DPhysicalButton>();
-            if (button == null)
+            RefreshHeldItemHover();
+        }
+
+        public void HoverEnd(WorldInteractionContext context)
+        {
+            ClearHeldItemHover();
+        }
+
+        public void RefreshHeldItemHover()
+        {
+            RefreshHeldItemHover(WorldInteractionInputGate.HeldObject as World3DSlotItem);
+        }
+
+        public void RefreshHeldItemHover(World3DSlotItem item)
+        {
+            if (item == null)
+            {
+                ClearHeldItemHover();
+                return;
+            }
+
+            var canInsert = CanInsert(item);
+            if (hasHoverResult && hoveredItem == item && hoverCanInsert == canInsert)
             {
                 return;
             }
 
-            candidates.Add(button);
-            button.Released += HandleButtonReleased;
+            hoveredItem = item;
+            hasHoverResult = true;
+            hoverCanInsert = canInsert;
 
-            if (!button.IsHeld)
+            if (acceptedHoverIndicator != null)
             {
-                TryInsert(button);
+                acceptedHoverIndicator.SetActive(canInsert);
+            }
+
+            if (rejectedHoverIndicator != null)
+            {
+                rejectedHoverIndicator.SetActive(!canInsert);
+            }
+
+            if (canInsert)
+            {
+                onHeldItemHoverAccepted?.Invoke();
+            }
+            else
+            {
+                onHeldItemHoverRejected?.Invoke();
             }
         }
 
-        private void OnTriggerExit(Collider other)
+        private void HandleMatchingItemInserted(World3DSlotItem item)
         {
-            var button = other.GetComponentInParent<World3DPhysicalButton>();
-            if (button == null)
+            if (lockItemOnMatchingId)
             {
-                return;
+                item.SetInteractionsLocked(true);
             }
 
-            candidates.Remove(button);
-            button.Released -= HandleButtonReleased;
-        }
-
-        private void HandleButtonReleased(WorldDraggable draggable)
-        {
-            if (draggable is World3DPhysicalButton button && candidates.Contains(button))
+            onMatchingItemInserted?.Invoke();
+            MatchingItemInserted?.Invoke(this, item, slotId);
+            if (item is World3DPhysicalButton button)
             {
-                TryInsert(button);
+                MatchingButtonInserted?.Invoke(this, button, slotId);
             }
-        }
-
-        private void HandleMatchingButtonInserted(World3DPhysicalButton button)
-        {
-            if (lockButtonOnMatchingId)
-            {
-                button.SetInteractionsLocked(true);
-            }
-
-            onMatchingButtonInserted?.Invoke();
-            MatchingButtonInserted?.Invoke(this, button, slotId);
 
             if (callEventManagerOnMatchingId && EventManager.HaveInstance())
             {
                 EventManager.CallEvent(
                     EventName.WorldInteraction_OnMatchingSlotInserted,
-                    new object[] { slotId, this, button });
+                    new object[] { slotId, this, item });
             }
         }
 
         private void OnDisable()
         {
-            foreach (var button in candidates)
+            ClearHeldItemHover();
+        }
+
+        private void ClearHeldItemHover()
+        {
+            if (acceptedHoverIndicator != null)
             {
-                if (button != null)
-                {
-                    button.Released -= HandleButtonReleased;
-                }
+                acceptedHoverIndicator.SetActive(false);
             }
 
-            candidates.Clear();
+            if (rejectedHoverIndicator != null)
+            {
+                rejectedHoverIndicator.SetActive(false);
+            }
+
+            if (hasHoverResult)
+            {
+                onHeldItemHoverEnded?.Invoke();
+            }
+
+            hoveredItem = null;
+            hasHoverResult = false;
+            hoverCanInsert = false;
         }
     }
 }

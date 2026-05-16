@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Serialization;
 
 namespace DanieloZ.WorldInteraction
 {
@@ -11,7 +12,8 @@ namespace DanieloZ.WorldInteraction
         [SerializeField] private int defaultActiveIndex;
 
         [Header("Physical Marker")]
-        [SerializeField] private World3DPhysicalButton markerButton;
+        [FormerlySerializedAs("markerButton")]
+        [SerializeField] private World3DSlotItem markerItem;
         [SerializeField] private List<World3DButtonSlotBase> markerSlots = new();
         [SerializeField] private bool returnMarkerToActiveSlot = true;
 
@@ -23,6 +25,7 @@ namespace DanieloZ.WorldInteraction
         public int ActiveIndex => activeIndex;
         public World3DToggleObject ActiveObject => activeIndex >= 0 && activeIndex < toggleObjects.Count ? toggleObjects[activeIndex] : null;
         public World3DButtonSlotBase ActiveSlot => activeIndex >= 0 && activeIndex < markerSlots.Count ? markerSlots[activeIndex] : null;
+        public World3DSlotItem MarkerItem => markerItem;
 
         private void Awake()
         {
@@ -30,13 +33,13 @@ namespace DanieloZ.WorldInteraction
             {
                 if (markerSlots[i] != null)
                 {
-                    markerSlots[i].ButtonInserted += HandleSlotButtonInserted;
+                    markerSlots[i].ItemInserted += HandleSlotItemInserted;
                 }
             }
 
-            if (markerButton != null)
+            if (markerItem != null)
             {
-                markerButton.Released += HandleMarkerReleased;
+                markerItem.Released += HandleMarkerReleased;
             }
 
             SetActiveIndex(Mathf.Clamp(defaultActiveIndex, 0, Mathf.Max(0, Mathf.Max(toggleObjects.Count, markerSlots.Count) - 1)));
@@ -68,9 +71,9 @@ namespace DanieloZ.WorldInteraction
                 }
             }
 
-            if (markerButton != null && ActiveSlot != null && !markerButton.IsHeld)
+            if (markerItem != null && ActiveSlot != null && !markerItem.IsHeld)
             {
-                ActiveSlot.TryInsert(markerButton);
+                ActiveSlot.TryInsert(markerItem);
             }
 
             onActiveChanged?.Invoke();
@@ -94,9 +97,9 @@ namespace DanieloZ.WorldInteraction
             }
         }
 
-        private void HandleSlotButtonInserted(World3DButtonSlotBase slot, World3DPhysicalButton button)
+        private void HandleSlotItemInserted(World3DButtonSlotBase slot, World3DSlotItem item)
         {
-            if (markerButton != null && button != markerButton)
+            if (markerItem != null && item != markerItem)
             {
                 return;
             }
@@ -106,14 +109,14 @@ namespace DanieloZ.WorldInteraction
 
         private void HandleMarkerReleased(WorldDraggable draggable)
         {
-            if (!returnMarkerToActiveSlot || markerButton == null || ActiveSlot == null)
+            if (!returnMarkerToActiveSlot || markerItem == null || ActiveSlot == null)
             {
                 return;
             }
 
-            if (markerButton.CurrentSlot == null)
+            if (markerItem.CurrentSlot == null)
             {
-                ActiveSlot.TryInsert(markerButton);
+                ActiveSlot.TryInsert(markerItem);
             }
         }
 
@@ -123,13 +126,13 @@ namespace DanieloZ.WorldInteraction
             {
                 if (markerSlots[i] != null)
                 {
-                    markerSlots[i].ButtonInserted -= HandleSlotButtonInserted;
+                    markerSlots[i].ItemInserted -= HandleSlotItemInserted;
                 }
             }
 
-            if (markerButton != null)
+            if (markerItem != null)
             {
-                markerButton.Released -= HandleMarkerReleased;
+                markerItem.Released -= HandleMarkerReleased;
             }
         }
     }

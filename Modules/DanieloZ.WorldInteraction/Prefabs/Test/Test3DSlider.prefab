@@ -1,0 +1,210 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &500000
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 500001}
+  - component: {fileID: 500002}
+  m_Layer: 10
+  m_Name: Test3DSlider
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &500001
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 500000}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 500101}
+  - {fileID: 500201}
+  m_Father: {fileID: 0}
+--- !u!114 &500002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 500000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c7b5b9f34e841e69eea27b21957bc55, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.World3DSlider
+  handle: {fileID: 500206}
+  handleTransform: {fileID: 500201}
+  trackSpace: {fileID: 500001}
+  axis: 0
+  minLocalPosition: -0.6
+  maxLocalPosition: 0.6
+  value: 0.5
+  step: 0
+  setHandlePositionOnAwake: 1
+  clampHandleEveryFrame: 1
+--- !u!1 &500100
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 500101}
+  - component: {fileID: 500102}
+  - component: {fileID: 500103}
+  m_Layer: 10
+  m_Name: Track
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &500101
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 500100}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1.4, y: 0.08, z: 0.16}
+  m_Children: []
+  m_Father: {fileID: 500001}
+--- !u!33 &500102
+MeshFilter:
+  m_GameObject: {fileID: 500100}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &500103
+MeshRenderer:
+  m_GameObject: {fileID: 500100}
+  m_Enabled: 1
+  m_Materials: []
+--- !u!1 &500200
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 500201}
+  - component: {fileID: 500202}
+  - component: {fileID: 500203}
+  - component: {fileID: 500204}
+  - component: {fileID: 500205}
+  - component: {fileID: 500206}
+  - component: {fileID: 500207}
+  m_Layer: 10
+  m_Name: Handle
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &500201
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 500200}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.18, z: 0}
+  m_LocalScale: {x: 0.22, y: 0.22, z: 0.22}
+  m_Children: []
+  m_Father: {fileID: 500001}
+--- !u!33 &500202
+MeshFilter:
+  m_GameObject: {fileID: 500200}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &500203
+MeshRenderer:
+  m_GameObject: {fileID: 500200}
+  m_Enabled: 1
+  m_Materials: []
+--- !u!65 &500204
+BoxCollider:
+  m_GameObject: {fileID: 500200}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!54 &500205
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 500200}
+  serializedVersion: 5
+  m_Mass: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Constraints: 124
+  m_CollisionDetection: 0
+--- !u!114 &500206
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 500200}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bd8d752e1e84b0bbf5601a97b46b671, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.World3DSlotItem
+  body: {fileID: 500205}
+  gripRoot: {fileID: 500201}
+  pickupDuration: 0.08
+  makeKinematicWhileHeld: 1
+  disableGravityWhileHeld: 1
+  snapYawToStepOnPickup: 0
+  yawStep: 90
+  heldRotationOffsetEuler: {x: 0, y: 0, z: 0}
+  consumeMouseWheel: 0
+  wheelRotationDuration: 0.18
+  wheelRotationEase: 13
+  wobbleStrength: 0.1
+  maxWobbleAngle: 4
+  wobbleFollowSpeed: 18
+  wobbleReturnSpeed: 10
+  preserveReleaseInertia: 0
+  releaseVelocityMultiplier: 1
+  maxReleaseSpeed: 8
+  releaseVelocitySmoothing: 24
+  maxReleaseSampleAge: 0.12
+  constraints:
+    enabled: 1
+    constraintSpace: {fileID: 500001}
+    allowX: 1
+    allowY: 0
+    allowZ: 0
+    limitX: 1
+    xRange: {x: -0.6, y: 0.6}
+    limitY: 0
+    yRange: {x: -10, y: 10}
+    limitZ: 0
+    zRange: {x: -10, y: 10}
+  itemId: SliderHandle
+  slotSnapDuration: 0.08
+  slotSnapEase: 9
+--- !u!114 &500207
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 500200}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c3ec5d94ac84aa98746897e42adc3bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PixelLust.PixelVoxelPuzzle.HandHoldableWorld3DSliderHandle
+  slider: {fileID: 500002}
+  draggable: {fileID: 500206}

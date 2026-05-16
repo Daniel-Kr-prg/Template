@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace DanieloZ.WorldInteraction.Editor
+namespace DanieloZ.CameraSystem.Editor
 {
     [CustomEditor(typeof(WorldCameraBezierCurve))]
     public sealed class WorldCameraBezierCurveEditor : UnityEditor.Editor
