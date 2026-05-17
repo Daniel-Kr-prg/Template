@@ -1,12 +1,16 @@
 using Cinemachine;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DanieloZ.CameraSystem
 {
     public sealed class TopDownCameraController : MonoBehaviour
     {
         [Header("Rig")]
-        [SerializeField] private Transform pivot;
+        [FormerlySerializedAs("pivot")]
+        [SerializeField] private Transform positionLerpTarget;
+        [FormerlySerializedAs("rotationLerpPivot")]
+        [SerializeField] private Transform cameraRigContainer;
         [SerializeField] private Transform cameraTarget;
         [SerializeField] private Transform lookTarget;
         [SerializeField] private CinemachineVirtualCamera virtualCamera;
@@ -45,9 +49,13 @@ namespace DanieloZ.CameraSystem
         private Vector2 previousOrbitPointerPosition;
         private float currentOrbitVelocity;
         private float currentZoom;
+        private float desiredPivotYaw;
         private bool hasAppliedCameraPose;
         private bool middleMouseOrbitHeld;
         private bool cameraPoseEnabled = true;
+        private bool UsesSeparatedRigSmoothing => positionLerpTarget != null
+            && cameraRigContainer != null
+            && cameraRigContainer != positionLerpTarget;
 
         public float Zoom01
         {
@@ -67,6 +75,7 @@ namespace DanieloZ.CameraSystem
         private void Awake()
         {
             currentZoom = zoom;
+            desiredPivotYaw = GetInitialPivotYaw();
 
             if (virtualCamera != null)
             {
@@ -74,6 +83,7 @@ namespace DanieloZ.CameraSystem
                 virtualCamera.LookAt = null;
             }
 
+            ApplyRigSmoothing(true);
             ApplyRigPose();
             ApplyVirtualCameraPose(true);
         }
@@ -133,6 +143,7 @@ namespace DanieloZ.CameraSystem
         public void ApplyNow()
         {
             currentZoom = zoom;
+            ApplyRigSmoothing(true);
             ApplyRigPose();
             ApplyVirtualCameraPose(true);
         }
@@ -147,6 +158,7 @@ namespace DanieloZ.CameraSystem
             TickZoom();
             TickMove();
             TickOrbit();
+            ApplyRigSmoothing(false);
             ApplyRigPose();
             ApplyVirtualCameraPose(false);
             moveInput = Vector2.zero;
@@ -162,7 +174,7 @@ namespace DanieloZ.CameraSystem
 
         private void TickMove()
         {
-            if (pivot == null)
+            if (positionLerpTarget == null)
             {
                 return;
             }
@@ -171,8 +183,11 @@ namespace DanieloZ.CameraSystem
             if (moveInput.sqrMagnitude > 0.0001f)
             {
                 var input = Vector2.ClampMagnitude(moveInput, 1f);
-                var forward = Vector3.ProjectOnPlane(pivot.forward, Vector3.up).normalized;
-                var right = Vector3.ProjectOnPlane(pivot.right, Vector3.up).normalized;
+                var movementRotation = UsesSeparatedRigSmoothing
+                    ? Quaternion.Euler(0f, desiredPivotYaw, 0f)
+                    : positionLerpTarget.rotation;
+                var forward = Vector3.ProjectOnPlane(movementRotation * Vector3.forward, Vector3.up).normalized;
+                var right = Vector3.ProjectOnPlane(movementRotation * Vector3.right, Vector3.up).normalized;
                 desiredVelocity = (forward * input.y + right * input.x) * moveSpeed;
             }
 
@@ -186,13 +201,13 @@ namespace DanieloZ.CameraSystem
 
             if (currentMoveVelocity.sqrMagnitude > 0.000001f)
             {
-                pivot.position += currentMoveVelocity * Time.deltaTime;
+                positionLerpTarget.position += currentMoveVelocity * Time.deltaTime;
             }
         }
 
         private void TickOrbit()
         {
-            if (pivot == null)
+            if (positionLerpTarget == null)
             {
                 return;
             }
@@ -214,39 +229,66 @@ namespace DanieloZ.CameraSystem
 
         private void OrbitImmediate(float degrees)
         {
-            if (pivot == null || Mathf.Approximately(degrees, 0f))
+            if (positionLerpTarget == null || Mathf.Approximately(degrees, 0f))
             {
                 return;
             }
 
-            pivot.Rotate(Vector3.up, degrees, Space.World);
+            if (UsesSeparatedRigSmoothing)
+            {
+                desiredPivotYaw += degrees;
+                return;
+            }
+
+            positionLerpTarget.Rotate(Vector3.up, degrees, Space.World);
+        }
+
+        private void ApplyRigSmoothing(bool immediate)
+        {
+            if (!UsesSeparatedRigSmoothing)
+            {
+                return;
+            }
+
+            var targetPosition = positionLerpTarget.position;
+            cameraRigContainer.position = immediate || !Application.isPlaying || cameraPositionLerpSpeed <= 0f
+                ? targetPosition
+                : Vector3.Lerp(cameraRigContainer.position, targetPosition, ExponentialFactor(cameraPositionLerpSpeed));
+
+            var targetRotation = Quaternion.Euler(0f, desiredPivotYaw, 0f);
+            cameraRigContainer.rotation = immediate || !Application.isPlaying || cameraRotationLerpSpeed <= 0f
+                ? targetRotation
+                : Quaternion.Slerp(cameraRigContainer.rotation, targetRotation, ExponentialFactor(cameraRotationLerpSpeed));
         }
 
         private void ApplyRigPose()
         {
+            var rigTransform = GetRigEvaluationTransform();
             if (cameraTarget != null)
             {
                 cameraTarget.position = cameraCurve != null
-                    ? cameraCurve.EvaluateWorld(currentZoom)
+                    ? EvaluateCurveWorld(cameraCurve, rigTransform, currentZoom)
                     : GetFallbackCameraTargetPosition();
             }
 
             if (lookTarget != null)
             {
                 lookTarget.position = lookCurve != null
-                    ? lookCurve.EvaluateWorld(currentZoom)
+                    ? EvaluateCurveWorld(lookCurve, rigTransform, currentZoom)
                     : GetFallbackLookTargetPosition();
             }
         }
 
         private Vector3 GetFallbackCameraTargetPosition()
         {
-            return pivot != null ? pivot.TransformPoint(new Vector3(0f, 15f, -10f)) : new Vector3(0f, 15f, -10f);
+            var rigTransform = GetRigEvaluationTransform();
+            return rigTransform != null ? rigTransform.TransformPoint(new Vector3(0f, 15f, -10f)) : new Vector3(0f, 15f, -10f);
         }
 
         private Vector3 GetFallbackLookTargetPosition()
         {
-            return pivot != null ? pivot.position : Vector3.zero;
+            var rigTransform = GetRigEvaluationTransform();
+            return rigTransform != null ? rigTransform.position : Vector3.zero;
         }
 
         private void ApplyVirtualCameraPose(bool immediate)
@@ -278,6 +320,12 @@ namespace DanieloZ.CameraSystem
                 return;
             }
 
+            if (UsesSeparatedRigSmoothing)
+            {
+                virtualCamera.transform.SetPositionAndRotation(targetPosition, targetRotation);
+                return;
+            }
+
             var positionFactor = ExponentialFactor(cameraPositionLerpSpeed);
             var rotationFactor = ExponentialFactor(cameraRotationLerpSpeed);
             virtualCamera.transform.SetPositionAndRotation(
@@ -305,6 +353,43 @@ namespace DanieloZ.CameraSystem
         private static float EvaluateCurve(AnimationCurve curve, float value)
         {
             return curve != null && curve.length > 0 ? curve.Evaluate(value) : value;
+        }
+
+        private Transform GetRigEvaluationTransform()
+        {
+            if (UsesSeparatedRigSmoothing)
+            {
+                return cameraRigContainer;
+            }
+
+            return positionLerpTarget;
+        }
+
+        private static Vector3 EvaluateCurveWorld(WorldCameraBezierCurve curve, Transform rigTransform, float t)
+        {
+            if (curve == null)
+            {
+                return rigTransform != null ? rigTransform.position : Vector3.zero;
+            }
+
+            if (rigTransform != null && curve.transform.IsChildOf(rigTransform))
+            {
+                return curve.EvaluateWorld(t);
+            }
+
+            return rigTransform != null
+                ? rigTransform.TransformPoint(curve.EvaluateLocal(t))
+                : curve.EvaluateWorld(t);
+        }
+
+        private float GetInitialPivotYaw()
+        {
+            if (cameraRigContainer != null)
+            {
+                return cameraRigContainer.eulerAngles.y;
+            }
+
+            return positionLerpTarget != null ? positionLerpTarget.eulerAngles.y : transform.eulerAngles.y;
         }
 
         private static float ExponentialFactor(float speed)

@@ -25,12 +25,19 @@
 
 ## Тестовые prefabs
 
-В `Prefabs/Test` лежат минимальные prefabs:
+В `Examples/Prefabs` лежат минимальные prefabs:
 
+- `Base3DStaticButton.prefab`
+- `Base3DStaticToggleButton.prefab`
+- `Base3DStaticToggleGroup.prefab`
+- `Base3DPhysicalButtonSlot.prefab`
+- `Base3DPhysicalButton.prefab`
 - `Test3DSlotItem.prefab`
 - `Test3DSlot.prefab`
 - `Test3DStaticButton.prefab`
 - `Test3DToggleButton.prefab`
 - `Test3DSlider.prefab`
 
-Они используют только компоненты этого модуля и стандартные primitive meshes.
+`Base3D...` prefabs перенесены из проектной папки WorldUI, а `Test3D...` prefabs служат компактными standalone-примерами новых компонентов. Они используют компоненты этого модуля и стандартные primitive meshes. `Examples/Scenes/WorldInteractionExamples.unity` содержит все эти элементы на одной сцене.
+
+`Examples/Scripts/PixelVoxelPuzzleIntegration` содержит bridge-компоненты для текущей hand/use системы проекта PixelVoxelPuzzle. Они сохранены рядом с examples, потому что это интеграционный слой, а не ядро модуля.
