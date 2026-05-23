@@ -1,49 +1,106 @@
 using System;
 using DG.Tweening;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Events;
+using OdinHideLabel = Sirenix.OdinInspector.HideLabelAttribute;
+using OdinShowIf = Sirenix.OdinInspector.ShowIfAttribute;
 
 namespace DanieloZ.WorldInteraction
 {
     public class WorldDraggable : MonoBehaviour
     {
-        [Header("Physics")]
+        #region Inspector
+
+        [FoldoutGroup("Physics")]
         [SerializeField] protected Rigidbody body;
+        [FoldoutGroup("Physics")]
         [SerializeField] private Transform gripRoot;
 
-        [Header("Pickup")]
+        [FoldoutGroup("Pickup")]
         [SerializeField, Min(0f)] private float pickupDuration = 0.18f;
+        [FoldoutGroup("Pickup")]
         [SerializeField] private bool makeKinematicWhileHeld = true;
+        [FoldoutGroup("Pickup")]
         [SerializeField] private bool disableGravityWhileHeld = true;
 
-        [Header("Held Rotation")]
+        [FoldoutGroup("Held Rotation")]
         [SerializeField] private bool snapYawToStepOnPickup = true;
+        [FoldoutGroup("Held Rotation")]
         [SerializeField, Min(1f)] private float yawStep = 90f;
+        [FoldoutGroup("Held Rotation")]
         [SerializeField] private Vector3 heldRotationOffsetEuler;
+        [FoldoutGroup("Held Rotation")]
         [SerializeField] private bool consumeMouseWheel = true;
+        [FoldoutGroup("Held Rotation")]
+        [OdinShowIf(nameof(consumeMouseWheel))]
         [SerializeField, Min(0f)] private float wheelRotationDuration = 0.18f;
+        [FoldoutGroup("Held Rotation")]
+        [OdinShowIf(nameof(consumeMouseWheel))]
         [SerializeField] private Ease wheelRotationEase = Ease.InOutQuart;
 
-        [Header("Drag Wobble")]
+        [FoldoutGroup("Drag Wobble")]
         [SerializeField, Min(0f)] private float wobbleStrength = 0.35f;
+        [FoldoutGroup("Drag Wobble")]
+        [OdinShowIf(nameof(UsesWobble))]
         [SerializeField, Min(0f)] private float maxWobbleAngle = 14f;
+        [FoldoutGroup("Drag Wobble")]
+        [OdinShowIf(nameof(UsesWobble))]
         [SerializeField, Min(0f)] private float wobbleFollowSpeed = 18f;
+        [FoldoutGroup("Drag Wobble")]
+        [OdinShowIf(nameof(UsesWobble))]
         [SerializeField, Min(0f)] private float wobbleReturnSpeed = 10f;
 
-        [Header("Release Inertia")]
+        [FoldoutGroup("Release Inertia")]
         [SerializeField] private bool preserveReleaseInertia = true;
+        [FoldoutGroup("Release Inertia")]
+        [OdinShowIf(nameof(preserveReleaseInertia))]
         [SerializeField, Min(0f)] private float releaseVelocityMultiplier = 1f;
+        [FoldoutGroup("Release Inertia")]
+        [OdinShowIf(nameof(preserveReleaseInertia))]
         [SerializeField, Min(0f)] private float maxReleaseSpeed = 8f;
+        [FoldoutGroup("Release Inertia")]
+        [OdinShowIf(nameof(preserveReleaseInertia))]
         [SerializeField, Min(0f)] private float releaseVelocitySmoothing = 24f;
+        [FoldoutGroup("Release Inertia")]
+        [OdinShowIf(nameof(preserveReleaseInertia))]
         [SerializeField, Min(0f)] private float maxReleaseSampleAge = 0.12f;
 
-        [Header("Constraints")]
+        [FoldoutGroup("Constraints")]
+        [OdinHideLabel]
         [SerializeField] private WorldDragConstraintSettings constraints = new();
 
-        [Header("Events")]
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onPickedUp;
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onReleased;
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onReturnedToPhysics;
+
+        #endregion
+
+        #region Public API
+
+        public event Action<WorldDraggable> PickedUp;
+        public event Action<WorldDraggable> Released;
+        public event Action<WorldDraggable> ReturnedToPhysics;
+
+        public Rigidbody Body => body;
+        public Transform GripRoot => gripRoot != null ? gripRoot : transform;
+        public bool IsHeld { get; private set; }
+        public bool InteractionsLocked => interactionsLocked;
+        public bool ConsumesMouseWheel => consumeMouseWheel;
+        public WorldDragConstraintSettings Constraints => constraints;
+        protected float HeldYaw => heldYaw;
+        protected float TargetHeldYaw => targetHeldYaw;
+        protected float YawStep => yawStep;
+        protected bool IsHeldYawRotationAnimating => wheelRotationTween != null
+            && wheelRotationTween.IsActive()
+            && !wheelRotationTween.IsComplete();
+
+        #endregion
+
+        #region Internal State
 
         private Vector3 localGripPoint;
         private Vector3 desiredGripPosition;
@@ -65,22 +122,9 @@ namespace DanieloZ.WorldInteraction
         private bool interactionsLocked;
         private Tween wheelRotationTween;
 
-        public event Action<WorldDraggable> PickedUp;
-        public event Action<WorldDraggable> Released;
-        public event Action<WorldDraggable> ReturnedToPhysics;
+        #endregion
 
-        public Rigidbody Body => body;
-        public Transform GripRoot => gripRoot != null ? gripRoot : transform;
-        public bool IsHeld { get; private set; }
-        public bool InteractionsLocked => interactionsLocked;
-        public bool ConsumesMouseWheel => consumeMouseWheel;
-        public WorldDragConstraintSettings Constraints => constraints;
-        protected float HeldYaw => heldYaw;
-        protected float TargetHeldYaw => targetHeldYaw;
-        protected float YawStep => yawStep;
-        protected bool IsHeldYawRotationAnimating => wheelRotationTween != null
-            && wheelRotationTween.IsActive()
-            && !wheelRotationTween.IsComplete();
+        #region Unity Lifecycle
 
         protected virtual void Reset()
         {
@@ -98,6 +142,16 @@ namespace DanieloZ.WorldInteraction
             UpdatePickup();
             ApplyDragPose();
         }
+
+        protected virtual void OnDisable()
+        {
+            wheelRotationTween?.Kill();
+            WorldInteractionInputGate.ReleaseHeldObject(this);
+        }
+
+        #endregion
+
+        #region Drag Flow
 
         public virtual void BeginDrag()
         {
@@ -202,6 +256,10 @@ namespace DanieloZ.WorldInteraction
             ReturnedToPhysics?.Invoke(this);
             OnReturnedToPhysics();
         }
+
+        #endregion
+
+        #region Held Rotation
 
         public bool TryRotateHeldByWheel(float wheelDelta)
         {
@@ -308,6 +366,10 @@ namespace DanieloZ.WorldInteraction
                 .OnComplete(() => heldYaw = targetHeldYaw);
         }
 
+        #endregion
+
+        #region State
+
         public void SetInteractionsLocked(bool locked)
         {
             if (interactionsLocked == locked)
@@ -321,6 +383,10 @@ namespace DanieloZ.WorldInteraction
                 ReleaseToPhysics();
             }
         }
+
+        #endregion
+
+        #region Extension Hooks
 
         protected virtual void OnBeforeBeginDrag()
         {
@@ -346,6 +412,10 @@ namespace DanieloZ.WorldInteraction
         {
             return Quaternion.Euler(heldRotationOffsetEuler.x, heldYaw + heldRotationOffsetEuler.y, heldRotationOffsetEuler.z);
         }
+
+        #endregion
+
+        #region Pose
 
         private void UpdatePickup()
         {
@@ -393,6 +463,10 @@ namespace DanieloZ.WorldInteraction
             return GripRoot.position;
         }
 
+        #endregion
+
+        #region Wobble
+
         private void UpdateWobbleTarget(Vector3 gripPosition)
         {
             if (!hasGripPosition)
@@ -416,6 +490,24 @@ namespace DanieloZ.WorldInteraction
             var roll = Mathf.Clamp(-localVelocity.x * wobbleStrength, -maxWobbleAngle, maxWobbleAngle);
             targetWobbleRotation = Quaternion.Euler(pitch, 0f, roll);
         }
+
+        private void UpdateWobble()
+        {
+            var speed = targetWobbleRotation == Quaternion.identity ? wobbleReturnSpeed : wobbleFollowSpeed;
+            if (speed <= 0f)
+            {
+                return;
+            }
+
+            currentWobbleRotation = Quaternion.Slerp(
+                currentWobbleRotation,
+                targetWobbleRotation,
+                1f - Mathf.Exp(-speed * Time.deltaTime));
+        }
+
+        #endregion
+
+        #region Release Inertia
 
         private void UpdateReleaseVelocity(Vector3 gripPosition)
         {
@@ -472,24 +564,12 @@ namespace DanieloZ.WorldInteraction
             return velocity;
         }
 
-        private void UpdateWobble()
-        {
-            var speed = targetWobbleRotation == Quaternion.identity ? wobbleReturnSpeed : wobbleFollowSpeed;
-            if (speed <= 0f)
-            {
-                return;
-            }
+        #endregion
 
-            currentWobbleRotation = Quaternion.Slerp(
-                currentWobbleRotation,
-                targetWobbleRotation,
-                1f - Mathf.Exp(-speed * Time.deltaTime));
-        }
+        #region Inspector State
 
-        protected virtual void OnDisable()
-        {
-            wheelRotationTween?.Kill();
-            WorldInteractionInputGate.ReleaseHeldObject(this);
-        }
+        private bool UsesWobble => wobbleStrength > 0f;
+
+        #endregion
     }
 }

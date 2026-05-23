@@ -1,4 +1,5 @@
 using Cinemachine;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace DanieloZ.CameraSystem
@@ -6,11 +7,22 @@ namespace DanieloZ.CameraSystem
     [DisallowMultipleComponent]
     public sealed class CameraZone : MonoBehaviour
     {
+        #region Inspector
+
+        [FoldoutGroup("Zone")]
         [SerializeField] private string zoneId;
+        [FoldoutGroup("Zone")]
         [SerializeField] private CinemachineVirtualCamera virtualCamera;
+        [FoldoutGroup("Zone")]
         [SerializeField] private Transform fastTravelAnchor;
+        [FoldoutGroup("Zone")]
         [SerializeField] private Collider zoneVolume;
+        [FoldoutGroup("Zone")]
         [SerializeField] private int priorityOffset;
+
+        #endregion
+
+        #region Public API
 
         public string ZoneId => string.IsNullOrWhiteSpace(zoneId) ? name : zoneId;
         public CinemachineVirtualCamera VirtualCamera => virtualCamera;
@@ -19,7 +31,33 @@ namespace DanieloZ.CameraSystem
         public Vector3 FastTravelPosition => FastTravelAnchor.position;
         public Quaternion FastTravelRotation => FastTravelAnchor.rotation;
 
+        #endregion
+
+        #region Configuration
+
+        public void Configure(string id, CinemachineVirtualCamera camera, Collider volume, int offset, Transform anchor = null)
+        {
+            zoneId = id;
+            virtualCamera = camera;
+            fastTravelAnchor = anchor;
+            zoneVolume = volume;
+            priorityOffset = offset;
+
+            if (zoneVolume != null)
+            {
+                zoneVolume.isTrigger = true;
+            }
+        }
+
+        #endregion
+
+        #region Runtime State
+
         private CameraZoneController controller;
+
+        #endregion
+
+        #region Unity Lifecycle
 
         private void Reset()
         {
@@ -56,6 +94,10 @@ namespace DanieloZ.CameraSystem
             controller?.NotifyZoneExited(this, other);
         }
 
+        #endregion
+
+        #region Zone Queries
+
         public bool ContainsWorldPoint(Vector3 point)
         {
             if (zoneVolume == null || !zoneVolume.enabled)
@@ -67,6 +109,10 @@ namespace DanieloZ.CameraSystem
             return (closest - point).sqrMagnitude <= 0.0001f;
         }
 
+        #endregion
+
+        #region Camera
+
         public void SetCameraPriority(int priority)
         {
             if (virtualCamera != null)
@@ -74,5 +120,7 @@ namespace DanieloZ.CameraSystem
                 virtualCamera.Priority = priority;
             }
         }
+
+        #endregion
     }
 }

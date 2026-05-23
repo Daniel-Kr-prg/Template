@@ -1,11 +1,19 @@
 using System.Reflection;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace DanieloZ.CameraSystem
 {
     public sealed class CameraZoomRigController : MonoBehaviour
     {
+        #region Inspector
+
+        [FoldoutGroup("Zoom Rig")]
         [SerializeField] private MonoBehaviour zoomRig;
+
+        #endregion
+
+        #region Public API
 
         public MonoBehaviour ZoomRig => zoomRig;
 
@@ -42,6 +50,10 @@ namespace DanieloZ.CameraSystem
             method?.Invoke(zoomRig, new object[] { worldDelta });
         }
 
+        #endregion
+
+        #region Reflection Helpers
+
         private void InvokeZoomRig(string methodName, float value)
         {
             if (zoomRig == null)
@@ -52,5 +64,7 @@ namespace DanieloZ.CameraSystem
             var method = zoomRig.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public);
             method?.Invoke(zoomRig, new object[] { value });
         }
+
+        #endregion
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using DG.Tweening;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -8,31 +9,54 @@ namespace DanieloZ.WorldInteraction
     [RequireComponent(typeof(Collider))]
     public sealed class World3DToggleButton : World3DButtonBase, IWorldUsable
     {
-        [Header("Toggle")]
+        #region Inspector
+
+        [FoldoutGroup("Toggle")]
         [SerializeField] private bool allowToggleOff = true;
+        [FoldoutGroup("Toggle")]
         [SerializeField] private bool useLegacyOnMouseDown;
 
-        [Header("Press")]
+        [FoldoutGroup("Press")]
         [SerializeField] private Transform pressTransform;
+        [FoldoutGroup("Press")]
         [SerializeField] private Vector3 localPressOffset = new(0f, -0.08f, 0f);
+        [FoldoutGroup("Press")]
         [SerializeField, Min(0f)] private float pressInDuration = 0.08f;
+        [FoldoutGroup("Press")]
         [SerializeField, Min(0f)] private float releaseDuration = 0.12f;
+        [FoldoutGroup("Press")]
         [SerializeField] private Ease pressEase = Ease.OutCubic;
 
-        [Header("Visual State")]
+        [FoldoutGroup("Visual State")]
         [SerializeField] private Renderer stateRenderer;
+        [FoldoutGroup("Visual State")]
         [SerializeField] private Material offMaterial;
+        [FoldoutGroup("Visual State")]
         [SerializeField] private Material onMaterial;
+        [FoldoutGroup("Visual State")]
         [SerializeField] private GameObject offVisual;
+        [FoldoutGroup("Visual State")]
         [SerializeField] private GameObject onVisual;
 
-        [Header("Events")]
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onPressed;
+
+        #endregion
+
+        #region Public API
+
+        public event Action<World3DToggleButton, bool> Toggled;
+
+        #endregion
+
+        #region Runtime State
 
         private Vector3 initialLocalPosition;
         private Tween pressTween;
 
-        public event Action<World3DToggleButton, bool> Toggled;
+        #endregion
+
+        #region Unity Lifecycle
 
         private void Awake()
         {
@@ -52,6 +76,15 @@ namespace DanieloZ.WorldInteraction
                 Press();
             }
         }
+
+        private void OnDisable()
+        {
+            pressTween?.Kill();
+        }
+
+        #endregion
+
+        #region Interaction
 
         public void Use(WorldInteractionContext context)
         {
@@ -95,6 +128,10 @@ namespace DanieloZ.WorldInteraction
             }
         }
 
+        #endregion
+
+        #region Helpers
+
         private void HandlePressed()
         {
             onPressed?.Invoke();
@@ -123,9 +160,6 @@ namespace DanieloZ.WorldInteraction
             }
         }
 
-        private void OnDisable()
-        {
-            pressTween?.Kill();
-        }
+        #endregion
     }
 }

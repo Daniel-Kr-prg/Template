@@ -60,7 +60,7 @@ namespace DanieloZ.InputManagement
         }
         private int GetHighestPriority(SortedDictionary<int, List<InputAction>> dict)
         {
-            return dict.Count > 0 ? dict.Keys.First() : 0;
+            return dict.Count > 0 ? dict.Keys.Last() : 0;
         }
 
         private int GetPriority(InputPriority priority, SortedDictionary<int, List<InputAction>> dict)
@@ -450,7 +450,7 @@ namespace DanieloZ.InputManagement
                 if (!inputCheck(keyCode))
                     continue;
 
-                var highest = priorityDict.Keys.First();
+                var highest = GetHighestPriority(priorityDict);
                 var handlers = priorityDict[highest];
                 for (int i = 0; i < handlers.Count; i++)
                     handlers[i].Handle();

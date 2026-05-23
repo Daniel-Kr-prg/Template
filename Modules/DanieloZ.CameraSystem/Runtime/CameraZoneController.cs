@@ -1,23 +1,45 @@
 using System.Collections.Generic;
 using Cinemachine;
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace DanieloZ.CameraSystem
 {
     public sealed class CameraZoneController : MonoBehaviour
     {
+        #region Inspector
+
+        [FoldoutGroup("References")]
         [SerializeField] private Transform groundPivot;
+        [FoldoutGroup("References")]
         [SerializeField] private CinemachineVirtualCamera baseTopDownCamera;
+        [FoldoutGroup("Priorities")]
         [SerializeField, Min(0)] private int basePriority = 100;
+        [FoldoutGroup("Priorities")]
         [SerializeField, Min(0)] private int zonePriority = 120;
+        [FoldoutGroup("Priorities")]
         [SerializeField, Min(0)] private int inactivePriority = 0;
+        [FoldoutGroup("Polling")]
         [SerializeField] private bool pollGroundPivot = true;
+        [FoldoutGroup("Polling")]
         [SerializeField] private bool applyBasePriorityOnStart = true;
 
-        private readonly List<CameraZone> zones = new();
+        #endregion
+
+        #region Public API
 
         public CameraZone CurrentZone { get; private set; }
         public IReadOnlyList<CameraZone> Zones => zones;
+
+        #endregion
+
+        #region Runtime State
+
+        private readonly List<CameraZone> zones = new();
+
+        #endregion
+
+        #region Unity Lifecycle
 
         private void Start()
         {
@@ -40,6 +62,10 @@ namespace DanieloZ.CameraSystem
                 ActivateZone(zone);
             }
         }
+
+        #endregion
+
+        #region Registration
 
         public void Register(CameraZone zone)
         {
@@ -66,6 +92,10 @@ namespace DanieloZ.CameraSystem
                 ApplyPriorities();
             }
         }
+
+        #endregion
+
+        #region Zone Notifications
 
         public void NotifyZoneEntered(CameraZone zone, Collider other)
         {
@@ -116,6 +146,10 @@ namespace DanieloZ.CameraSystem
             ApplyPriorities();
         }
 
+        #endregion
+
+        #region Zone Control
+
         public bool FastTravelToZone(string zoneId)
         {
             var zone = FindZone(zoneId);
@@ -147,6 +181,10 @@ namespace DanieloZ.CameraSystem
 
             return null;
         }
+
+        #endregion
+
+        #region Helpers
 
         private void ApplyPriorities()
         {
@@ -208,5 +246,7 @@ namespace DanieloZ.CameraSystem
             var otherTransform = other.transform;
             return otherTransform == groundPivot || otherTransform.IsChildOf(groundPivot);
         }
+
+        #endregion
     }
 }

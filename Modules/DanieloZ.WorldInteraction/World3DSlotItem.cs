@@ -1,5 +1,6 @@
 using System;
 using DG.Tweening;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Serialization;
@@ -8,15 +9,23 @@ namespace DanieloZ.WorldInteraction
 {
     public class World3DSlotItem : WorldDraggable
     {
-        [Header("Slot Item")]
+        #region Inspector
+
+        [FoldoutGroup("Slot Item")]
         [FormerlySerializedAs("buttonId")]
         [SerializeField] private string itemId;
+        [FoldoutGroup("Slot Item")]
         [SerializeField, Min(0f)] private float slotSnapDuration = 0.18f;
+        [FoldoutGroup("Slot Item")]
         [SerializeField] private Ease slotSnapEase = Ease.OutCubic;
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onInsertedIntoSlot;
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onRemovedFromSlot;
 
-        private Tween slotTween;
+        #endregion
+
+        #region Public API
 
         public event Action<World3DSlotItem, World3DButtonSlotBase> InsertedIntoSlot;
         public event Action<World3DSlotItem, World3DButtonSlotBase> RemovedFromSlot;
@@ -24,15 +33,33 @@ namespace DanieloZ.WorldInteraction
         public string ItemId => itemId;
         public World3DButtonSlotBase CurrentSlot { get; private set; }
 
+        #endregion
+
+        #region Runtime State
+
+        private Tween slotTween;
+
+        #endregion
+
+        #region Matching
+
         public bool HasMatchingId(World3DButtonSlotBase slot)
         {
             return slot != null && slot.MatchesId(this);
         }
 
+        #endregion
+
+        #region Configuration
+
         public virtual void Setup(string id)
         {
             itemId = id;
         }
+
+        #endregion
+
+        #region Slot Assignment
 
         public void AssignSlot(World3DButtonSlotBase slot)
         {
@@ -57,6 +84,10 @@ namespace DanieloZ.WorldInteraction
             onRemovedFromSlot?.Invoke();
             RemovedFromSlot?.Invoke(this, slot);
         }
+
+        #endregion
+
+        #region Slot Pose
 
         public void SnapToSlot(World3DButtonSlotBase slot)
         {
@@ -86,6 +117,10 @@ namespace DanieloZ.WorldInteraction
                 .Join(transform.DORotateQuaternion(slot.Anchor.rotation, slotSnapDuration).SetEase(slotSnapEase));
         }
 
+        #endregion
+
+        #region Drag Overrides
+
         public override void ReleaseToPhysics()
         {
             base.ReleaseToPhysics();
@@ -109,5 +144,7 @@ namespace DanieloZ.WorldInteraction
             base.OnDisable();
             slotTween?.Kill();
         }
+
+        #endregion
     }
 }

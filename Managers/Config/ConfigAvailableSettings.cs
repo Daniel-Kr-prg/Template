@@ -20,6 +20,8 @@ public class ConfigAvailableSettings
     {
         // 16:9
         new ResolutionSettings() { Height = 720, Width = 1280, H_Scale = 9, W_Scale = 16 },
+        new ResolutionSettings() { Height = 768, Width = 1366, H_Scale = 9, W_Scale = 16 },
+        new ResolutionSettings() { Height = 900, Width = 1600, H_Scale = 9, W_Scale = 16 },
         new ResolutionSettings() { Height = 1080, Width = 1920, H_Scale = 9, W_Scale = 16 },
         new ResolutionSettings() { Height = 1440, Width = 2560, H_Scale = 9, W_Scale = 16 },
         new ResolutionSettings() { Height = 2160, Width = 3840, H_Scale = 9, W_Scale = 16 },
@@ -28,17 +30,10 @@ public class ConfigAvailableSettings
         new ResolutionSettings() { Height = 800, Width = 1280, H_Scale = 10, W_Scale = 16 },
         new ResolutionSettings() { Height = 1050, Width = 1680, H_Scale = 10, W_Scale = 16 },
         new ResolutionSettings() { Height = 1200, Width = 1920, H_Scale = 10, W_Scale = 16 },
-        new ResolutionSettings() { Height = 1600, Width = 2560, H_Scale = 10, W_Scale = 16 },
     
         // 21:9
         new ResolutionSettings() { Height = 1080, Width = 2560, H_Scale = 9, W_Scale = 21 },
-        new ResolutionSettings() { Height = 1440, Width = 3440, H_Scale = 9, W_Scale = 21 },
-        new ResolutionSettings() { Height = 2160, Width = 5120, H_Scale = 9, W_Scale = 21 },
-
-        // 32:9
-        new ResolutionSettings() { Height = 1080, Width = 3840, H_Scale = 9, W_Scale = 32 },
-        new ResolutionSettings() { Height = 1440, Width = 5120, H_Scale = 9, W_Scale = 32 },
-        new ResolutionSettings() { Height = 2160, Width = 7680, H_Scale = 9, W_Scale = 32 }
+        new ResolutionSettings() { Height = 1440, Width = 3440, H_Scale = 9, W_Scale = 21 }
     };
 
     // QUALITY ----------------------------------------------------------------

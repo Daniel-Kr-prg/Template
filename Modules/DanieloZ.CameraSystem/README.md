@@ -21,6 +21,7 @@ It intentionally does not reference project gameplay input, menu navigation, or 
 - Drives camera and look targets from `WorldCameraBezierCurve`.
 - Applies Cinemachine virtual camera pose and optional FOV by zoom.
 - Pointer orbit is input-agnostic: pass screen positions into `BeginPointerOrbit` and `UpdatePointerOrbit`.
+- Inspector is grouped by Rig, Curves, Movement, Middle Mouse Orbit, Smoothing and Lens. FOV fields are shown only when FOV-by-zoom is enabled.
 
 `WorldCameraBezierCurve`
 
@@ -38,6 +39,7 @@ It intentionally does not reference project gameplay input, menu navigation, or 
 - Registers active `CameraZone` objects.
 - Polls a ground pivot and activates the best zone camera by priority.
 - Can fast-travel the pivot to a zone anchor with `FastTravelToZone`.
+- Inspector separates references, priorities and polling behavior.
 
 `CameraLock`
 
@@ -50,12 +52,14 @@ It intentionally does not reference project gameplay input, menu navigation, or 
 - Activates and exits camera locks.
 - Raises C# events and UnityEvents when locks change.
 - Does not push or pop input contexts. Add a project-side bridge if locks should affect input mode.
+- Inspector separates navigation fallback, priorities and events.
 
 `CameraModeController`
 
 - Switches between gameplay and menu cameras.
 - Temporarily disables the top-down camera pose while menu camera is active.
 - Raises C# events and UnityEvents, leaving input state ownership outside the module.
+- Inspector separates cameras, main-menu pose, priorities and events.
 
 `CameraManagerSwitcher`
 
@@ -75,6 +79,19 @@ topDownCamera.EndPointerOrbit();
 ```
 
 For PixelVoxelPuzzle, `PixelVoxelPuzzleCameraInputContextBridge` subscribes to camera mode/lock events and pushes or pops `PixelVoxelPuzzleInputContext.MainMenu`.
+
+## Script Layout
+
+Runtime scripts follow the same layout convention as `DanieloZ.WorldInteraction`:
+
+1. Inspector fields.
+2. Public API.
+3. Runtime state.
+4. Unity lifecycle callbacks.
+5. Feature-specific flow.
+6. Helpers.
+
+Odin foldout groups are used for components with several inspector concerns. Input handling remains outside the module.
 
 ## Examples
 

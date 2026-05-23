@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DanieloZ.Managers;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Serialization;
@@ -10,41 +11,56 @@ namespace DanieloZ.WorldInteraction
     [RequireComponent(typeof(Collider))]
     public class World3DButtonSlotBase : MonoBehaviour, IWorldHoverable
     {
-        [Header("Slot")]
+        #region Inspector
+
+        [FoldoutGroup("Slot")]
         [SerializeField] private string slotId;
+        [FoldoutGroup("Slot")]
         [SerializeField] private Transform anchor;
+        [FoldoutGroup("Slot")]
         [SerializeField] private bool isActive;
         [FormerlySerializedAs("acceptedButtonIds")]
+        [FoldoutGroup("Slot")]
         [SerializeField] private List<string> acceptedItemIds = new();
 
-        [Header("ID Matching")]
+        [FoldoutGroup("ID Matching")]
         [SerializeField] private bool acceptOnlyMatchingId;
         [FormerlySerializedAs("lockButtonOnMatchingId")]
+        [FoldoutGroup("ID Matching")]
         [SerializeField] private bool lockItemOnMatchingId;
+        [FoldoutGroup("ID Matching")]
         [SerializeField] private bool callEventManagerOnMatchingId = true;
 
-        [Header("Indicator")]
+        [FoldoutGroup("Indicators")]
         [SerializeField] private GameObject activeIndicator;
+        [FoldoutGroup("Indicators")]
         [SerializeField] private GameObject acceptedHoverIndicator;
+        [FoldoutGroup("Indicators")]
         [SerializeField] private GameObject rejectedHoverIndicator;
 
-        [Header("Events")]
+        [FoldoutGroup("Events")]
         [FormerlySerializedAs("onButtonInserted")]
         [SerializeField] private UnityEvent onItemInserted;
+        [FoldoutGroup("Events")]
         [FormerlySerializedAs("onButtonRemoved")]
         [SerializeField] private UnityEvent onItemRemoved;
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onSlotActivated;
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onSlotDeactivated;
+        [FoldoutGroup("Events")]
         [FormerlySerializedAs("onMatchingButtonInserted")]
         [SerializeField] private UnityEvent onMatchingItemInserted;
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onHeldItemHoverAccepted;
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onHeldItemHoverRejected;
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onHeldItemHoverEnded;
 
-        private Collider triggerCollider;
-        private World3DSlotItem hoveredItem;
-        private bool hasHoverResult;
-        private bool hoverCanInsert;
+        #endregion
+
+        #region Public API
 
         public event Action<World3DButtonSlotBase, World3DSlotItem> ItemInserted;
         public event Action<World3DButtonSlotBase, World3DSlotItem> ItemRemoved;
@@ -62,6 +78,19 @@ namespace DanieloZ.WorldInteraction
         public bool HasButton => HasItem;
         public bool IsActive => isActive;
 
+        #endregion
+
+        #region Internal State
+
+        private Collider triggerCollider;
+        private World3DSlotItem hoveredItem;
+        private bool hasHoverResult;
+        private bool hoverCanInsert;
+
+        #endregion
+
+        #region Unity Lifecycle
+
         protected virtual void Reset()
         {
             triggerCollider = GetComponent<Collider>();
@@ -75,6 +104,15 @@ namespace DanieloZ.WorldInteraction
             ClearHeldItemHover();
             SetActiveState(isActive);
         }
+
+        private void OnDisable()
+        {
+            ClearHeldItemHover();
+        }
+
+        #endregion
+
+        #region Acceptance
 
         public virtual bool CanAccept(World3DSlotItem item)
         {
@@ -129,6 +167,10 @@ namespace DanieloZ.WorldInteraction
         {
             return CanInsert((World3DSlotItem)button);
         }
+
+        #endregion
+
+        #region Item Placement
 
         public virtual bool TryInsert(World3DSlotItem item)
         {
@@ -227,6 +269,10 @@ namespace DanieloZ.WorldInteraction
             return TryInsertHeldItem(button);
         }
 
+        #endregion
+
+        #region State
+
         public virtual void SetActiveState(bool active)
         {
             if (isActive == active)
@@ -257,6 +303,10 @@ namespace DanieloZ.WorldInteraction
 
             ActiveStateChanged?.Invoke(this, isActive);
         }
+
+        #endregion
+
+        #region Hover
 
         public void HoverStart(WorldInteractionContext context)
         {
@@ -311,6 +361,32 @@ namespace DanieloZ.WorldInteraction
             }
         }
 
+        private void ClearHeldItemHover()
+        {
+            if (acceptedHoverIndicator != null)
+            {
+                acceptedHoverIndicator.SetActive(false);
+            }
+
+            if (rejectedHoverIndicator != null)
+            {
+                rejectedHoverIndicator.SetActive(false);
+            }
+
+            if (hasHoverResult)
+            {
+                onHeldItemHoverEnded?.Invoke();
+            }
+
+            hoveredItem = null;
+            hasHoverResult = false;
+            hoverCanInsert = false;
+        }
+
+        #endregion
+
+        #region Matching
+
         private void HandleMatchingItemInserted(World3DSlotItem item)
         {
             if (lockItemOnMatchingId)
@@ -333,31 +409,6 @@ namespace DanieloZ.WorldInteraction
             }
         }
 
-        private void OnDisable()
-        {
-            ClearHeldItemHover();
-        }
-
-        private void ClearHeldItemHover()
-        {
-            if (acceptedHoverIndicator != null)
-            {
-                acceptedHoverIndicator.SetActive(false);
-            }
-
-            if (rejectedHoverIndicator != null)
-            {
-                rejectedHoverIndicator.SetActive(false);
-            }
-
-            if (hasHoverResult)
-            {
-                onHeldItemHoverEnded?.Invoke();
-            }
-
-            hoveredItem = null;
-            hasHoverResult = false;
-            hoverCanInsert = false;
-        }
+        #endregion
     }
 }

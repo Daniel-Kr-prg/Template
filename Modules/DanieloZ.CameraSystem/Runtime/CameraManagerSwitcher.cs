@@ -1,14 +1,26 @@
+using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace DanieloZ.CameraSystem
 {
     public sealed class CameraManagerSwitcher : MonoBehaviour
     {
+        #region Inspector
+
+        [FoldoutGroup("Camera Ids")]
         [SerializeField] private string mainCameraId = "Main";
+        [FoldoutGroup("Camera Ids")]
         [SerializeField] private string gameplayCameraId = "Gameplay";
+        [FoldoutGroup("Camera Ids")]
         [SerializeField] private string levelsCameraId = "Levels";
+        [FoldoutGroup("Camera Ids")]
         [SerializeField] private string achievementsCameraId = "Achievements";
+        [FoldoutGroup("Camera Ids")]
         [SerializeField] private string settingsCameraId = "Settings";
+
+        #endregion
+
+        #region Public API
 
         [ContextMenu("Show Main")]
         public void ShowMain()
@@ -49,5 +61,7 @@ namespace DanieloZ.CameraSystem
         {
             CameraManagerBridge.SetCamera(cameraId, followTarget, lookAtTarget);
         }
+
+        #endregion
     }
 }

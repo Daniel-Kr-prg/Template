@@ -1,27 +1,47 @@
+using Sirenix.OdinInspector;
 using UnityEngine;
+using OdinShowIf = Sirenix.OdinInspector.ShowIfAttribute;
 
 namespace DanieloZ.WorldInteraction
 {
     [RequireComponent(typeof(Collider))]
     public sealed class WorldWaterVolume : MonoBehaviour
     {
-        [Header("Forces")]
+        #region Inspector
+
+        [FoldoutGroup("Forces")]
         [SerializeField, Min(0f)] private float upwardAcceleration = 20f;
+        [FoldoutGroup("Forces")]
         [SerializeField, Min(0f)] private float shoreAcceleration = 12f;
+        [FoldoutGroup("Forces")]
         [SerializeField, Min(0f)] private float waveFrequency = 2.5f;
+        [FoldoutGroup("Forces")]
         [SerializeField, Range(0f, 1f)] private float waveAmplitude = 0.35f;
+        [FoldoutGroup("Forces")]
         [SerializeField] private ForceMode forceMode = ForceMode.Acceleration;
 
-        [Header("Return")]
+        [FoldoutGroup("Return")]
         [SerializeField] private LayerMask shoreReturnMask = ~0;
+        [FoldoutGroup("Return")]
         [SerializeField] private Transform shoreTarget;
+        [FoldoutGroup("Return")]
         [SerializeField] private WorldHardBoundsRecovery hardBoundsRecovery;
 
-        [Header("Debug")]
+        [FoldoutGroup("Debug")]
         [SerializeField] private bool drawGizmos = true;
+        [FoldoutGroup("Debug")]
+        [OdinShowIf(nameof(drawGizmos))]
         [SerializeField] private Color gizmoColor = new(0f, 0.45f, 1f, 0.25f);
 
+        #endregion
+
+        #region Runtime State
+
         private Collider volumeCollider;
+
+        #endregion
+
+        #region Unity Lifecycle
 
         private void Reset()
         {
@@ -39,6 +59,27 @@ namespace DanieloZ.WorldInteraction
         {
             RegisterForHardBounds(other);
         }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (!drawGizmos)
+            {
+                return;
+            }
+
+            var targetCollider = volumeCollider != null ? volumeCollider : GetComponent<Collider>();
+            if (targetCollider == null)
+            {
+                return;
+            }
+
+            Gizmos.color = gizmoColor;
+            Gizmos.DrawCube(targetCollider.bounds.center, targetCollider.bounds.size);
+        }
+
+        #endregion
+
+        #region Water Forces
 
         private void OnTriggerStay(Collider other)
         {
@@ -87,26 +128,15 @@ namespace DanieloZ.WorldInteraction
             targetBody.AddForce(direction.normalized * shoreAcceleration * wave, forceMode);
         }
 
+        #endregion
+
+        #region Helpers
+
         private static bool IsInLayerMask(int layer, LayerMask mask)
         {
             return (mask.value & (1 << layer)) != 0;
         }
 
-        private void OnDrawGizmosSelected()
-        {
-            if (!drawGizmos)
-            {
-                return;
-            }
-
-            var targetCollider = volumeCollider != null ? volumeCollider : GetComponent<Collider>();
-            if (targetCollider == null)
-            {
-                return;
-            }
-
-            Gizmos.color = gizmoColor;
-            Gizmos.DrawCube(targetCollider.bounds.center, targetCollider.bounds.size);
-        }
+        #endregion
     }
 }

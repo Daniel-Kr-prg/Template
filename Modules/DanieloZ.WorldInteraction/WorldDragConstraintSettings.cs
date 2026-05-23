@@ -1,29 +1,58 @@
 using System;
+using Sirenix.OdinInspector;
 using UnityEngine;
+using OdinShowIf = Sirenix.OdinInspector.ShowIfAttribute;
 
 namespace DanieloZ.WorldInteraction
 {
     [Serializable]
     public sealed class WorldDragConstraintSettings
     {
+        #region Inspector
+
         [SerializeField] private bool enabled;
+        [OdinShowIf(nameof(enabled))]
         [SerializeField] private Transform constraintSpace;
 
-        [Header("Allowed Axes")]
+        [OdinShowIf(nameof(enabled))]
+        [TitleGroup("Allowed Axes")]
         [SerializeField] private bool allowX = true;
+        [OdinShowIf(nameof(enabled))]
+        [TitleGroup("Allowed Axes")]
         [SerializeField] private bool allowY = true;
+        [OdinShowIf(nameof(enabled))]
+        [TitleGroup("Allowed Axes")]
         [SerializeField] private bool allowZ = true;
 
-        [Header("Ranges")]
+        [OdinShowIf(nameof(enabled))]
+        [TitleGroup("Ranges")]
         [SerializeField] private bool limitX;
+        [OdinShowIf(nameof(ShowsXRange))]
+        [TitleGroup("Ranges")]
         [SerializeField] private Vector2 xRange = new(-10f, 10f);
+        [OdinShowIf(nameof(enabled))]
+        [TitleGroup("Ranges")]
         [SerializeField] private bool limitY;
+        [OdinShowIf(nameof(ShowsYRange))]
+        [TitleGroup("Ranges")]
         [SerializeField] private Vector2 yRange = new(-10f, 10f);
+        [OdinShowIf(nameof(enabled))]
+        [TitleGroup("Ranges")]
         [SerializeField] private bool limitZ;
+        [OdinShowIf(nameof(ShowsZRange))]
+        [TitleGroup("Ranges")]
         [SerializeField] private Vector2 zRange = new(-10f, 10f);
+
+        #endregion
+
+        #region Runtime State
 
         private Vector3 lockedLocalPoint;
         private bool hasLockedPoint;
+
+        #endregion
+
+        #region Public API
 
         public bool Enabled => enabled;
 
@@ -85,6 +114,10 @@ namespace DanieloZ.WorldInteraction
             hasLockedPoint = false;
         }
 
+        #endregion
+
+        #region Helpers
+
         private Vector3 ToLocal(Vector3 worldPoint)
         {
             return constraintSpace != null ? constraintSpace.InverseTransformPoint(worldPoint) : worldPoint;
@@ -94,5 +127,15 @@ namespace DanieloZ.WorldInteraction
         {
             return constraintSpace != null ? constraintSpace.TransformPoint(localPoint) : localPoint;
         }
+
+        #endregion
+
+        #region Inspector State
+
+        private bool ShowsXRange => enabled && limitX;
+        private bool ShowsYRange => enabled && limitY;
+        private bool ShowsZRange => enabled && limitZ;
+
+        #endregion
     }
 }

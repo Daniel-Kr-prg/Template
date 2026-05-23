@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
 using DanieloZ.InputManagement;
+using Sirenix.OdinInspector;
 using UnityEngine;
+using OdinShowIf = Sirenix.OdinInspector.ShowIfAttribute;
 
 namespace DanieloZ.WorldInteraction
 {
     public sealed class WorldInteractionController : MonoBehaviour
     {
+        #region Types
+
         [System.Flags]
         public enum SwingInteractionType
         {
@@ -29,55 +33,112 @@ namespace DanieloZ.WorldInteraction
             RaycastHit
         }
 
-        [Header("Camera")]
+        #endregion
+
+        #region Inspector
+
+        [FoldoutGroup("Camera")]
         [SerializeField] private Camera fallbackCamera;
 
-        [Header("Raycast")]
+        [FoldoutGroup("Raycast")]
         [SerializeField] private LayerMask interactionMask = Physics.DefaultRaycastLayers;
+        [FoldoutGroup("Raycast")]
         [SerializeField] private LayerMask hoverMask = Physics.DefaultRaycastLayers;
+        [FoldoutGroup("Raycast")]
         [SerializeField, Min(0f)] private float rayDistance = 500f;
+        [FoldoutGroup("Raycast")]
+        [OdinShowIf(nameof(UsesProjectionRaycast))]
         [SerializeField] private LayerMask pointerProjectionRaycastMask = Physics.DefaultRaycastLayers;
+        [FoldoutGroup("Raycast")]
         [SerializeField] private QueryTriggerInteraction triggerInteraction = QueryTriggerInteraction.Ignore;
 
-        [Header("Drag")]
+        [FoldoutGroup("Drag")]
         [SerializeField] private bool enableDrag = true;
+        [FoldoutGroup("Drag")]
+        [OdinShowIf(nameof(enableDrag))]
+        [EnumToggleButtons]
         [SerializeField] private PointerProjectionMode dragProjectionMode = PointerProjectionMode.WorldY;
+        [FoldoutGroup("Drag")]
+        [OdinShowIf(nameof(UsesDragPlaneTransform))]
         [SerializeField] private Transform dragPlaneTransform;
+        [FoldoutGroup("Drag")]
+        [OdinShowIf(nameof(UsesDragWorldY))]
         [SerializeField] private float dragWorldY = 1.25f;
+        [FoldoutGroup("Drag")]
+        [OdinShowIf(nameof(UsesDragPlaneTransform))]
         [SerializeField] private float dragPlaneOffset = 1.25f;
 
-        [Header("Use")]
+        [FoldoutGroup("Use")]
         [SerializeField] private bool enableUse = true;
 
-        [Header("Hover")]
+        [FoldoutGroup("Hover")]
         [SerializeField] private bool enableHover = true;
 
-        [Header("Swing")]
+        [FoldoutGroup("Swing")]
         [SerializeField] private bool enableSwing = true;
+        [FoldoutGroup("Swing")]
+        [OdinShowIf(nameof(enableSwing))]
         [SerializeField] private LayerMask swingMask = Physics.DefaultRaycastLayers;
+        [FoldoutGroup("Swing")]
+        [OdinShowIf(nameof(enableSwing))]
+        [EnumToggleButtons]
         [SerializeField] private PointerProjectionMode swingProjectionMode = PointerProjectionMode.WorldY;
+        [FoldoutGroup("Swing")]
+        [OdinShowIf(nameof(UsesSwingPlaneTransform))]
         [SerializeField] private Transform swingPlaneTransform;
+        [FoldoutGroup("Swing")]
+        [OdinShowIf(nameof(UsesSwingWorldY))]
         [SerializeField] private float swingWorldY = 0f;
+        [FoldoutGroup("Swing")]
+        [OdinShowIf(nameof(UsesSwingPlaneTransform))]
         [SerializeField] private float swingPlaneOffset;
+        [FoldoutGroup("Swing")]
+        [OdinShowIf(nameof(enableSwing))]
         [SerializeField, Min(0.01f)] private float swingRadius = 2.5f;
+        [FoldoutGroup("Swing")]
+        [OdinShowIf(nameof(enableSwing))]
         [SerializeField, Min(0f)] private float horizontalImpulse = 16f;
+        [FoldoutGroup("Swing")]
+        [OdinShowIf(nameof(enableSwing))]
         [SerializeField, Min(0f)] private float upwardImpulse = 8f;
+        [FoldoutGroup("Swing")]
+        [OdinShowIf(nameof(enableSwing))]
         [SerializeField, Min(0f)] private float angularImpulse = 10f;
+        [FoldoutGroup("Swing")]
+        [OdinShowIf(nameof(enableSwing))]
         [SerializeField, Min(0f)] private float maxCursorSpeed = 8f;
+        [FoldoutGroup("Swing")]
+        [OdinShowIf(nameof(enableSwing))]
         [SerializeField, Min(0f)] private float minCursorMoveDistance = 0.02f;
+        [FoldoutGroup("Swing")]
+        [OdinShowIf(nameof(enableSwing))]
         [SerializeField] private ForceMode forceMode = ForceMode.Impulse;
+        [FoldoutGroup("Swing")]
+        [OdinShowIf(nameof(enableSwing))]
+        [EnumToggleButtons]
         [SerializeField] private SwingInteractionType defaultSwingInteraction = SwingInteractionType.Impulse;
+        [FoldoutGroup("Swing")]
+        [OdinShowIf(nameof(enableSwing))]
         [SerializeField] private List<LayerSwingInteraction> layerSwingInteractions = new();
 
-        [Header("Debug")]
+        [FoldoutGroup("Debug")]
         [SerializeField] private bool debugInput;
+        [FoldoutGroup("Debug")]
         [SerializeField] private bool debugRaycasts;
+        [FoldoutGroup("Debug")]
         [SerializeField] private bool debugHover;
+        [FoldoutGroup("Debug")]
         [SerializeField, Min(0.1f)] private float debugStatusInterval = 2f;
+
+        #endregion
+
+        #region Internal State
 
         private readonly HashSet<Rigidbody> affectedBodies = new();
         private readonly HashSet<MonoBehaviour> affectedSwingables = new();
         private WorldDraggable draggedObject;
+        private IWorldPointerDraggable pointerDraggedObject;
+        private WorldInteractionContext pointerDragContext;
         private IWorldHoverable hoveredObject;
         private WorldInteractionContext hoveredContext;
         private bool inputRegistered;
@@ -91,6 +152,10 @@ namespace DanieloZ.WorldInteraction
         private string LeftUpAction => $"{actionPrefix}_LeftUp";
         private string RightHoldAction => $"{actionPrefix}_RightHold";
         private string RightUpAction => $"{actionPrefix}_RightUp";
+
+        #endregion
+
+        #region Unity Lifecycle
 
         private void Awake()
         {
@@ -112,11 +177,8 @@ namespace DanieloZ.WorldInteraction
                 draggedObject.ReleaseToPhysics();
                 draggedObject = null;
             }
-        }
 
-        public void InitializeGameManager()
-        {
-            TryRegisterInput();
+            CancelPointerDrag();
         }
 
         private void Update()
@@ -138,6 +200,19 @@ namespace DanieloZ.WorldInteraction
             UpdateHover();
         }
 
+        #endregion
+
+        #region Public API
+
+        public void InitializeGameManager()
+        {
+            TryRegisterInput();
+        }
+
+        #endregion
+
+        #region Input Registration
+
         private void TryRegisterInput()
         {
             if (inputRegistered || !InputManager.HaveInstance())
@@ -151,11 +226,11 @@ namespace DanieloZ.WorldInteraction
             }
 
             var manager = InputManager.Instance;
-            manager.RegisterKeyDownAction(InputActionKey.MOUSE_LEFT, LeftDownAction, HandleLeftDown, InputPriority.Highest, HasInputRegistrationError);
-            manager.RegisterKeyHoldAction(InputActionKey.MOUSE_LEFT, LeftHoldAction, HandleLeftHold, InputPriority.Highest, HasInputRegistrationError);
-            manager.RegisterKeyUpAction(InputActionKey.MOUSE_LEFT, LeftUpAction, HandleLeftUp, InputPriority.Highest, HasInputRegistrationError);
-            manager.RegisterKeyHoldAction(InputActionKey.MOUSE_RIGHT, RightHoldAction, HandleRightHold, InputPriority.Highest, HasInputRegistrationError);
-            manager.RegisterKeyUpAction(InputActionKey.MOUSE_RIGHT, RightUpAction, HandleRightUp, InputPriority.Highest, HasInputRegistrationError);
+            manager.RegisterKeyDownAction(InputActionKey.MOUSE_LEFT, LeftDownAction, HandleLeftDown, InputPriority.Base, HasInputRegistrationError);
+            manager.RegisterKeyHoldAction(InputActionKey.MOUSE_LEFT, LeftHoldAction, HandleLeftHold, InputPriority.Base, HasInputRegistrationError);
+            manager.RegisterKeyUpAction(InputActionKey.MOUSE_LEFT, LeftUpAction, HandleLeftUp, InputPriority.Base, HasInputRegistrationError);
+            manager.RegisterKeyHoldAction(InputActionKey.MOUSE_RIGHT, RightHoldAction, HandleRightHold, InputPriority.Base, HasInputRegistrationError);
+            manager.RegisterKeyUpAction(InputActionKey.MOUSE_RIGHT, RightUpAction, HandleRightUp, InputPriority.Base, HasInputRegistrationError);
             inputRegistered = true;
             DebugLog("Registered InputManager actions for LMB/RMB.");
         }
@@ -183,6 +258,10 @@ namespace DanieloZ.WorldInteraction
             DebugLog("Unregistered InputManager actions.");
         }
 
+        #endregion
+
+        #region Drag And Use
+
         private void HandleLeftDown()
         {
             DebugLog("LMB down.");
@@ -193,6 +272,15 @@ namespace DanieloZ.WorldInteraction
             }
 
             DebugLog($"LMB hit {context.Hit.collider.name} at {context.Hit.point}.");
+            if (TryGetComponentInParents<IWorldPointerDraggable>(context.Hit.collider, out var pointerDraggable)
+                && pointerDraggable.BeginPointerDrag(context))
+            {
+                pointerDraggedObject = pointerDraggable;
+                pointerDragContext = context;
+                DebugLog($"Starting pointer drag on {GetDebugName(pointerDraggable)}.");
+                return;
+            }
+
             if (enableDrag)
             {
                 var draggable = context.Hit.collider.GetComponentInParent<WorldDraggable>();
@@ -231,6 +319,12 @@ namespace DanieloZ.WorldInteraction
 
         private void HandleLeftHold()
         {
+            if (pointerDraggedObject != null)
+            {
+                UpdatePointerDrag();
+                return;
+            }
+
             if (draggedObject != null)
             {
                 UpdateDragPosition();
@@ -239,6 +333,12 @@ namespace DanieloZ.WorldInteraction
 
         private void HandleLeftUp()
         {
+            if (pointerDraggedObject != null)
+            {
+                EndPointerDrag();
+                return;
+            }
+
             if (draggedObject == null)
             {
                 return;
@@ -264,6 +364,43 @@ namespace DanieloZ.WorldInteraction
             draggedObject = null;
         }
 
+        private void UpdatePointerDrag()
+        {
+            if (pointerDraggedObject == null)
+            {
+                return;
+            }
+
+            var camera = GetCamera();
+            if (camera == null)
+            {
+                return;
+            }
+
+            var ray = camera.ScreenPointToRay(Input.mousePosition);
+            var context = new WorldInteractionContext(camera, ray, pointerDragContext.Hit, Input.mousePosition);
+            pointerDraggedObject.UpdatePointerDrag(context);
+            pointerDragContext = context;
+        }
+
+        private void EndPointerDrag()
+        {
+            if (pointerDraggedObject == null)
+            {
+                return;
+            }
+
+            UpdatePointerDrag();
+            pointerDraggedObject.EndPointerDrag(pointerDragContext);
+            pointerDraggedObject = null;
+        }
+
+        private void CancelPointerDrag()
+        {
+            pointerDraggedObject?.CancelPointerDrag();
+            pointerDraggedObject = null;
+        }
+
         private void UpdateDragPosition()
         {
             if (draggedObject == null || !TryGetPointerPoint(dragProjectionMode, dragPlaneTransform, dragWorldY, dragPlaneOffset, out var point))
@@ -278,6 +415,10 @@ namespace DanieloZ.WorldInteraction
 
             draggedObject.DragToGripPosition(point);
         }
+
+        #endregion
+
+        #region Swing
 
         private void HandleRightHold()
         {
@@ -379,6 +520,10 @@ namespace DanieloZ.WorldInteraction
             }
         }
 
+        #endregion
+
+        #region Hover
+
         private void UpdateHover()
         {
             if (!enableHover)
@@ -469,6 +614,10 @@ namespace DanieloZ.WorldInteraction
             DebugLog($"Inserted held slot item {slotItem.name} into {slot.name}.");
             return true;
         }
+
+        #endregion
+
+        #region Raycast And Projection
 
         private bool TryRaycast(LayerMask mask, out WorldInteractionContext context)
         {
@@ -596,6 +745,10 @@ namespace DanieloZ.WorldInteraction
             return true;
         }
 
+        #endregion
+
+        #region Component Lookup
+
         private static bool TryGetComponentInParents<T>(Collider collider, out T component) where T : class
         {
             component = null;
@@ -638,6 +791,10 @@ namespace DanieloZ.WorldInteraction
             return false;
         }
 
+        #endregion
+
+        #region Swing Helpers
+
         private SwingInteractionType GetSwingInteractionForLayer(int layer)
         {
             foreach (var rule in layerSwingInteractions)
@@ -663,10 +820,37 @@ namespace DanieloZ.WorldInteraction
             }
         }
 
+        #endregion
+
+        #region Camera
+
         private Camera GetCamera()
         {
             return CameraManager.CurrentCamera != null ? CameraManager.CurrentCamera : fallbackCamera;
         }
+
+        #endregion
+
+        #region Inspector State
+
+        private bool UsesProjectionRaycast => dragProjectionMode == PointerProjectionMode.RaycastHit
+            || swingProjectionMode == PointerProjectionMode.RaycastHit;
+
+        private bool UsesDragPlaneTransform => enableDrag
+            && dragProjectionMode == PointerProjectionMode.PlaneTransform;
+
+        private bool UsesDragWorldY => enableDrag
+            && dragProjectionMode == PointerProjectionMode.WorldY;
+
+        private bool UsesSwingPlaneTransform => enableSwing
+            && swingProjectionMode == PointerProjectionMode.PlaneTransform;
+
+        private bool UsesSwingWorldY => enableSwing
+            && swingProjectionMode == PointerProjectionMode.WorldY;
+
+        #endregion
+
+        #region Debug
 
         private void DebugStatusTick()
         {
@@ -697,5 +881,7 @@ namespace DanieloZ.WorldInteraction
         {
             return value is Component component ? component.name : value?.ToString() ?? "null";
         }
+
+        #endregion
     }
 }

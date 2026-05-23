@@ -78,6 +78,14 @@ namespace DanieloZ.WorldInteraction
         void HoverEnd(WorldInteractionContext context);
     }
 
+    public interface IWorldPointerDraggable
+    {
+        bool BeginPointerDrag(WorldInteractionContext context);
+        void UpdatePointerDrag(WorldInteractionContext context);
+        void EndPointerDrag(WorldInteractionContext context);
+        void CancelPointerDrag();
+    }
+
     public interface IWorldDraggableReleaseHandler
     {
         bool TryReleaseDraggedObject(WorldDraggable draggable, WorldDragReleaseContext context);

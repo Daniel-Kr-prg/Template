@@ -1,4 +1,5 @@
 using Cinemachine;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -7,17 +8,36 @@ namespace DanieloZ.CameraSystem
     [DisallowMultipleComponent]
     public sealed class CameraLock : MonoBehaviour
     {
+        #region Inspector
+
+        [FoldoutGroup("Lock")]
         [SerializeField] private string lockId;
+        [FoldoutGroup("Lock")]
         [SerializeField] private CinemachineVirtualCamera virtualCamera;
+        [FoldoutGroup("Lock")]
         [SerializeField] private MonoBehaviour navigator;
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onEntered;
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onExited;
+
+        #endregion
+
+        #region Public API
 
         public string LockId => string.IsNullOrWhiteSpace(lockId) ? name : lockId;
         public CinemachineVirtualCamera VirtualCamera => virtualCamera;
         public MonoBehaviour Navigator => navigator;
 
+        #endregion
+
+        #region Runtime State
+
         private CameraLockController controller;
+
+        #endregion
+
+        #region Unity Lifecycle
 
         private void OnEnable()
         {
@@ -34,6 +54,10 @@ namespace DanieloZ.CameraSystem
         {
             controller?.Unregister(this);
         }
+
+        #endregion
+
+        #region Lock Control
 
         public void Enter()
         {
@@ -52,5 +76,7 @@ namespace DanieloZ.CameraSystem
                 virtualCamera.Priority = priority;
             }
         }
+
+        #endregion
     }
 }

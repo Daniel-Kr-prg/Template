@@ -1,11 +1,14 @@
 using System;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Events;
 
 namespace DanieloZ.WorldInteraction
 {
-    public sealed class World3DSlider : MonoBehaviour
+    public sealed class World3DSlider : MonoBehaviour, IWorldDraggableReleaseHandler
     {
+        #region Types
+
         private enum SliderAxis
         {
             X,
@@ -18,27 +21,43 @@ namespace DanieloZ.WorldInteraction
         {
         }
 
-        [Header("Handle")]
+        #endregion
+
+        #region Inspector
+
+        [FoldoutGroup("Handle")]
         [SerializeField] private WorldDraggable handle;
+        [FoldoutGroup("Handle")]
         [SerializeField] private Transform handleTransform;
+        [FoldoutGroup("Handle")]
         [SerializeField] private Transform trackSpace;
+        [FoldoutGroup("Handle")]
+        [EnumToggleButtons]
         [SerializeField] private SliderAxis axis = SliderAxis.X;
 
-        [Header("Range")]
+        [FoldoutGroup("Range")]
         [SerializeField] private float minLocalPosition = -0.5f;
+        [FoldoutGroup("Range")]
         [SerializeField] private float maxLocalPosition = 0.5f;
+        [FoldoutGroup("Range")]
         [SerializeField, Range(0f, 1f)] private float value;
+        [FoldoutGroup("Range")]
         [SerializeField, Min(0f)] private float step;
+        [FoldoutGroup("Range")]
         [SerializeField] private bool setHandlePositionOnAwake = true;
+        [FoldoutGroup("Range")]
         [SerializeField] private bool clampHandleEveryFrame = true;
 
-        [Header("Events")]
+        [FoldoutGroup("Events")]
         [SerializeField] private SliderValueEvent onValueChanged;
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onMinValue;
+        [FoldoutGroup("Events")]
         [SerializeField] private UnityEvent onMaxValue;
 
-        private bool isAtMin;
-        private bool isAtMax;
+        #endregion
+
+        #region Public API
 
         public event Action<World3DSlider, float> ValueChanged;
 
@@ -46,6 +65,17 @@ namespace DanieloZ.WorldInteraction
         public WorldDraggable Handle => handle;
 
         private Transform Space => trackSpace != null ? trackSpace : transform;
+
+        #endregion
+
+        #region Runtime State
+
+        private bool isAtMin;
+        private bool isAtMax;
+
+        #endregion
+
+        #region Unity Lifecycle
 
         private void Reset()
         {
@@ -86,6 +116,10 @@ namespace DanieloZ.WorldInteraction
             }
         }
 
+        #endregion
+
+        #region Value API
+
         public void SetValue(float newValue)
         {
             SetValue(newValue, true);
@@ -113,6 +147,37 @@ namespace DanieloZ.WorldInteraction
             SetValue(Mathf.InverseLerp(minLocalPosition, maxLocalPosition, axisValue), notify);
             return true;
         }
+
+        public bool TryReleaseDraggedObject(WorldDraggable draggable, WorldDragReleaseContext context)
+        {
+            if (handle == null || draggable != handle)
+            {
+                return false;
+            }
+
+            if (context.HasScreenPosition && context.Camera != null)
+            {
+                TrySetValueFromRay(context.Camera.ScreenPointToRay(context.ScreenPosition), true);
+            }
+
+            MoveHandleToValue(value);
+            handle.Release();
+
+            var body = handle.Body;
+            if (body != null)
+            {
+                body.isKinematic = true;
+                body.useGravity = false;
+                body.linearVelocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+            }
+
+            return true;
+        }
+
+        #endregion
+
+        #region Value Evaluation
 
         private void SetValue(float newValue, bool notify, bool moveHandle = true)
         {
@@ -153,6 +218,10 @@ namespace DanieloZ.WorldInteraction
             var component = GetAxisValue(local);
             return Mathf.InverseLerp(minLocalPosition, maxLocalPosition, component);
         }
+
+        #endregion
+
+        #region Handle Position
 
         private void MoveHandleToValue(float normalizedValue)
         {
@@ -198,6 +267,10 @@ namespace DanieloZ.WorldInteraction
             distanceAlongAxis = Mathf.Clamp(distanceAlongAxis, 0f, axisLength);
             return Space.InverseTransformPoint(start + axisDirection * distanceAlongAxis);
         }
+
+        #endregion
+
+        #region Helpers
 
         private float Quantize(float normalizedValue)
         {
@@ -253,5 +326,7 @@ namespace DanieloZ.WorldInteraction
                     break;
             }
         }
+
+        #endregion
     }
 }

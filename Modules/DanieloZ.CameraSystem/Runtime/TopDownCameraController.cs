@@ -1,61 +1,75 @@
 using Cinemachine;
+using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Serialization;
+using OdinShowIf = Sirenix.OdinInspector.ShowIfAttribute;
 
 namespace DanieloZ.CameraSystem
 {
     public sealed class TopDownCameraController : MonoBehaviour
     {
-        [Header("Rig")]
+        #region Inspector
+
+        [FoldoutGroup("Rig")]
         [FormerlySerializedAs("pivot")]
         [SerializeField] private Transform positionLerpTarget;
+        [FoldoutGroup("Rig")]
         [FormerlySerializedAs("rotationLerpPivot")]
         [SerializeField] private Transform cameraRigContainer;
+        [FoldoutGroup("Rig")]
         [SerializeField] private Transform cameraTarget;
+        [FoldoutGroup("Rig")]
         [SerializeField] private Transform lookTarget;
+        [FoldoutGroup("Rig")]
         [SerializeField] private CinemachineVirtualCamera virtualCamera;
 
-        [Header("Curves")]
+        [FoldoutGroup("Curves")]
         [SerializeField] private WorldCameraBezierCurve cameraCurve;
+        [FoldoutGroup("Curves")]
         [SerializeField] private WorldCameraBezierCurve lookCurve;
 
-        [Header("Movement")]
+        [FoldoutGroup("Movement")]
         [SerializeField, Min(0f)] private float moveSpeed = 5.5f;
+        [FoldoutGroup("Movement")]
         [SerializeField, Min(0f)] private float moveAcceleration = 24f;
+        [FoldoutGroup("Movement")]
         [SerializeField, Min(0f)] private float moveDeceleration = 36f;
+        [FoldoutGroup("Movement")]
         [SerializeField, Min(0f)] private float orbitSpeed = 72f;
+        [FoldoutGroup("Movement")]
         [SerializeField, Min(0f)] private float orbitAcceleration = 720f;
+        [FoldoutGroup("Movement")]
         [SerializeField, Min(0f)] private float orbitDeceleration = 1080f;
 
-        [Header("Middle Mouse Orbit")]
+        [FoldoutGroup("Middle Mouse Orbit")]
         [SerializeField] private bool enableMiddleMouseOrbit = true;
+        [FoldoutGroup("Middle Mouse Orbit")]
+        [OdinShowIf(nameof(enableMiddleMouseOrbit))]
         [SerializeField, Min(0f)] private float middleMouseOrbitDegreesPerPixel = 0.18f;
 
-        [Header("Smoothing")]
+        [FoldoutGroup("Smoothing")]
         [SerializeField, Min(0f)] private float zoomLerpSpeed = 12f;
+        [FoldoutGroup("Smoothing")]
         [SerializeField, Min(0f)] private float cameraPositionLerpSpeed = 12f;
+        [FoldoutGroup("Smoothing")]
         [SerializeField, Min(0f)] private float cameraRotationLerpSpeed = 16f;
+        [FoldoutGroup("Smoothing")]
         [SerializeField, Min(0f)] private float zoomSpeed = 0.12f;
+        [FoldoutGroup("Smoothing")]
         [SerializeField, Range(0f, 1f)] private float zoom = 0.8f;
 
-        [Header("Lens")]
+        [FoldoutGroup("Lens")]
         [SerializeField] private bool driveFovByZoom;
+        [FoldoutGroup("Lens")]
+        [OdinShowIf(nameof(driveFovByZoom))]
         [SerializeField] private AnimationCurve fovByZoom = AnimationCurve.Linear(0f, 40f, 1f, 40f);
+        [FoldoutGroup("Lens")]
+        [OdinShowIf(nameof(driveFovByZoom))]
         [SerializeField, Min(0f)] private float cameraFovLerpSpeed = 12f;
 
-        private Vector2 moveInput;
-        private float orbitInput;
-        private Vector3 currentMoveVelocity;
-        private Vector2 previousOrbitPointerPosition;
-        private float currentOrbitVelocity;
-        private float currentZoom;
-        private float desiredPivotYaw;
-        private bool hasAppliedCameraPose;
-        private bool middleMouseOrbitHeld;
-        private bool cameraPoseEnabled = true;
-        private bool UsesSeparatedRigSmoothing => positionLerpTarget != null
-            && cameraRigContainer != null
-            && cameraRigContainer != positionLerpTarget;
+        #endregion
+
+        #region Public API
 
         public float Zoom01
         {
@@ -70,22 +84,6 @@ namespace DanieloZ.CameraSystem
                     ApplyVirtualCameraPose(true);
                 }
             }
-        }
-
-        private void Awake()
-        {
-            currentZoom = zoom;
-            desiredPivotYaw = GetInitialPivotYaw();
-
-            if (virtualCamera != null)
-            {
-                virtualCamera.Follow = null;
-                virtualCamera.LookAt = null;
-            }
-
-            ApplyRigSmoothing(true);
-            ApplyRigPose();
-            ApplyVirtualCameraPose(true);
         }
 
         public void Move(Vector2 input)
@@ -153,6 +151,44 @@ namespace DanieloZ.CameraSystem
             cameraPoseEnabled = enabled;
         }
 
+        #endregion
+
+        #region Runtime State
+
+        private Vector2 moveInput;
+        private float orbitInput;
+        private Vector3 currentMoveVelocity;
+        private Vector2 previousOrbitPointerPosition;
+        private float currentOrbitVelocity;
+        private float currentZoom;
+        private float desiredPivotYaw;
+        private bool hasAppliedCameraPose;
+        private bool middleMouseOrbitHeld;
+        private bool cameraPoseEnabled = true;
+        private bool UsesSeparatedRigSmoothing => positionLerpTarget != null
+            && cameraRigContainer != null
+            && cameraRigContainer != positionLerpTarget;
+
+        #endregion
+
+        #region Unity Lifecycle
+
+        private void Awake()
+        {
+            currentZoom = zoom;
+            desiredPivotYaw = GetInitialPivotYaw();
+
+            if (virtualCamera != null)
+            {
+                virtualCamera.Follow = null;
+                virtualCamera.LookAt = null;
+            }
+
+            ApplyRigSmoothing(true);
+            ApplyRigPose();
+            ApplyVirtualCameraPose(true);
+        }
+
         private void LateUpdate()
         {
             TickZoom();
@@ -164,6 +200,10 @@ namespace DanieloZ.CameraSystem
             moveInput = Vector2.zero;
             orbitInput = 0f;
         }
+
+        #endregion
+
+        #region Zoom And Movement
 
         private void TickZoom()
         {
@@ -242,6 +282,10 @@ namespace DanieloZ.CameraSystem
 
             positionLerpTarget.Rotate(Vector3.up, degrees, Space.World);
         }
+
+        #endregion
+
+        #region Rig Pose
 
         private void ApplyRigSmoothing(bool immediate)
         {
@@ -350,6 +394,10 @@ namespace DanieloZ.CameraSystem
                 : Mathf.Lerp(virtualCamera.m_Lens.FieldOfView, targetFov, ExponentialFactor(cameraFovLerpSpeed));
         }
 
+        #endregion
+
+        #region Helpers
+
         private static float EvaluateCurve(AnimationCurve curve, float value)
         {
             return curve != null && curve.length > 0 ? curve.Evaluate(value) : value;
@@ -396,5 +444,7 @@ namespace DanieloZ.CameraSystem
         {
             return 1f - Mathf.Exp(-speed * Time.deltaTime);
         }
+
+        #endregion
     }
 }
