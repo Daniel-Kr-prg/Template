@@ -41,7 +41,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6c7b5b9f34e841e69eea27b21957bc55, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.World3DSlider
-  handle: {fileID: 500206}
   handleTransform: {fileID: 500201}
   trackSpace: {fileID: 500001}
   axis: 0
@@ -50,7 +49,9 @@ MonoBehaviour:
   value: 0.5
   step: 0
   setHandlePositionOnAwake: 1
-  clampHandleEveryFrame: 1
+  normalizedValuePerMouseUnit: 0.01
+  dragFollowSpeed: 24
+  invertMouseDelta: 0
 --- !u!1 &500100
 GameObject:
   m_ObjectHideFlags: 0
@@ -100,8 +101,6 @@ GameObject:
   - component: {fileID: 500202}
   - component: {fileID: 500203}
   - component: {fileID: 500204}
-  - component: {fileID: 500205}
-  - component: {fileID: 500206}
   - component: {fileID: 500207}
   m_Layer: 10
   m_Name: Handle
@@ -137,63 +136,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!54 &500205
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_GameObject: {fileID: 500200}
-  serializedVersion: 5
-  m_Mass: 1
-  m_UseGravity: 0
-  m_IsKinematic: 1
-  m_Constraints: 124
-  m_CollisionDetection: 0
---- !u!114 &500206
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 500200}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2bd8d752e1e84b0bbf5601a97b46b671, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.World3DSlotItem
-  body: {fileID: 500205}
-  gripRoot: {fileID: 500201}
-  pickupDuration: 0.08
-  makeKinematicWhileHeld: 1
-  disableGravityWhileHeld: 1
-  snapYawToStepOnPickup: 0
-  yawStep: 90
-  heldRotationOffsetEuler: {x: 0, y: 0, z: 0}
-  consumeMouseWheel: 0
-  wheelRotationDuration: 0.18
-  wheelRotationEase: 13
-  wobbleStrength: 0.1
-  maxWobbleAngle: 4
-  wobbleFollowSpeed: 18
-  wobbleReturnSpeed: 10
-  preserveReleaseInertia: 0
-  releaseVelocityMultiplier: 1
-  maxReleaseSpeed: 8
-  releaseVelocitySmoothing: 24
-  maxReleaseSampleAge: 0.12
-  constraints:
-    enabled: 1
-    constraintSpace: {fileID: 500001}
-    allowX: 1
-    allowY: 0
-    allowZ: 0
-    limitX: 1
-    xRange: {x: -0.6, y: 0.6}
-    limitY: 0
-    yRange: {x: -10, y: 10}
-    limitZ: 0
-    zRange: {x: -10, y: 10}
-  itemId: SliderHandle
-  slotSnapDuration: 0.08
-  slotSnapEase: 9
 --- !u!114 &500207
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -207,4 +149,3 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PixelLust.PixelVoxelPuzzle.HandHoldableWorld3DSliderHandle
   slider: {fileID: 500002}
-  draggable: {fileID: 500206}

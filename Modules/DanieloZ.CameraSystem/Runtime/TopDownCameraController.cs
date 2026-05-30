@@ -85,6 +85,7 @@ namespace DanieloZ.CameraSystem
                 }
             }
         }
+        public Transform PositionLerpTarget => positionLerpTarget;
 
         public void Move(Vector2 input)
         {
@@ -149,6 +150,22 @@ namespace DanieloZ.CameraSystem
         public void SetCameraPoseEnabled(bool enabled)
         {
             cameraPoseEnabled = enabled;
+        }
+
+        public void SetPivotPose(Vector3 position, Quaternion rotation, float zoom01, bool applyImmediately = true)
+        {
+            if (positionLerpTarget != null)
+            {
+                positionLerpTarget.SetPositionAndRotation(position, rotation);
+            }
+
+            desiredPivotYaw = rotation.eulerAngles.y;
+            Zoom01 = zoom01;
+
+            if (applyImmediately)
+            {
+                ApplyNow();
+            }
         }
 
         #endregion

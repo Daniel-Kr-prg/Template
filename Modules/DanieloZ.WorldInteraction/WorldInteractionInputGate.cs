@@ -6,7 +6,7 @@ namespace DanieloZ.WorldInteraction
     {
         public static WorldDraggable HeldObject { get; private set; }
         public static bool HasHeldObject => HeldObject != null;
-        public static bool BlocksCameraWheel => HeldObject != null && HeldObject.ConsumesMouseWheel;
+        public static bool BlocksCameraWheel => false;
 
         public static bool TryClaimHeldObject(WorldDraggable draggable)
         {
@@ -34,12 +34,7 @@ namespace DanieloZ.WorldInteraction
 
         public static bool TryConsumeWheelForHeldObject(float wheelDelta)
         {
-            if (HeldObject == null || Mathf.Approximately(wheelDelta, 0f))
-            {
-                return false;
-            }
-
-            return HeldObject.TryRotateHeldByWheel(wheelDelta);
+            return false;
         }
     }
 }

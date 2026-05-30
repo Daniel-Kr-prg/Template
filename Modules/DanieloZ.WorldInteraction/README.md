@@ -1,8 +1,8 @@
 # DanieloZ.WorldInteraction
 
-Runtime module for physical world-space interaction: raycast use, hover, draggable objects, swing impulses/callbacks, physical 3D buttons, toggle controls, insertable slot items, slots, sliders, water/recovery helpers, and small example bridges for PixelVoxelPuzzle hand input.
+Runtime module for physical world-space interaction: raycast use, hover, draggable objects, swing impulses/callbacks, physical 3D buttons, toggle controls, insertable slot items, slots, sliders, water/recovery helpers and camera constraint helpers.
 
-The module is intentionally generic. Game-specific systems should subscribe to events or call public APIs instead of adding puzzle rules directly into the interaction controller.
+The module is intentionally generic. Game-specific systems should subscribe to events, call public APIs or provide project-side bridge components instead of adding puzzle rules directly into the interaction controller.
 
 ## Main Runtime Components
 
@@ -10,21 +10,22 @@ The module is intentionally generic. Game-specific systems should subscribe to e
 
 - Central mouse/raycast router for drag, use, hover and swing.
 - Registers LMB/RMB actions through the template `InputManager`.
-- Routes mouse wheel to the currently held object through `WorldInteractionInputGate`.
 - Finds compatible `World3DButtonSlotBase` targets for held `World3DSlotItem` objects.
+- Delegates feature flows to internal runtime services so the scene component stays a facade for serialized settings and lifecycle.
 - Inspector is grouped by Camera, Raycast, Drag, Use, Hover, Swing and Debug. Projection-specific fields are shown only for the selected projection mode.
 
 `WorldInteractionInputGate`
 
 - Static state for the currently held `WorldDraggable`.
-- Blocks camera wheel when the held object consumes wheel input.
 - Lets drag, camera and UI systems avoid fighting over the same input.
+- Does not consume wheel input; mouse wheel is reserved for camera zoom/orbit style controls in the current interaction model.
 
 `WorldDraggable`
 
 - Generic draggable physical object.
-- Supports pickup blending, kinematic hold state, wheel yaw rotation, drag wobble, release inertia and optional constraints.
-- Inspector hides wheel, wobble and release-inertia details when their parent option is disabled.
+- Supports pickup blending, kinematic hold state, RMB/free held rotation APIs, drag wobble, release inertia and optional constraints.
+- Keeps pose math, rotation state, wobble and release inertia in internal runtime state helpers while preserving the public component API.
+- Legacy wheel-yaw settings remain for old prefabs, but new project-side hand input should route held-object rotation through RMB click/hold instead of wheel.
 
 `WorldDragConstraintSettings`
 
@@ -60,6 +61,11 @@ The module is intentionally generic. Game-specific systems should subscribe to e
 - Toggle button implementing `IWorldUsable`.
 - Supports optional toggle-off behavior, press animation, material/visual state switching and toggle events.
 
+`World3DPressAnimation`
+
+- Internal shared press animation helper used by static and toggle buttons.
+- Keeps button components focused on state/events instead of tween lifecycle details.
+
 `World3DToggleGroup` and `World3DToggleObject`
 
 - Small physical toggle-state system.
@@ -68,7 +74,21 @@ The module is intentionally generic. Game-specific systems should subscribe to e
 `World3DSlider`
 
 - Slider driven by a draggable handle along a local X/Y/Z axis.
-- Supports normalized value, optional stepping, edge events and ray-based value setting.
+- Supports normalized value, optional stepping and edge events.
+- Current handle drag uses hidden/locked cursor mouse-delta input, smooth handle follow and cursor restore to the handle on release, so slider value is independent of camera angle after the initial hit.
+- Sensitivity is exposed through `normalizedValuePerMouseUnit`; follow smoothing is exposed through `dragFollowSpeed`.
+
+`World3DOptionRoller`
+
+- Four-sided option roller implementing `IWorldPointerDraggable`.
+- Uses hidden/locked cursor mouse-delta input: drag up/down changes the pending face, release smoothly snaps to the nearest 0/90/180/270 step and returns the cursor to the roller center.
+- Can generate simple transparent selected-preview planes to show which face will become selected on release.
+- Sensitivity is exposed through `degreesPerScreenPixel`.
+
+`WorldCursorUtility`
+
+- Shared helper for capturing cursor visibility/lock state, hiding/locking cursor during delta-driven interactions and restoring/warping the cursor to a world-space target.
+- Project-side held-object code can use the same pattern: hide/lock while integrating mouse delta, then restore to a world-space grip/handle target on release.
 
 `World3DUIObjectPool`
 
@@ -143,4 +163,4 @@ Physical collision alone does not insert the item. The collider is the raycast/h
 
 `Examples/Scenes/WorldInteractionExamples.unity` shows the components in one standalone scene.
 
-`Examples/Scripts/PixelVoxelPuzzleIntegration` contains bridge components for the current PixelVoxelPuzzle hand/use system. They are examples/integration adapters, not core module code.
+Project-specific bridge components for PixelVoxelPuzzle hand/use input live in `Assets/_Project/PixelVoxelPuzzle/Runtime/WorldInteractionBridge`.

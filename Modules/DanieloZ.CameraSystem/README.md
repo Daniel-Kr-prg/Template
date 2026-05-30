@@ -53,6 +53,7 @@ It intentionally does not reference project gameplay input, menu navigation, or 
 - Raises C# events and UnityEvents when locks change.
 - Does not push or pop input contexts. Add a project-side bridge if locks should affect input mode.
 - Inspector separates navigation fallback, priorities and events.
+- PixelVoxelPuzzle MVP currently needs dedicated lock setups for Main Menu and Options camera views.
 
 `CameraModeController`
 
@@ -60,6 +61,11 @@ It intentionally does not reference project gameplay input, menu navigation, or 
 - Temporarily disables the top-down camera pose while menu camera is active.
 - Raises C# events and UnityEvents, leaving input state ownership outside the module.
 - Inspector separates cameras, main-menu pose, priorities and events.
+
+`GroundPivot` Bounds
+
+- The camera system keeps movement and bounds input-agnostic. PixelVoxelPuzzle MVP should constrain the `GroundPivot` with the existing `WorldCameraPivotConstraintVolume` / `WorldBoxConstraintSettings` compatibility components, or with a thin project-facing `CameraBox` wrapper if that name is preferred in scenes.
+- The prototype map pass should tune the base TopDown angle, Options lock angle and Main Menu lock angle together with those bounds.
 
 `CameraManagerSwitcher`
 

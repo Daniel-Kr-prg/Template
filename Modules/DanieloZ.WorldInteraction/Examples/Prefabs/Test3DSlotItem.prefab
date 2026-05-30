@@ -98,7 +98,7 @@ MonoBehaviour:
   snapYawToStepOnPickup: 1
   yawStep: 90
   heldRotationOffsetEuler: {x: 0, y: 0, z: 0}
-  consumeMouseWheel: 1
+  consumeMouseWheel: 0
   wheelRotationDuration: 0.18
   wheelRotationEase: 13
   wobbleStrength: 0.35

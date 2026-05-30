@@ -26,7 +26,7 @@ namespace DanieloZ.WorldInteraction
             public SwingInteractionType interactionType = SwingInteractionType.Impulse;
         }
 
-        private enum PointerProjectionMode
+        internal enum PointerProjectionMode
         {
             WorldY,
             PlaneTransform,
@@ -134,16 +134,11 @@ namespace DanieloZ.WorldInteraction
 
         #region Internal State
 
-        private readonly HashSet<Rigidbody> affectedBodies = new();
-        private readonly HashSet<MonoBehaviour> affectedSwingables = new();
-        private WorldDraggable draggedObject;
-        private IWorldPointerDraggable pointerDraggedObject;
-        private WorldInteractionContext pointerDragContext;
-        private IWorldHoverable hoveredObject;
-        private WorldInteractionContext hoveredContext;
+        private readonly WorldDragFlow dragFlow = new();
+        private readonly WorldPointerDragFlow pointerDragFlow = new();
+        private readonly WorldHoverFlow hoverFlow = new();
+        private readonly WorldSwingFlow swingFlow = new();
         private bool inputRegistered;
-        private bool hasPreviousSwingPoint;
-        private Vector3 previousSwingPoint;
         private string actionPrefix;
         private float nextDebugStatusTime;
 
@@ -170,15 +165,10 @@ namespace DanieloZ.WorldInteraction
         private void OnDisable()
         {
             UnregisterInput();
-            EndHover();
-
-            if (draggedObject != null)
-            {
-                draggedObject.ReleaseToPhysics();
-                draggedObject = null;
-            }
-
-            CancelPointerDrag();
+            hoverFlow.End(debugHover, DebugLog);
+            dragFlow.ReleaseToPhysics();
+            pointerDragFlow.Cancel();
+            swingFlow.Reset();
         }
 
         private void Update()
@@ -194,7 +184,6 @@ namespace DanieloZ.WorldInteraction
             if (!Mathf.Approximately(scroll, 0f))
             {
                 DebugLog($"Mouse wheel delta={scroll}. HeldObject={WorldInteractionInputGate.HeldObject?.name ?? "none"}");
-                WorldInteractionInputGate.TryConsumeWheelForHeldObject(scroll);
             }
 
             UpdateHover();
@@ -272,12 +261,10 @@ namespace DanieloZ.WorldInteraction
             }
 
             DebugLog($"LMB hit {context.Hit.collider.name} at {context.Hit.point}.");
-            if (TryGetComponentInParents<IWorldPointerDraggable>(context.Hit.collider, out var pointerDraggable)
-                && pointerDraggable.BeginPointerDrag(context))
+            if (WorldInteractionComponentLookup.TryGetInParents<IWorldPointerDraggable>(context.Hit.collider, out var pointerDraggable)
+                && pointerDragFlow.TryBegin(pointerDraggable, context))
             {
-                pointerDraggedObject = pointerDraggable;
-                pointerDragContext = context;
-                DebugLog($"Starting pointer drag on {GetDebugName(pointerDraggable)}.");
+                DebugLog($"Starting pointer drag on {WorldInteractionComponentLookup.GetDebugName(pointerDraggable)}.");
                 return;
             }
 
@@ -287,14 +274,20 @@ namespace DanieloZ.WorldInteraction
                 if (draggable != null)
                 {
                     DebugLog($"Starting drag on {draggable.name}.");
-                    BeginDrag(draggable);
+                    if (!dragFlow.TryBegin(draggable))
+                    {
+                        DebugLog($"Drag rejected by {draggable.name}.");
+                        return;
+                    }
+
+                    UpdateDragPosition();
                     return;
                 }
             }
 
-            if (enableUse && TryGetComponentInParents<IWorldUsable>(context.Hit.collider, out var usable))
+            if (enableUse && WorldInteractionComponentLookup.TryGetInParents<IWorldUsable>(context.Hit.collider, out var usable))
             {
-                DebugLog($"Calling Use on {GetDebugName(usable)}.");
+                DebugLog($"Calling Use on {WorldInteractionComponentLookup.GetDebugName(usable)}.");
                 usable.Use(context);
                 return;
             }
@@ -302,30 +295,15 @@ namespace DanieloZ.WorldInteraction
             DebugLog("LMB hit has no WorldDraggable or IWorldUsable.");
         }
 
-        private void BeginDrag(WorldDraggable draggable)
-        {
-            draggedObject = draggable;
-            draggedObject.BeginDrag();
-
-            if (!draggedObject.IsHeld)
-            {
-                DebugLog($"Drag rejected by {draggedObject.name}.");
-                draggedObject = null;
-                return;
-            }
-
-            UpdateDragPosition();
-        }
-
         private void HandleLeftHold()
         {
-            if (pointerDraggedObject != null)
+            if (pointerDragFlow.IsDragging)
             {
-                UpdatePointerDrag();
+                pointerDragFlow.Update(GetCamera(), Input.mousePosition);
                 return;
             }
 
-            if (draggedObject != null)
+            if (dragFlow.DraggedObject != null)
             {
                 UpdateDragPosition();
             }
@@ -333,12 +311,13 @@ namespace DanieloZ.WorldInteraction
 
         private void HandleLeftUp()
         {
-            if (pointerDraggedObject != null)
+            if (pointerDragFlow.IsDragging)
             {
-                EndPointerDrag();
+                pointerDragFlow.End(GetCamera(), Input.mousePosition);
                 return;
             }
 
+            var draggedObject = dragFlow.DraggedObject;
             if (draggedObject == null)
             {
                 return;
@@ -346,63 +325,27 @@ namespace DanieloZ.WorldInteraction
 
             if (draggedObject is World3DSlotItem slotItem && TryInsertHeldSlotItem(slotItem))
             {
-                draggedObject = null;
+                dragFlow.Clear();
                 return;
             }
 
             var releaseContext = new WorldDragReleaseContext(GetCamera(), Input.mousePosition);
-            if (TryGetComponentInParents<IWorldDraggableReleaseHandler>(draggedObject, out var releaseHandler)
+            if (WorldInteractionComponentLookup.TryGetInParents<IWorldDraggableReleaseHandler>(draggedObject, out var releaseHandler)
                 && releaseHandler.TryReleaseDraggedObject(draggedObject, releaseContext))
             {
-                DebugLog($"Released dragged object through {GetDebugName(releaseHandler)}.");
-                draggedObject = null;
+                DebugLog($"Released dragged object through {WorldInteractionComponentLookup.GetDebugName(releaseHandler)}.");
+                dragFlow.Clear();
                 return;
             }
 
             draggedObject.ReleaseToPhysics();
             DebugLog("Released dragged object to physics.");
-            draggedObject = null;
-        }
-
-        private void UpdatePointerDrag()
-        {
-            if (pointerDraggedObject == null)
-            {
-                return;
-            }
-
-            var camera = GetCamera();
-            if (camera == null)
-            {
-                return;
-            }
-
-            var ray = camera.ScreenPointToRay(Input.mousePosition);
-            var context = new WorldInteractionContext(camera, ray, pointerDragContext.Hit, Input.mousePosition);
-            pointerDraggedObject.UpdatePointerDrag(context);
-            pointerDragContext = context;
-        }
-
-        private void EndPointerDrag()
-        {
-            if (pointerDraggedObject == null)
-            {
-                return;
-            }
-
-            UpdatePointerDrag();
-            pointerDraggedObject.EndPointerDrag(pointerDragContext);
-            pointerDraggedObject = null;
-        }
-
-        private void CancelPointerDrag()
-        {
-            pointerDraggedObject?.CancelPointerDrag();
-            pointerDraggedObject = null;
+            dragFlow.Clear();
         }
 
         private void UpdateDragPosition()
         {
+            var draggedObject = dragFlow.DraggedObject;
             if (draggedObject == null || !TryGetPointerPoint(dragProjectionMode, dragPlaneTransform, dragWorldY, dragPlaneOffset, out var point))
             {
                 if (draggedObject != null)
@@ -429,7 +372,7 @@ namespace DanieloZ.WorldInteraction
                     DebugLog($"RMB swing blocked. enableSwing={enableSwing}, heldObject={WorldInteractionInputGate.HeldObject?.name ?? "none"}.");
                 }
 
-                hasPreviousSwingPoint = false;
+                swingFlow.ClearPointerHistory();
                 return;
             }
 
@@ -439,85 +382,33 @@ namespace DanieloZ.WorldInteraction
                 return;
             }
 
-            if (!hasPreviousSwingPoint)
-            {
-                previousSwingPoint = point;
-                hasPreviousSwingPoint = true;
-                return;
-            }
-
-            var delta = point - previousSwingPoint;
-            previousSwingPoint = point;
-            var distance = delta.magnitude;
-
-            if (Time.deltaTime <= 0f || distance < minCursorMoveDistance)
+            if (!swingFlow.TryConsumePointerPoint(point, minCursorMoveDistance, out var direction, out var cursorSpeed))
             {
                 return;
             }
 
-            ApplySwing(point, delta / distance, distance / Time.deltaTime);
+            swingFlow.ApplySwing(
+                point,
+                direction,
+                cursorSpeed,
+                GetCamera(),
+                Input.mousePosition,
+                swingPlaneTransform,
+                swingRadius,
+                swingMask,
+                triggerInteraction,
+                maxCursorSpeed,
+                horizontalImpulse,
+                upwardImpulse,
+                angularImpulse,
+                forceMode,
+                GetSwingInteractionForLayer,
+                DebugLog);
         }
 
         private void HandleRightUp()
         {
-            hasPreviousSwingPoint = false;
-        }
-
-        private void ApplySwing(Vector3 center, Vector3 direction, float cursorSpeed)
-        {
-            affectedBodies.Clear();
-            affectedSwingables.Clear();
-
-            var cappedCursorSpeed = maxCursorSpeed > 0f ? Mathf.Min(cursorSpeed, maxCursorSpeed) : cursorSpeed;
-            var up = swingPlaneTransform != null ? swingPlaneTransform.up : Vector3.up;
-            var force = (direction * horizontalImpulse + up * upwardImpulse) * cappedCursorSpeed;
-            var torqueAxis = Vector3.Cross(up, direction).normalized;
-            var torque = torqueAxis * angularImpulse * cappedCursorSpeed;
-            var colliders = Physics.OverlapSphere(center, swingRadius, swingMask, triggerInteraction);
-            DebugLog($"Swing at {center}, colliders={colliders.Length}, speed={cappedCursorSpeed}.");
-
-            foreach (var collider in colliders)
-            {
-                var interactionType = GetSwingInteractionForLayer(collider.gameObject.layer);
-                if (interactionType == SwingInteractionType.None)
-                {
-                    continue;
-                }
-
-                var body = collider.attachedRigidbody != null
-                    ? collider.attachedRigidbody
-                    : collider.GetComponentInParent<Rigidbody>();
-
-                var context = new WorldSwingContext(
-                    GetCamera(),
-                    Input.mousePosition,
-                    center,
-                    direction,
-                    cappedCursorSpeed,
-                    force,
-                    torque,
-                    collider,
-                    body);
-
-                if ((interactionType & SwingInteractionType.Callback) != 0)
-                {
-                    InvokeSwingCallbacks(collider, context);
-                }
-
-                if ((interactionType & SwingInteractionType.Impulse) == 0
-                    || body == null
-                    || body.isKinematic
-                    || !affectedBodies.Add(body))
-                {
-                    continue;
-                }
-
-                body.AddForce(force, forceMode);
-                if (torque.sqrMagnitude > 0.000001f)
-                {
-                    body.AddTorque(torque, forceMode);
-                }
-            }
+            swingFlow.ClearPointerHistory();
         }
 
         #endregion
@@ -528,7 +419,7 @@ namespace DanieloZ.WorldInteraction
         {
             if (!enableHover)
             {
-                EndHover();
+                hoverFlow.End(debugHover, DebugLog);
                 return;
             }
 
@@ -538,68 +429,31 @@ namespace DanieloZ.WorldInteraction
                 return;
             }
 
-            if (!TryRaycast(hoverMask, out var context) || !TryGetComponentInParents<IWorldHoverable>(context.Hit.collider, out var hoverable))
+            if (!TryRaycast(hoverMask, out var context)
+                || !WorldInteractionComponentLookup.TryGetInParents<IWorldHoverable>(context.Hit.collider, out var hoverable))
             {
-                EndHover();
+                hoverFlow.End(debugHover, DebugLog);
                 return;
             }
 
-            if (ReferenceEquals(hoveredObject, hoverable))
-            {
-                hoveredContext = context;
-                return;
-            }
-
-            EndHover();
-            hoveredObject = hoverable;
-            hoveredContext = context;
-            if (debugHover)
-            {
-                DebugLog($"HoverStart {GetDebugName(hoveredObject)}.");
-            }
-            hoveredObject.HoverStart(context);
-        }
-
-        private void EndHover()
-        {
-            if (hoveredObject == null)
-            {
-                return;
-            }
-
-            if (debugHover)
-            {
-                DebugLog($"HoverEnd {GetDebugName(hoveredObject)}.");
-            }
-            hoveredObject.HoverEnd(hoveredContext);
-            hoveredObject = null;
+            hoverFlow.SetHover(hoverable, context, debugHover, DebugLog);
         }
 
         private void UpdateHeldSlotItemHover(World3DSlotItem heldSlotItem)
         {
-            var slotMask = CombineMasks(interactionMask, hoverMask);
+            var slotMask = WorldInteractionMaskUtility.Combine(interactionMask, hoverMask);
             if (!TryFindSlotUnderPointer(heldSlotItem, slotMask, out var context, out var slot))
             {
-                EndHover();
+                hoverFlow.End(debugHover, DebugLog);
                 return;
             }
 
-            if (ReferenceEquals(hoveredObject, slot))
-            {
-                hoveredContext = context;
-                slot.RefreshHeldItemHover();
-                return;
-            }
-
-            EndHover();
-            hoveredObject = slot;
-            hoveredContext = context;
-            slot.HoverStart(context);
+            hoverFlow.RefreshSlotHover(slot, context, debugHover, DebugLog);
         }
 
         private bool TryInsertHeldSlotItem(World3DSlotItem slotItem)
         {
-            var slotMask = CombineMasks(interactionMask, hoverMask);
+            var slotMask = WorldInteractionMaskUtility.Combine(interactionMask, hoverMask);
             if (!TryFindSlotUnderPointer(slotItem, slotMask, out _, out var slot))
             {
                 return false;
@@ -610,7 +464,7 @@ namespace DanieloZ.WorldInteraction
                 return false;
             }
 
-            EndHover();
+            hoverFlow.End(debugHover, DebugLog);
             DebugLog($"Inserted held slot item {slotItem.name} into {slot.name}.");
             return true;
         }
@@ -621,31 +475,15 @@ namespace DanieloZ.WorldInteraction
 
         private bool TryRaycast(LayerMask mask, out WorldInteractionContext context)
         {
-            context = default;
-            var camera = GetCamera();
-            if (camera == null)
-            {
-                DebugLog("Raycast failed: no current/fallback camera.");
-                return false;
-            }
-
-            var ray = camera.ScreenPointToRay(Input.mousePosition);
-            if (!Physics.Raycast(ray, out var hit, rayDistance, mask, triggerInteraction))
-            {
-                if (debugRaycasts)
-                {
-                    DebugLog($"Raycast miss. camera={camera.name}, mask={mask.value}, mouse={Input.mousePosition}.");
-                }
-
-                return false;
-            }
-
-            context = new WorldInteractionContext(camera, ray, hit, Input.mousePosition);
-            if (debugRaycasts)
-            {
-                DebugLog($"Raycast hit {hit.collider.name}, layer={LayerMask.LayerToName(hit.collider.gameObject.layer)}, distance={hit.distance}.");
-            }
-            return true;
+            return WorldInteractionPointerUtility.TryRaycast(
+                GetCamera(),
+                Input.mousePosition,
+                mask,
+                rayDistance,
+                triggerInteraction,
+                debugRaycasts,
+                DebugLog,
+                out context);
         }
 
         private bool TryFindSlotUnderPointer(
@@ -654,47 +492,14 @@ namespace DanieloZ.WorldInteraction
             out WorldInteractionContext context,
             out World3DButtonSlotBase slot)
         {
-            context = default;
-            slot = null;
-            var camera = GetCamera();
-            if (camera == null)
-            {
-                return false;
-            }
-
-            var ray = camera.ScreenPointToRay(Input.mousePosition);
-            var hits = Physics.RaycastAll(ray, rayDistance, mask, QueryTriggerInteraction.Collide);
-            if (hits == null || hits.Length == 0)
-            {
-                return false;
-            }
-
-            Array.Sort(hits, static (left, right) => left.distance.CompareTo(right.distance));
-
-            foreach (var hit in hits)
-            {
-                if (ignoredDraggable != null && hit.collider.GetComponentInParent<WorldDraggable>() == ignoredDraggable)
-                {
-                    continue;
-                }
-
-                var foundSlot = hit.collider.GetComponentInParent<World3DButtonSlotBase>();
-                if (foundSlot == null)
-                {
-                    continue;
-                }
-
-                context = new WorldInteractionContext(camera, ray, hit, Input.mousePosition);
-                slot = foundSlot;
-                return true;
-            }
-
-            return false;
-        }
-
-        private static LayerMask CombineMasks(LayerMask first, LayerMask second)
-        {
-            return new LayerMask { value = first.value | second.value };
+            return WorldInteractionPointerUtility.TryFindSlotUnderPointer(
+                GetCamera(),
+                Input.mousePosition,
+                ignoredDraggable,
+                mask,
+                rayDistance,
+                out context,
+                out slot);
         }
 
         private bool TryGetPointerPoint(
@@ -704,91 +509,17 @@ namespace DanieloZ.WorldInteraction
             float planeOffset,
             out Vector3 point)
         {
-            point = default;
-            var camera = GetCamera();
-            if (camera == null)
-            {
-                return false;
-            }
-
-            var ray = camera.ScreenPointToRay(Input.mousePosition);
-            if (projectionMode == PointerProjectionMode.RaycastHit)
-            {
-                if (!Physics.Raycast(ray, out var hit, rayDistance, pointerProjectionRaycastMask, triggerInteraction))
-                {
-                    return false;
-                }
-
-                point = hit.point;
-                return true;
-            }
-
-            if (projectionMode == PointerProjectionMode.PlaneTransform && planeTransform != null)
-            {
-                var plane = new Plane(planeTransform.up, planeTransform.position + planeTransform.up * planeOffset);
-                if (!plane.Raycast(ray, out var distance))
-                {
-                    return false;
-                }
-
-                point = ray.GetPoint(distance);
-                return true;
-            }
-
-            var worldPlane = new Plane(Vector3.up, new Vector3(0f, worldY, 0f));
-            if (!worldPlane.Raycast(ray, out var worldDistance))
-            {
-                return false;
-            }
-
-            point = ray.GetPoint(worldDistance);
-            return true;
-        }
-
-        #endregion
-
-        #region Component Lookup
-
-        private static bool TryGetComponentInParents<T>(Collider collider, out T component) where T : class
-        {
-            component = null;
-            if (collider == null)
-            {
-                return false;
-            }
-
-            var behaviours = collider.GetComponentsInParent<MonoBehaviour>();
-            foreach (var behaviour in behaviours)
-            {
-                if (behaviour is T matched)
-                {
-                    component = matched;
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool TryGetComponentInParents<T>(Component component, out T result) where T : class
-        {
-            result = null;
-            if (component == null)
-            {
-                return false;
-            }
-
-            var behaviours = component.GetComponentsInParent<MonoBehaviour>();
-            foreach (var behaviour in behaviours)
-            {
-                if (behaviour is T matched)
-                {
-                    result = matched;
-                    return true;
-                }
-            }
-
-            return false;
+            return WorldInteractionPointerUtility.TryGetPointerPoint(
+                GetCamera(),
+                Input.mousePosition,
+                projectionMode,
+                planeTransform,
+                worldY,
+                planeOffset,
+                pointerProjectionRaycastMask,
+                rayDistance,
+                triggerInteraction,
+                out point);
         }
 
         #endregion
@@ -806,18 +537,6 @@ namespace DanieloZ.WorldInteraction
             }
 
             return defaultSwingInteraction;
-        }
-
-        private void InvokeSwingCallbacks(Collider collider, WorldSwingContext context)
-        {
-            var behaviours = collider.GetComponentsInParent<MonoBehaviour>();
-            foreach (var behaviour in behaviours)
-            {
-                if (behaviour is IWorldSwingable swingable && affectedSwingables.Add(behaviour))
-                {
-                    swingable.Swing(context);
-                }
-            }
         }
 
         #endregion

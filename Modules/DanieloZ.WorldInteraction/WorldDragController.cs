@@ -28,12 +28,6 @@ namespace DanieloZ.WorldInteraction
 
         private void Update()
         {
-            var scroll = Input.mouseScrollDelta.y;
-            if (!Mathf.Approximately(scroll, 0f))
-            {
-                WorldInteractionInputGate.TryConsumeWheelForHeldObject(scroll);
-            }
-
             if (Input.GetMouseButtonDown(0))
             {
                 TryBeginDrag();

@@ -7,7 +7,7 @@ using UnityEngine.Events;
 namespace DanieloZ.WorldInteraction
 {
     [RequireComponent(typeof(Collider))]
-    public sealed class World3DToggleButton : World3DButtonBase, IWorldUsable
+    public class World3DToggleButton : World3DButtonBase, IWorldUsable
     {
         #region Inspector
 
@@ -51,21 +51,20 @@ namespace DanieloZ.WorldInteraction
 
         #region Runtime State
 
-        private Vector3 initialLocalPosition;
-        private Tween pressTween;
+        private readonly World3DPressAnimation pressAnimation = new();
 
         #endregion
 
         #region Unity Lifecycle
 
-        private void Awake()
+        protected virtual void Awake()
         {
             if (pressTransform == null)
             {
                 pressTransform = transform;
             }
 
-            initialLocalPosition = pressTransform.localPosition;
+            pressAnimation.Initialize(pressTransform);
             ApplyVisualState();
         }
 
@@ -77,9 +76,9 @@ namespace DanieloZ.WorldInteraction
             }
         }
 
-        private void OnDisable()
+        protected virtual void OnDisable()
         {
-            pressTween?.Kill();
+            pressAnimation.Kill();
         }
 
         #endregion
@@ -98,11 +97,7 @@ namespace DanieloZ.WorldInteraction
                 return;
             }
 
-            pressTween?.Kill();
-            pressTween = DOTween.Sequence()
-                .Append(pressTransform.DOLocalMove(initialLocalPosition + localPressOffset, pressInDuration).SetEase(pressEase))
-                .AppendCallback(HandlePressed)
-                .Append(pressTransform.DOLocalMove(initialLocalPosition, releaseDuration).SetEase(pressEase));
+            pressAnimation.Play(localPressOffset, pressInDuration, releaseDuration, pressEase, HandlePressed);
         }
 
         public void Toggle()

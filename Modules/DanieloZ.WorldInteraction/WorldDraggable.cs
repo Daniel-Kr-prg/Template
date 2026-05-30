@@ -91,36 +91,20 @@ namespace DanieloZ.WorldInteraction
         public bool InteractionsLocked => interactionsLocked;
         public bool ConsumesMouseWheel => consumeMouseWheel;
         public WorldDragConstraintSettings Constraints => constraints;
-        protected float HeldYaw => heldYaw;
-        protected float TargetHeldYaw => targetHeldYaw;
+        protected float HeldYaw => rotationState.HeldYaw;
+        protected float TargetHeldYaw => rotationState.TargetHeldYaw;
         protected float YawStep => yawStep;
-        protected bool IsHeldYawRotationAnimating => wheelRotationTween != null
-            && wheelRotationTween.IsActive()
-            && !wheelRotationTween.IsComplete();
+        protected bool IsHeldYawRotationAnimating => rotationState.IsYawRotationAnimating;
 
         #endregion
 
         #region Internal State
 
-        private Vector3 localGripPoint;
-        private Vector3 desiredGripPosition;
-        private Vector3 pickupStartPosition;
-        private Vector3 previousGripPosition;
-        private Quaternion pickupStartRotation;
-        private Quaternion currentWobbleRotation = Quaternion.identity;
-        private Quaternion targetWobbleRotation = Quaternion.identity;
-        private Vector3 releaseVelocity;
-        private Vector3 previousReleaseGripPosition;
-        private float lastReleaseVelocitySampleTime;
-        private float pickupElapsed;
-        private float pickupBlend;
-        private float heldYaw;
-        private float targetHeldYaw;
-        private bool isPickupRunning;
-        private bool hasGripPosition;
-        private bool hasReleaseVelocitySample;
+        private readonly WorldHeldPoseState poseState = new();
+        private readonly WorldHeldRotationState rotationState = new();
+        private readonly WorldDragWobbleState wobbleState = new();
+        private readonly WorldReleaseInertiaState inertiaState = new();
         private bool interactionsLocked;
-        private Tween wheelRotationTween;
 
         #endregion
 
@@ -138,14 +122,14 @@ namespace DanieloZ.WorldInteraction
                 return;
             }
 
-            UpdateWobble();
+            wobbleState.Tick(wobbleFollowSpeed, wobbleReturnSpeed);
             UpdatePickup();
             ApplyDragPose();
         }
 
         protected virtual void OnDisable()
         {
-            wheelRotationTween?.Kill();
+            rotationState.KillTween();
             WorldInteractionInputGate.ReleaseHeldObject(this);
         }
 
@@ -168,24 +152,12 @@ namespace DanieloZ.WorldInteraction
             OnBeforeBeginDrag();
 
             IsHeld = true;
-            isPickupRunning = pickupDuration > 0f;
-            hasGripPosition = false;
-            localGripPoint = transform.InverseTransformPoint(GetGripWorldPosition());
-            desiredGripPosition = GetGripWorldPosition();
-            constraints?.Begin(desiredGripPosition);
-            pickupStartPosition = transform.position;
-            pickupStartRotation = transform.rotation;
-            pickupElapsed = 0f;
-            pickupBlend = isPickupRunning ? 0f : 1f;
-            currentWobbleRotation = Quaternion.identity;
-            targetWobbleRotation = Quaternion.identity;
-            releaseVelocity = Vector3.zero;
-            previousReleaseGripPosition = desiredGripPosition;
-            lastReleaseVelocitySampleTime = Time.time;
-            hasReleaseVelocitySample = false;
-            heldYaw = snapYawToStepOnPickup ? SnapToYawStep(transform.eulerAngles.y) : transform.eulerAngles.y;
-            targetHeldYaw = heldYaw;
-            wheelRotationTween?.Kill();
+            var gripPosition = GetGripWorldPosition();
+            poseState.Begin(transform, gripPosition, pickupDuration);
+            constraints?.Begin(poseState.DesiredGripPosition);
+            wobbleState.Begin();
+            inertiaState.Begin(poseState.DesiredGripPosition);
+            rotationState.Begin(transform.rotation, transform.eulerAngles.y, snapYawToStepOnPickup, yawStep);
 
             if (body != null && makeKinematicWhileHeld)
             {
@@ -212,10 +184,11 @@ namespace DanieloZ.WorldInteraction
                 return;
             }
 
-            desiredGripPosition = constraints != null ? constraints.Apply(gripWorldPosition) : gripWorldPosition;
-            UpdateReleaseVelocity(desiredGripPosition);
-            UpdateWobbleTarget(desiredGripPosition);
-            UpdateWobble();
+            var desiredGripPosition = constraints != null ? constraints.Apply(gripWorldPosition) : gripWorldPosition;
+            poseState.SetDesiredGripPosition(desiredGripPosition);
+            inertiaState.Sample(desiredGripPosition, preserveReleaseInertia, releaseVelocitySmoothing);
+            wobbleState.UpdateTarget(transform, desiredGripPosition, wobbleStrength, maxWobbleAngle);
+            wobbleState.Tick(wobbleFollowSpeed, wobbleReturnSpeed);
             ApplyDragPose();
             OnDragged(desiredGripPosition);
         }
@@ -228,11 +201,10 @@ namespace DanieloZ.WorldInteraction
             }
 
             IsHeld = false;
-            isPickupRunning = false;
-            hasGripPosition = false;
+            poseState.End();
             constraints?.Reset();
-            targetWobbleRotation = Quaternion.identity;
-            wheelRotationTween?.Kill();
+            wobbleState.End();
+            rotationState.KillTween();
             WorldInteractionInputGate.ReleaseHeldObject(this);
 
             onReleased?.Invoke();
@@ -242,7 +214,11 @@ namespace DanieloZ.WorldInteraction
 
         public virtual void ReleaseToPhysics()
         {
-            var inheritedVelocity = GetReleaseInertiaVelocity();
+            var inheritedVelocity = inertiaState.GetVelocity(
+                preserveReleaseInertia,
+                releaseVelocityMultiplier,
+                maxReleaseSpeed,
+                maxReleaseSampleAge);
             Release();
 
             if (body != null)
@@ -278,6 +254,26 @@ namespace DanieloZ.WorldInteraction
             RotateHeldByYawStep(direction, 0f, yawStep);
         }
 
+        public void BeginFreeHeldRotation()
+        {
+            if (!IsHeld)
+            {
+                return;
+            }
+
+            rotationState.BeginFreeRotation(transform.rotation);
+        }
+
+        public void RotateHeldFreely(Vector2 mouseDelta, Camera camera, float degreesPerMouseUnit)
+        {
+            if (!IsHeld || mouseDelta.sqrMagnitude <= 0.000001f || degreesPerMouseUnit <= 0f)
+            {
+                return;
+            }
+
+            rotationState.RotateFreely(mouseDelta, camera, transform, degreesPerMouseUnit);
+        }
+
         protected void RotateHeldByYawStep(float direction, float gridBaseYaw, float step)
         {
             if (Mathf.Approximately(direction, 0f))
@@ -285,8 +281,7 @@ namespace DanieloZ.WorldInteraction
                 return;
             }
 
-            targetHeldYaw = SnapYawToGrid(targetHeldYaw + Mathf.Sign(direction) * step, gridBaseYaw, step);
-            AnimateHeldYawToTarget();
+            rotationState.RotateYawByStep(direction, gridBaseYaw, step, wheelRotationDuration, wheelRotationEase);
         }
 
         protected void RotateHeldYawByDegrees(float degrees, bool fromCurrentYaw, bool killWheelTween)
@@ -296,74 +291,32 @@ namespace DanieloZ.WorldInteraction
                 return;
             }
 
-            targetHeldYaw = (fromCurrentYaw ? heldYaw : targetHeldYaw) + degrees;
-            AnimateHeldYawToTarget(killWheelTween);
+            rotationState.RotateYawByDegrees(degrees, fromCurrentYaw, killWheelTween, wheelRotationDuration, wheelRotationEase);
         }
 
         protected void AnimateHeldYawTo(float yaw, bool killWheelTween)
         {
-            targetHeldYaw = yaw;
-            AnimateHeldYawToTarget(killWheelTween);
+            rotationState.AnimateYawTo(yaw, killWheelTween, wheelRotationDuration, wheelRotationEase);
         }
 
         protected void SnapHeldYawToGrid(float gridBaseYaw, float step, bool killWheelTween)
         {
-            var snappedYaw = SnapYawToGrid(heldYaw, gridBaseYaw, step);
-            if (Mathf.Abs(snappedYaw - heldYaw) <= 0.0001f && Mathf.Abs(snappedYaw - targetHeldYaw) <= 0.0001f)
-            {
-                return;
-            }
-
-            if (killWheelTween)
-            {
-                wheelRotationTween?.Kill();
-            }
-
-            heldYaw = snappedYaw;
-            targetHeldYaw = snappedYaw;
+            rotationState.SnapYaw(gridBaseYaw, step, killWheelTween);
         }
 
         protected void SetHeldYawImmediate(float yaw, bool killWheelTween)
         {
-            if (killWheelTween)
-            {
-                wheelRotationTween?.Kill();
-            }
-
-            heldYaw = yaw;
-            targetHeldYaw = yaw;
+            rotationState.SetYawImmediate(yaw, killWheelTween);
         }
 
         protected float SnapToYawStep(float yaw)
         {
-            return SnapYawToGrid(yaw, 0f, yawStep);
+            return WorldHeldRotationState.SnapYawToGrid(yaw, 0f, yawStep);
         }
 
         protected static float SnapYawToGrid(float yaw, float gridBaseYaw, float step)
         {
-            return step <= 0f ? yaw : gridBaseYaw + Mathf.Round((yaw - gridBaseYaw) / step) * step;
-        }
-
-        private void AnimateHeldYawToTarget(bool killExistingTween = true)
-        {
-            if (killExistingTween)
-            {
-                wheelRotationTween?.Kill();
-            }
-
-            if (wheelRotationDuration <= 0f)
-            {
-                heldYaw = targetHeldYaw;
-                return;
-            }
-
-            wheelRotationTween = DOTween.To(
-                    () => heldYaw,
-                    value => heldYaw = value,
-                    targetHeldYaw,
-                    wheelRotationDuration)
-                .SetEase(wheelRotationEase)
-                .OnComplete(() => heldYaw = targetHeldYaw);
+            return WorldHeldRotationState.SnapYawToGrid(yaw, gridBaseYaw, step);
         }
 
         #endregion
@@ -382,6 +335,16 @@ namespace DanieloZ.WorldInteraction
             {
                 ReleaseToPhysics();
             }
+        }
+
+        public void SetGripRoot(Transform value)
+        {
+            gripRoot = value;
+        }
+
+        public void SetSnapYawToStepOnPickup(bool value)
+        {
+            snapYawToStepOnPickup = value;
         }
 
         #endregion
@@ -410,7 +373,12 @@ namespace DanieloZ.WorldInteraction
 
         protected virtual Quaternion GetBaseHeldRotation()
         {
-            return Quaternion.Euler(heldRotationOffsetEuler.x, heldYaw + heldRotationOffsetEuler.y, heldRotationOffsetEuler.z);
+            if (rotationState.UsesFreeRotation)
+            {
+                return rotationState.FreeRotation;
+            }
+
+            return Quaternion.Euler(heldRotationOffsetEuler.x, rotationState.HeldYaw + heldRotationOffsetEuler.y, heldRotationOffsetEuler.z);
         }
 
         #endregion
@@ -419,149 +387,26 @@ namespace DanieloZ.WorldInteraction
 
         private void UpdatePickup()
         {
-            if (!isPickupRunning)
-            {
-                return;
-            }
-
-            pickupElapsed += Time.deltaTime;
-            pickupBlend = Mathf.Clamp01(pickupElapsed / pickupDuration);
-
-            if (pickupBlend >= 1f)
-            {
-                isPickupRunning = false;
-                pickupBlend = 1f;
-            }
+            poseState.Tick(Time.deltaTime);
         }
 
         private void ApplyDragPose()
         {
             var rootRotation = GetDraggedRootRotation();
-            var targetPosition = GetRootPositionForGrip(desiredGripPosition, rootRotation);
-            var rootPosition = isPickupRunning
-                ? Vector3.Lerp(pickupStartPosition, targetPosition, pickupBlend)
-                : targetPosition;
+            var rootPosition = poseState.GetRootPositionForGrip(rootRotation);
 
             transform.SetPositionAndRotation(rootPosition, rootRotation);
         }
 
         private Quaternion GetDraggedRootRotation()
         {
-            var targetRotation = GetBaseHeldRotation() * currentWobbleRotation;
-            return isPickupRunning
-                ? Quaternion.Slerp(pickupStartRotation, targetRotation, pickupBlend)
-                : targetRotation;
-        }
-
-        private Vector3 GetRootPositionForGrip(Vector3 gripWorldPosition, Quaternion rootRotation)
-        {
-            return gripWorldPosition - rootRotation * localGripPoint;
+            var targetRotation = GetBaseHeldRotation() * wobbleState.CurrentRotation;
+            return poseState.BlendRotation(targetRotation);
         }
 
         private Vector3 GetGripWorldPosition()
         {
             return GripRoot.position;
-        }
-
-        #endregion
-
-        #region Wobble
-
-        private void UpdateWobbleTarget(Vector3 gripPosition)
-        {
-            if (!hasGripPosition)
-            {
-                previousGripPosition = gripPosition;
-                hasGripPosition = true;
-                return;
-            }
-
-            var delta = gripPosition - previousGripPosition;
-            previousGripPosition = gripPosition;
-
-            if (Time.deltaTime <= 0f || delta.sqrMagnitude < 0.000001f)
-            {
-                targetWobbleRotation = Quaternion.identity;
-                return;
-            }
-
-            var localVelocity = transform.InverseTransformDirection(delta / Time.deltaTime);
-            var pitch = Mathf.Clamp(localVelocity.z * wobbleStrength, -maxWobbleAngle, maxWobbleAngle);
-            var roll = Mathf.Clamp(-localVelocity.x * wobbleStrength, -maxWobbleAngle, maxWobbleAngle);
-            targetWobbleRotation = Quaternion.Euler(pitch, 0f, roll);
-        }
-
-        private void UpdateWobble()
-        {
-            var speed = targetWobbleRotation == Quaternion.identity ? wobbleReturnSpeed : wobbleFollowSpeed;
-            if (speed <= 0f)
-            {
-                return;
-            }
-
-            currentWobbleRotation = Quaternion.Slerp(
-                currentWobbleRotation,
-                targetWobbleRotation,
-                1f - Mathf.Exp(-speed * Time.deltaTime));
-        }
-
-        #endregion
-
-        #region Release Inertia
-
-        private void UpdateReleaseVelocity(Vector3 gripPosition)
-        {
-            if (!preserveReleaseInertia)
-            {
-                return;
-            }
-
-            if (!hasReleaseVelocitySample)
-            {
-                previousReleaseGripPosition = gripPosition;
-                lastReleaseVelocitySampleTime = Time.time;
-                hasReleaseVelocitySample = true;
-                return;
-            }
-
-            if (Time.deltaTime <= Mathf.Epsilon)
-            {
-                return;
-            }
-
-            var instantVelocity = (gripPosition - previousReleaseGripPosition) / Time.deltaTime;
-            previousReleaseGripPosition = gripPosition;
-            lastReleaseVelocitySampleTime = Time.time;
-
-            if (releaseVelocitySmoothing <= 0f)
-            {
-                releaseVelocity = instantVelocity;
-                return;
-            }
-
-            var blend = 1f - Mathf.Exp(-releaseVelocitySmoothing * Time.deltaTime);
-            releaseVelocity = Vector3.Lerp(releaseVelocity, instantVelocity, blend);
-        }
-
-        private Vector3 GetReleaseInertiaVelocity()
-        {
-            if (!preserveReleaseInertia || !hasReleaseVelocitySample)
-            {
-                return Vector3.zero;
-            }
-
-            if (maxReleaseSampleAge > 0f && Time.time - lastReleaseVelocitySampleTime > maxReleaseSampleAge)
-            {
-                return Vector3.zero;
-            }
-
-            var velocity = releaseVelocity * releaseVelocityMultiplier;
-            if (maxReleaseSpeed > 0f)
-            {
-                velocity = Vector3.ClampMagnitude(velocity, maxReleaseSpeed);
-            }
-
-            return velocity;
         }
 
         #endregion

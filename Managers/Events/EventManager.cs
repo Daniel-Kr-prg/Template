@@ -140,6 +140,21 @@ namespace DanieloZ.Managers
         // World Interaction
         WorldInteraction_OnMatchingSlotInserted, // payload: [string id, World3DButtonSlotBase slot, World3DSlotItem item]
 
+        // Pixel Voxel Puzzle MVP Flow
+        PixelPuzzle_OnLevelSelectRequested, // payload: [int levelIndex, PixelPuzzleAsset asset]
+        PixelPuzzle_OnLevelSelected, // payload: [int levelIndex, PixelPuzzleAsset asset]
+        PixelPuzzle_OnLevelStartRequested, // payload: [PixelPuzzleAsset asset, PuzzleAssemblyDock dock]
+        PixelPuzzle_OnLevelStarted, // payload: [PuzzleSession session]
+        PixelPuzzle_OnLevelReset, // payload: [PuzzleSession session]
+        PixelPuzzle_OnLevelPackRequested, // payload: [PuzzleSession session]
+        PixelPuzzle_OnLevelPacked, // payload: [PuzzleSession session]
+        PixelPuzzle_OnLevelCompleted, // payload: [PuzzleSession session]
+        PixelPuzzle_OnLevelLockedSelected, // payload: [int levelIndex, PixelPuzzleAsset asset]
+        PixelPuzzle_OnPiecePlaced, // payload: [PuzzleSession session, PuzzlePiece piece, PuzzleBoard board]
+        PixelPuzzle_OnPieceRemoved, // payload: [PuzzleSession session, PuzzlePiece piece, PuzzleBoard board]
+        PixelPuzzle_OnFastTravelRequested, // payload: [string pointId, Transform anchor]
+        PixelPuzzle_OnFastTravelCompleted, // payload: [string pointId, Transform anchor]
+
         // Game Flow
         Game_OnLevelStarted,
         Game_OnLevelFinished,

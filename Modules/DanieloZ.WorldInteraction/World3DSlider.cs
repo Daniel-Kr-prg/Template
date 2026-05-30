@@ -5,7 +5,7 @@ using UnityEngine.Events;
 
 namespace DanieloZ.WorldInteraction
 {
-    public sealed class World3DSlider : MonoBehaviour, IWorldDraggableReleaseHandler
+    public sealed class World3DSlider : MonoBehaviour
     {
         #region Types
 
@@ -26,8 +26,6 @@ namespace DanieloZ.WorldInteraction
         #region Inspector
 
         [FoldoutGroup("Handle")]
-        [SerializeField] private WorldDraggable handle;
-        [FoldoutGroup("Handle")]
         [SerializeField] private Transform handleTransform;
         [FoldoutGroup("Handle")]
         [SerializeField] private Transform trackSpace;
@@ -45,8 +43,13 @@ namespace DanieloZ.WorldInteraction
         [SerializeField, Min(0f)] private float step;
         [FoldoutGroup("Range")]
         [SerializeField] private bool setHandlePositionOnAwake = true;
-        [FoldoutGroup("Range")]
-        [SerializeField] private bool clampHandleEveryFrame = true;
+
+        [FoldoutGroup("Input")]
+        [SerializeField, Min(0.0001f)] private float normalizedValuePerMouseUnit = 0.01f;
+        [FoldoutGroup("Input")]
+        [SerializeField, Min(0f)] private float dragFollowSpeed = 24f;
+        [FoldoutGroup("Input")]
+        [SerializeField] private bool invertMouseDelta;
 
         [FoldoutGroup("Events")]
         [SerializeField] private SliderValueEvent onValueChanged;
@@ -62,7 +65,6 @@ namespace DanieloZ.WorldInteraction
         public event Action<World3DSlider, float> ValueChanged;
 
         public float Value => value;
-        public WorldDraggable Handle => handle;
 
         private Transform Space => trackSpace != null ? trackSpace : transform;
 
@@ -72,6 +74,8 @@ namespace DanieloZ.WorldInteraction
 
         private bool isAtMin;
         private bool isAtMax;
+        private bool isPointerDeltaDragging;
+        private float pointerDeltaTargetValue;
 
         #endregion
 
@@ -79,18 +83,12 @@ namespace DanieloZ.WorldInteraction
 
         private void Reset()
         {
-            handle = GetComponentInChildren<WorldDraggable>();
-            handleTransform = handle != null ? handle.transform : null;
+            handleTransform = transform.Find("Handle");
             trackSpace = transform;
         }
 
         private void Awake()
         {
-            if (handleTransform == null && handle != null)
-            {
-                handleTransform = handle.transform;
-            }
-
             if (setHandlePositionOnAwake)
             {
                 SetValue(value, false);
@@ -99,21 +97,21 @@ namespace DanieloZ.WorldInteraction
             {
                 SetValue(ReadValueFromHandle(), false, false);
             }
+
+            pointerDeltaTargetValue = value;
         }
 
         private void Update()
         {
-            if (handleTransform == null)
+            if (!isPointerDeltaDragging)
             {
                 return;
             }
 
-            SetValue(ReadValueFromHandle(), true, false);
-
-            if (clampHandleEveryFrame)
-            {
-                MoveHandleToValue(value);
-            }
+            var nextValue = dragFollowSpeed <= 0f
+                ? pointerDeltaTargetValue
+                : Mathf.Lerp(value, pointerDeltaTargetValue, 1f - Mathf.Exp(-dragFollowSpeed * Time.deltaTime));
+            SetValue(nextValue, true, true, false);
         }
 
         #endregion
@@ -130,48 +128,46 @@ namespace DanieloZ.WorldInteraction
             SetValue(newValue, false);
         }
 
-        public bool TrySetValueFromRay(Ray ray)
+        public void BeginPointerDeltaDrag()
         {
-            return TrySetValueFromRay(ray, true);
-        }
-
-        public bool TrySetValueFromRay(Ray ray, bool notify)
-        {
-            if (handleTransform == null)
-            {
-                return false;
-            }
-
-            var localPosition = GetClosestLocalPointOnSliderAxis(ray);
-            var axisValue = GetAxisValue(localPosition);
-            SetValue(Mathf.InverseLerp(minLocalPosition, maxLocalPosition, axisValue), notify);
-            return true;
-        }
-
-        public bool TryReleaseDraggedObject(WorldDraggable draggable, WorldDragReleaseContext context)
-        {
-            if (handle == null || draggable != handle)
-            {
-                return false;
-            }
-
-            if (context.HasScreenPosition && context.Camera != null)
-            {
-                TrySetValueFromRay(context.Camera.ScreenPointToRay(context.ScreenPosition), true);
-            }
-
+            isPointerDeltaDragging = true;
+            pointerDeltaTargetValue = value;
             MoveHandleToValue(value);
-            handle.Release();
+        }
 
-            var body = handle.Body;
-            if (body != null)
+        public void ApplyPointerDelta(float horizontalDelta)
+        {
+            if (!isPointerDeltaDragging)
             {
-                body.isKinematic = true;
-                body.useGravity = false;
-                body.linearVelocity = Vector3.zero;
-                body.angularVelocity = Vector3.zero;
+                return;
             }
 
+            var direction = invertMouseDelta ? -1f : 1f;
+            pointerDeltaTargetValue = Mathf.Clamp01(pointerDeltaTargetValue + horizontalDelta * normalizedValuePerMouseUnit * direction);
+        }
+
+        public void EndPointerDeltaDrag()
+        {
+            isPointerDeltaDragging = false;
+            pointerDeltaTargetValue = value;
+            MoveHandleToValue(value);
+        }
+
+        public bool TryGetHandleScreenPosition(Camera camera, out Vector2 screenPosition)
+        {
+            screenPosition = default;
+            if (camera == null || handleTransform == null)
+            {
+                return false;
+            }
+
+            var projected = camera.WorldToScreenPoint(handleTransform.position);
+            if (projected.z <= 0f)
+            {
+                return false;
+            }
+
+            screenPosition = projected;
             return true;
         }
 
@@ -181,7 +177,12 @@ namespace DanieloZ.WorldInteraction
 
         private void SetValue(float newValue, bool notify, bool moveHandle = true)
         {
-            var clamped = Quantize(Mathf.Clamp01(newValue));
+            SetValue(newValue, notify, moveHandle, true);
+        }
+
+        private void SetValue(float newValue, bool notify, bool moveHandle, bool quantize)
+        {
+            var clamped = quantize ? Quantize(Mathf.Clamp01(newValue)) : Mathf.Clamp01(newValue);
             if (Mathf.Approximately(value, clamped))
             {
                 if (moveHandle)
@@ -233,39 +234,6 @@ namespace DanieloZ.WorldInteraction
             var local = Space.InverseTransformPoint(handleTransform.position);
             SetAxisValue(ref local, Mathf.Lerp(minLocalPosition, maxLocalPosition, normalizedValue));
             handleTransform.position = Space.TransformPoint(local);
-        }
-
-        private Vector3 GetClosestLocalPointOnSliderAxis(Ray ray)
-        {
-            var startLocal = Space.InverseTransformPoint(handleTransform.position);
-            SetAxisValue(ref startLocal, minLocalPosition);
-
-            var endLocal = startLocal;
-            SetAxisValue(ref endLocal, maxLocalPosition);
-
-            var start = Space.TransformPoint(startLocal);
-            var end = Space.TransformPoint(endLocal);
-            var axisDirection = end - start;
-            var axisLength = axisDirection.magnitude;
-            if (axisLength <= 0.0001f)
-            {
-                return startLocal;
-            }
-
-            axisDirection /= axisLength;
-            var rayDirection = ray.direction.normalized;
-            var fromRayToAxis = start - ray.origin;
-            var axisDotRay = Vector3.Dot(axisDirection, rayDirection);
-            var axisDotOffset = Vector3.Dot(axisDirection, fromRayToAxis);
-            var rayDotOffset = Vector3.Dot(rayDirection, fromRayToAxis);
-            var denominator = 1f - axisDotRay * axisDotRay;
-
-            var distanceAlongAxis = denominator > 0.0001f
-                ? (axisDotRay * rayDotOffset - axisDotOffset) / denominator
-                : Vector3.Dot(axisDirection, ray.origin - start);
-
-            distanceAlongAxis = Mathf.Clamp(distanceAlongAxis, 0f, axisLength);
-            return Space.InverseTransformPoint(start + axisDirection * distanceAlongAxis);
         }
 
         #endregion
