@@ -254,6 +254,12 @@ namespace DanieloZ.WorldInteraction
         private void HandleLeftDown()
         {
             DebugLog("LMB down.");
+            if (!enableDrag && !enableUse)
+            {
+                DebugLog("LMB ignored because drag and use are disabled.");
+                return;
+            }
+
             if (!TryRaycast(interactionMask, out var context))
             {
                 DebugLog("LMB raycast missed.");
@@ -261,7 +267,8 @@ namespace DanieloZ.WorldInteraction
             }
 
             DebugLog($"LMB hit {context.Hit.collider.name} at {context.Hit.point}.");
-            if (WorldInteractionComponentLookup.TryGetInParents<IWorldPointerDraggable>(context.Hit.collider, out var pointerDraggable)
+            if (enableDrag
+                && WorldInteractionComponentLookup.TryGetInParents<IWorldPointerDraggable>(context.Hit.collider, out var pointerDraggable)
                 && pointerDragFlow.TryBegin(pointerDraggable, context))
             {
                 DebugLog($"Starting pointer drag on {WorldInteractionComponentLookup.GetDebugName(pointerDraggable)}.");

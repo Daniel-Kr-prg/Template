@@ -89,6 +89,27 @@ namespace DanieloZ.WorldInteraction
                 });
         }
 
+        public void BeginPress()
+        {
+            if (!Interactable)
+            {
+                return;
+            }
+
+            pressAnimation.PressIn(localPressOffset, pressInDuration, pressEase);
+        }
+
+        public void EndPress(bool activate)
+        {
+            if (activate && Interactable)
+            {
+                onPressed?.Invoke();
+                Pressed?.Invoke(this);
+            }
+
+            pressAnimation.Release(releaseDuration, pressEase);
+        }
+
         #endregion
     }
 }

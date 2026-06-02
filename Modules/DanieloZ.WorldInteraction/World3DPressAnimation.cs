@@ -31,6 +31,28 @@ namespace DanieloZ.WorldInteraction
                 .Append(pressTransform.DOLocalMove(initialLocalPosition, releaseDuration).SetEase(ease));
         }
 
+        public void PressIn(Vector3 localPressOffset, float pressInDuration, Ease ease)
+        {
+            if (pressTransform == null)
+            {
+                return;
+            }
+
+            tween?.Kill();
+            tween = pressTransform.DOLocalMove(initialLocalPosition + localPressOffset, pressInDuration).SetEase(ease);
+        }
+
+        public void Release(float releaseDuration, Ease ease)
+        {
+            if (pressTransform == null)
+            {
+                return;
+            }
+
+            tween?.Kill();
+            tween = pressTransform.DOLocalMove(initialLocalPosition, releaseDuration).SetEase(ease);
+        }
+
         public void Kill()
         {
             tween?.Kill();

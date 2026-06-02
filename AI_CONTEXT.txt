@@ -1,0 +1,1671 @@
+# AI Context for PixelLust Template and PixelVoxelPuzzle
+
+Last updated: 2026-05-31
+Purpose: one navigation file for AI agents working in this Unity project. Use this as a fast map of Template modules, managers, scenes, setup flow, PixelVoxelPuzzle runtime architecture, and important file locations.
+
+Important rule for AI work:
+- The generic Template lives under `Assets/Template`.
+- The game-specific PixelVoxelPuzzle implementation lives under `Assets/_Project/PixelVoxelPuzzle`.
+- Do not put puzzle-specific rules into generic Template modules unless the user explicitly asks for a reusable Template change.
+- Prefer project-side bridge components when connecting PixelVoxelPuzzle to generic systems.
+- Several docs describe future/planned systems. Current code is the source of truth when docs disagree.
+
+
+## 1. Repository Map
+
+Root project folders:
+- `Assets/Template` - reusable project template, managers, modules, plugins and template scenes.
+- `Assets/_Project/PixelVoxelPuzzle` - game-specific runtime/editor code, materials, prefabs and ScriptableObjects.
+- `Assets/Scenes` - active project scenes.
+- `Assets/Resources` - puzzle libraries, generated puzzle data, board-area data and generated visual resources.
+- `Assets/Prefabs` - project prefabs outside Template; currently important: `Assets/Prefabs/Box.prefab`.
+- `Assets/Settings` - synced settings/config assets from Template setup: URP, localization, controls, DOTween, input actions.
+- `Docs` - design and module docs for PixelVoxelPuzzle.
+- `Packages/manifest.json` - package dependency list.
+
+Main docs to read first:
+- `Docs/PixelVoxelPuzzle_General_Modules.txt`
+- `Docs/PixelVoxelPuzzle_MVP_Modules.txt`
+- `Docs/PixelVoxelPuzzle_General_GameSceneHierarchy.txt`
+- `Docs/PixelVoxelPuzzle_MVP_GameSceneHierarchy.txt`
+- `Docs/CurrentRefactorPlan.txt`
+- `Assets/Template/Modules/DanieloZ.WorldInteraction/README.md`
+- `Assets/Template/Modules/DanieloZ.CameraSystem/README.md`
+- `Assets/Template/README.md`
+
+Older docs:
+- `Docs/V1/*` are older design references. Read only when historical context is needed.
+
+Noise to usually ignore:
+- `Packages/com.unity.ai.assistant/**` contains Unity AI package docs/code and is not project architecture.
+- `Library`, `Temp`, `Logs`, `obj`, `.vs` are generated/local.
+
+
+## 2. Template Setup Principle
+
+Template is intended as a Unity submodule mounted at:
+- `Assets/Template`
+
+Setup script:
+- `Assets/Template/setup.bat`
+
+What `setup.bat` does:
+- Warns that it overwrites project settings and waits for Enter.
+- Copies `.Sync/Settings` to `Assets/Settings`.
+- Copies `.Sync/AddressableAssetsData` to `Assets/AddressableAssetsData`.
+- Copies `.Sync/ProjectSettings/*.asset` to `ProjectSettings`.
+- Merges/syncs `Packages/manifest.json` through `.Sync/sync_manifest.ps1`.
+- Copies `.Sync/Packages/packages-lock.json` to `Packages/packages-lock.json`.
+- Copies template gitignore data to the project-side target path used by the script.
+
+Use setup when initializing or resyncing a project from Template. It is destructive to local settings, so do not run it casually in an AI task unless the user asks.
+
+Important Template file paths:
+- `Assets/Template/ImportantFilepaths.cs`
+  - `KeysConfigPath`: persistent `config/controls.cfg`
+  - `SettingsConfigPath`: persistent `config/config.cfg`
+  - `MainSavefilePath`: persistent `saves/save.cfg`
+  - `SavesFolderPath`: persistent `saves/`
+  - cloud paths for controls/settings configs
+
+Current package highlights from `Packages/manifest.json`:
+- Cinemachine `com.unity.cinemachine`
+- Addressables `com.unity.addressables`
+- Unity Localization `com.unity.localization`
+- Unity Input System `com.unity.inputsystem`
+- URP `com.unity.render-pipelines.universal`
+- Netcode for GameObjects `com.unity.netcode.gameobjects`
+- DOTween is vendored under `Assets/Template/Plugins/DOTween`
+- Odin/Sirenix is vendored under `Assets/Template/Plugins/Sirenix`
+- TextMesh Pro assets are vendored under `Assets/Template/Plugins/TextMesh Pro`
+
+
+## 3. Scenes
+
+Active build scenes from `ProjectSettings/EditorBuildSettings.asset`:
+- `Assets/Scenes/Main.unity`
+- `Assets/Scenes/UI.unity`
+- `Assets/Scenes/Game.unity`
+
+Other project scenes:
+- `Assets/Scenes/PixelPuzzleGenerator.unity` - editor/generator scene, not in build settings.
+- `Assets/Scenes/Test Game.unity` - test/prototype scene.
+- `Assets/Scenes/Game_MVP.unity` - clean/rebuild target/reference.
+- `Assets/Scenes/Game_Old.unity` - old scene reference.
+
+Template scenes:
+- `Assets/Template/Scenes/Main.unity`
+- `Assets/Template/Scenes/UI.unity`
+- `Assets/Template/Scenes/Game.unity`
+
+Main scene:
+- Persistent application scene.
+- Contains Template manager hierarchy.
+- `AppManager` in `Assets/Template/Managers/App/AppManager.cs` loads configured scenes additively on Awake.
+- Build settings expect Main, UI and Game together.
+- Main-scene managers should not be duplicated in Game.
+
+UI scene:
+- Template/additive UI scene.
+- Hosts UI-side manager/content objects.
+- Game-specific world UI for PixelVoxelPuzzle is mostly built in Game scene under `World/WorldUI`.
+
+Game scene:
+- Current active game scene: `Assets/Scenes/Game.unity`.
+- Current top-level roots include:
+  - `Systems`
+  - `World`
+  - `Runtime`
+  - `_Debug`
+- Important current objects found in scene YAML:
+  - `Systems`
+  - `InputSystem`
+  - `HandSystem`
+  - `PuzzleSystem`
+  - `CameraSystem`
+  - `WorldInteractionController`
+  - `GroundPivot`
+  - `World`
+  - `LevelSelect`
+  - `LevelSelect_MVP`
+  - `WorldUI`
+  - `PhysicalMenu`
+  - `PhysicalMenuNavigator`
+  - `AssemblyDocks`
+  - `PuzzleAssemblyDock_Main`
+  - `PuzzleBoxes`
+  - `BoxReturnAnchor`
+  - `AchievementGallery`
+  - `Runtime`
+  - `ActivePuzzleSession`
+  - `_Debug`
+
+PixelPuzzleGenerator scene:
+- `Assets/Scenes/PixelPuzzleGenerator.unity`
+- Important objects:
+  - `PixelPuzzleGenerator`
+  - `PreviewRoot`
+- Used by `PixelPuzzleGeneratorController` and `PixelPuzzleGeneratorWindow`.
+
+Scene toolbar/editor shortcuts:
+- `Assets/_Project/PixelVoxelPuzzle/Editor/Setup/PixelVoxelPuzzleSceneSetToolbar.cs`
+- Menu: `Pixel Lust/Scenes/Open Main + UI + Game`
+- Menu: `Pixel Lust/Scenes/Open Puzzle Generator`
+- Toolbar buttons: `Main/UI/Game` and `Generator`
+
+
+## 4. Template Manager Pattern
+
+Base class:
+- `Assets/Template/Managers/Manager.cs`
+
+Pattern:
+- Most managers inherit `SingletonManager<T>`.
+- Singleton managers expose static `Instance`.
+- They also expose `Promise` through `DanieloZ.InstancePromise.InstancePromise<T>` for async/lazy access.
+- Duplicate singleton objects destroy themselves in `Awake`.
+- Use `[M]` in GameObject names for manager objects.
+
+Network variant:
+- `SingletonNetworkManager<T>` for Netcode `NetworkBehaviour` managers.
+
+Guideline:
+- If a manager already exists in Main, Game-scene systems should reference/use it. Do not create a duplicate manager in Game unless it is a scene-specific bridge.
+
+
+## 5. Template Managers
+
+All Template managers are under:
+- `Assets/Template/Managers`
+
+### Core/App
+
+`Assets/Template/Managers/App/AppManager.cs`
+- Persistent app entry point.
+- Loads configured scenes additively on Awake.
+- Satisfies `StagesManager_AppManagerReady` condition in Start.
+
+`Assets/Template/Managers/Stages/StagesManager.cs`
+- Stage/state pipeline for app startup and runtime flow.
+- `AppStageName` enum includes setup/start-related stage names.
+- Other managers register stage actions/conditions.
+
+`Assets/Template/Managers/ContentManagement/ContentManager.cs`
+- Singleton manager for content-level coordination.
+
+`Assets/Template/Managers/Addressables/AddressablesManager.cs`
+- Singleton wrapper around Addressables usage.
+
+`Assets/Template/Managers/GlobalVarsManagement/GlobalVarsManager.cs`
+- Enum-keyed global state storage.
+- Uses `GlobalKey`, subscriptions and save snapshots.
+
+### Config/Input/Save
+
+`Assets/Template/Managers/Config/ConfigManager.cs`
+- Loads and applies settings.
+- Owns `ConfigData`.
+- Handles language, resolution, fullscreen, frame rate, vSync, brightness, quality, post-processing and audio settings.
+- Calls `SoundManager` and `LocalizationManager` when applying related values.
+
+`Assets/Template/Managers/Config/ConfigData.cs`
+- Data model for settings:
+  - `GameSettings`
+  - `GraphicsSettings`
+  - `QualitySettings`
+  - `PostProcessingSettings`
+  - `AudioSettings`
+  - `InterfaceSettings`
+  - `ResolutionSettings`
+
+`Assets/Template/Managers/Config/ConfigAvailableSettings.cs`
+- Enumerations and presets for language, quality, resolutions and frame-rate options.
+
+`Assets/Template/Managers/Input/InputManager.cs`
+- Low-level key/mouse input binder.
+- Loads key map from `ImportantFilepaths.KeysConfigPath`.
+- Provides `RegisterKeyDownAction`, `RegisterKeyUpAction`, `RegisterKeyHoldAction`.
+- Supports priorities through `InputPriority`.
+- PixelVoxelPuzzle should route actions through `InputContextRouter`; do not place puzzle rules directly into `InputManager`.
+
+`Assets/Template/Managers/Input/InputActions.cs`
+- Defines `InputAction` and `InputActionKey`.
+
+`Assets/Template/Managers/Save/SaveManager.cs`
+- Global save/load coordinator.
+- Main APIs include `Save`, `SaveAsync`, `Load`, `LoadAsync`, `AddSaveItem`, `RemoveSaveItem`, `Load<T>`.
+- Uses `SaveItem` subclasses. A `SaveItem` registers with EventManager callbacks and serializes its target through `CreateSaveData`.
+
+`Assets/Template/Managers/IO/IOManager.cs`
+- File IO manager.
+
+`Assets/Template/Managers/IO/Receivers/Receiver.cs`
+- Local/Steam/combined file receivers used by config, input and save flows.
+
+### Events
+
+`Assets/Template/Managers/Events/EventManager.cs`
+- Static event bus through singleton.
+- APIs:
+  - `AddCallback`
+  - `AddAsyncCallback`
+  - `RemoveCallback`
+  - `RemoveAsyncCallback`
+  - `CallEvent`
+  - `CallEventAsync`
+- `EventName` includes general events and PixelVoxelPuzzle events.
+
+PixelVoxelPuzzle event names currently present:
+- `PixelPuzzle_OnLevelSelectRequested`
+- `PixelPuzzle_OnLevelSelected`
+- `PixelPuzzle_OnLevelStartRequested`
+- `PixelPuzzle_OnLevelStarted`
+- `PixelPuzzle_OnLevelReset`
+- `PixelPuzzle_OnLevelPackRequested`
+- `PixelPuzzle_OnLevelPacked`
+- `PixelPuzzle_OnLevelCompleted`
+- `PixelPuzzle_OnLevelLockedSelected`
+- `PixelPuzzle_OnPiecePlaced`
+- `PixelPuzzle_OnPieceRemoved`
+- `PixelPuzzle_OnFastTravelRequested`
+- `PixelPuzzle_OnFastTravelCompleted`
+
+### Audio
+
+`Assets/Template/Managers/Sound/SoundManager.cs`
+- Singleton audio manager.
+- Uses mixer groups and `SoundLibrary`/`SoundList`.
+- Volume APIs:
+  - `SetMasterVolume`
+  - `SetEffectsVolume`
+  - `SetMusicVolume`
+  - `SetVCVolume`
+- Playback APIs:
+  - `PlayGlobalEffect`
+  - `PlayGlobalMusic`
+  - `StopGlobalMusic`
+  - `StopAllGlobalSounds`
+  - `SpawnSound_AtPoint`
+  - `SpawnSound_FollowTransform`
+- Mixer enum: `AudioMixerGroupName`.
+
+`Assets/Template/Managers/Sound/SoundNames.cs`
+- `SoundCategory`
+- `SoundName`
+
+### Camera
+
+`Assets/Template/Managers/Camera/CameraManager.cs`
+- Legacy/global Template camera manager.
+- Generic module `DanieloZ.CameraSystem` calls it through `CameraManagerBridge` when needed.
+
+`Assets/Template/Managers/Camera/WorldCameraZoomRig.cs`
+- Older camera rig kept for compatibility.
+- New PixelVoxelPuzzle camera work should prefer `DanieloZ.CameraSystem.TopDownCameraController`.
+
+### UI/Levels/Stats
+
+`Assets/Template/Managers/UI/UIManager.cs`
+- Global Template UI manager.
+
+`Assets/Template/Managers/UI/Management/UI_Management_PageSwitcher.cs`
+- Page switching helper.
+
+`Assets/Template/Managers/UI/Management/UI_Management_Positioning.cs`
+- UI positioning helper.
+
+`Assets/Template/Managers/UI/Elements/UI_Elements_Page.cs`
+- Template UI page component.
+
+`Assets/Template/Managers/Levels/LevelsManager.cs`
+- Generic level manager.
+
+`Assets/Template/Managers/Levels/UI_LevelManager.cs`
+- UI-side level manager.
+
+`Assets/Template/Managers/Levels/LevelsCollection.cs`
+- ScriptableObject level collection.
+
+`Assets/Template/Managers/Levels/LevelData.cs`
+- Generic level data model.
+
+`Assets/Template/Managers/Levels/LevelBase.cs`
+- Base component for level objects.
+
+`Assets/Template/Managers/Statistics/StatisticsManager.cs`
+- Global stats manager.
+
+`Assets/Template/Managers/Statistics/Statistics_PlayerProfile.cs`
+- Player profile stats/save item.
+
+`Assets/Template/Managers/Statistics/Statistics_LevelsProgress.cs`
+- Level progress stats/save item.
+
+### Pooling/Timing/Selection/Localization/Network/Steam
+
+`Assets/Template/Managers/PoolingManagement/PoolingManager.cs`
+- Singleton pooling manager.
+- `DanieloZ.WorldInteraction.World3DUIObjectPool` can register pools through it.
+
+`Assets/Template/Managers/Timing/TimeManager.cs`
+- Singleton time utilities.
+- Defines timer/stopwatch variants.
+
+`Assets/Template/Managers/TimeScaleManager/TimeScaleManager.cs`
+- Timescale component/manager.
+
+`Assets/Template/Managers/ObjectSelection/ObjectSelectionManager.cs`
+- Object selection singleton.
+- Related handlers:
+  - `ObjectSelectionHandler.cs`
+  - `ObjectSelectionHandler_UI.cs`
+
+`Assets/Template/Managers/Localization/LocalizationManager.cs`
+- Singleton localization manager.
+- Used by ConfigManager and PixelVoxelPuzzle options/language UI.
+
+`Assets/Template/Managers/Network/NetCodeNetworkManager.cs`
+- Netcode-related manager. Note: class currently inherits `SingletonManager<InputManager>`, so inspect before relying on it.
+
+`Assets/Template/Managers/SteamConnection/SteamManager.cs`
+- Steam integration singleton.
+- Partial helper files:
+  - `SteamManager_IO.cs`
+  - `SteamManager_UserData.cs`
+  - `SteamManager_InventoryManagement.cs`
+  - `SteamManager_Utils.cs`
+
+`Assets/Template/Managers/AchievementGenerator`
+- Editor/runtime helper for layered achievement icon generation.
+- Not the same as the planned PixelVoxelPuzzle runtime achievement gallery.
+
+
+## 6. Template Modules
+
+All reusable modules are under:
+- `Assets/Template/Modules`
+
+### DanieloZ.WorldInteraction
+
+Path:
+- `Assets/Template/Modules/DanieloZ.WorldInteraction`
+
+README:
+- `Assets/Template/Modules/DanieloZ.WorldInteraction/README.md`
+
+Purpose:
+- Generic physical world-space interaction.
+- Owns raycast interaction, hover, drag, use, swing callbacks, physical 3D buttons, toggle controls, slots, sliders, water/recovery helpers and camera constraint helpers.
+- It is generic. Game-specific systems should subscribe to events, call public APIs, or use project-side bridge components.
+
+Core files/classes:
+- `WorldInteractionController.cs`
+  - Central mouse/raycast router for drag, use, hover and swing.
+  - Registers through Template `InputManager`.
+  - Delegates runtime flows to service helpers.
+- `WorldInteractionInputGate.cs`
+  - Static held-object/shared interaction state.
+  - Helps camera/UI/drag systems avoid fighting.
+- `WorldInteractionContracts.cs`
+  - `WorldInteractionContext`
+  - `WorldDragReleaseContext`
+  - `WorldSwingContext`
+  - `IWorldUsable`
+  - `IWorldHoverable`
+  - `IWorldPointerDraggable`
+  - `IWorldDraggableReleaseHandler`
+  - `IWorldSwingable`
+  - `WorldCursorUtility`
+- `WorldInteractionRuntimeServices.cs`
+  - Internal lookup, mask, pointer, drag, hover and swing flows.
+- `WorldDraggable.cs`
+  - Generic physical draggable with pickup, hold, constraints, free rotation, wobble and release inertia.
+- `WorldDragConstraintSettings.cs`
+  - Serializable drag axis/range constraints.
+- `World3DButtonBase.cs`
+  - Base for active/interactable 3D buttons.
+- `World3DStaticButton.cs`
+  - Pressable 3D button implementing `IWorldUsable`.
+- `World3DToggleButton.cs`
+  - Toggle 3D button implementing `IWorldUsable`.
+  - Must stay inheritable because `PuzzleBoxToggleButton` derives from it.
+- `World3DPressAnimation.cs`
+  - Shared press animation helper.
+- `World3DButtonSlotBase.cs`
+  - Generic world slot for `World3DSlotItem`.
+- `World3DSlotItem.cs`
+  - Draggable item with `ItemId` that can be inserted into a compatible slot.
+- `World3DPhysicalButton.cs`
+  - Compatibility alias inheriting `World3DSlotItem`.
+- `World3DToggleGroup.cs` and `World3DToggleObject.cs`
+  - Physical toggle-state system.
+- `World3DSlider.cs`
+  - Delta-driven world slider.
+- `World3DOptionRoller.cs`
+  - Four-sided option roller.
+- `World3DUIObjectPool.cs`
+  - Registers component pool through `PoolingManager`.
+- `WorldWaterVolume.cs`
+  - Water/recovery trigger volume.
+- `WorldHardBoundsRecovery.cs`
+  - Recovery registry for rigidbodies.
+- `WorldCameraPivotConstraintVolume.cs`
+  - Pivot bounds/constraint helper.
+- `WorldBoxConstraintSettings.cs`
+  - Box constraint data.
+- `WorldCameraPivotIndicator.cs`
+  - Visual/debug pivot indicator.
+- `WorldHoverable.cs`, `WorldUsable.cs`, `WorldSwingable.cs`
+  - Simple contract components.
+- `WorldPointerRaycaster.cs`
+  - Pointer raycast helper.
+- `GameManagersStageInitializer.cs`
+  - Stage initializer bridge.
+
+Examples:
+- `Assets/Template/Modules/DanieloZ.WorldInteraction/Examples/Prefabs`
+- Example scene mentioned by README: `Examples/Scenes/WorldInteractionExamples.unity`
+
+PixelVoxelPuzzle bridge components:
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/WorldInteractionBridge`
+
+### DanieloZ.CameraSystem
+
+Path:
+- `Assets/Template/Modules/DanieloZ.CameraSystem`
+
+README:
+- `Assets/Template/Modules/DanieloZ.CameraSystem/README.md`
+
+Assembly:
+- `Assets/Template/Modules/DanieloZ.CameraSystem/DanieloZ.CameraSystem.asmdef`
+
+Purpose:
+- Generic runtime camera layer.
+- Owns camera movement, Cinemachine priority switching, camera zones, camera locks and Bezier camera rails.
+- Does not read player input directly. Input code calls public methods.
+
+Core files/classes:
+- `Runtime/TopDownCameraController.cs`
+  - Pivot movement, zoom, pointer orbit, Bezier camera/look rails, Cinemachine virtual camera pose.
+- `Runtime/WorldCameraBezierCurve.cs`
+  - Local cubic Bezier rail.
+- `Runtime/CameraZone.cs`
+  - Authored zone with virtual camera, zone id and fast-travel anchor.
+- `Runtime/CameraZoneController.cs`
+  - Registers zones, polls ground pivot, sets priorities, fast-travels to zones.
+- `Runtime/CameraLock.cs`
+  - Named focus/menu/gallery lock with virtual camera.
+- `Runtime/CameraLockController.cs`
+  - Activates/exits/switches locks.
+- `Runtime/CameraModeController.cs`
+  - Switches gameplay/menu cameras.
+- `Runtime/CameraManagerBridge.cs`
+  - Runtime bridge to Template `CameraManager`.
+- `Runtime/CameraManagerSwitcher.cs`
+  - Small switcher component for Template camera manager.
+- `Runtime/CameraZoomRigController.cs`
+  - Zoom rig helper.
+- `Runtime/CameraLock.cs`
+  - Lock object with optional navigator.
+- `Editor/WorldCameraBezierCurveEditor.cs`
+  - Scene handles/editor for Bezier curves.
+
+PixelVoxelPuzzle input bridge:
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/Input/PixelVoxelPuzzleCameraInputContextBridge.cs`
+
+### DanieloZ.Transitions
+
+Path:
+- `Assets/Template/Modules/DanieloZ.Transitions`
+
+Purpose:
+- Template transition orchestration.
+
+Files:
+- `TransitionsController.cs`
+- `Transitions/TransitionBase.cs`
+- `Transitions/Transition_UI_Page.cs`
+
+Use for page/UI transitions. Keep separate from puzzle runtime logic.
+
+### DanieloZ.Collections
+
+Path:
+- `Assets/Template/Modules/DanieloZ.Collections`
+
+Files:
+- `Pool.cs`
+  - `Pool<T>`
+  - `IPoolable`
+
+Purpose:
+- Small generic collection/runtime utilities.
+
+### DanieloZ.InstancePromise
+
+Path:
+- `Assets/Template/Modules/DanieloZ.InstancePromise`
+
+Files:
+- `InstancePromise.cs`
+- `PromiseFieldAttribute.cs`
+- `Editor/PromiseFieldDrawer.cs`
+
+Purpose:
+- Promise helper for async singleton/reference availability.
+- Inspector helper attribute for promised references.
+
+### DanieloZ.DataMigration
+
+Path:
+- `Assets/Template/Modules/DanieloZ.DataMigration`
+
+Files:
+- `DataMigrationManager.cs`
+- `Editor/DataMigrationEvents.cs`
+
+Purpose:
+- Data migration/recovery utility.
+- Defines `MigrationContainer`, `IRecoverItem`, `RecoverData`, `RecoverAsAttribute`.
+- Keep migration/editor recovery logic here instead of mixing it into gameplay systems.
+
+### DanieloZ.SyncTemplate
+
+Path:
+- `Assets/Template/Modules/DanieloZ.SyncTemplate`
+
+Purpose:
+- Editor utility for template synchronization.
+- Should not be referenced by runtime gameplay code.
+
+
+## 7. Template Plugins
+
+Vendored plugins under:
+- `Assets/Template/Plugins`
+
+Important plugin folders:
+- `DOTween`
+  - Tweening/animation. Used by UI/world button feedback.
+- `Sirenix/Odin Inspector`
+  - Inspector attributes/editors.
+  - Odin modules include Addressables, Localization, Mathematics.
+- `TextMesh Pro`
+  - TMP fonts/resources/shaders.
+- `ProceduralUIImage`
+  - Procedural UI image plugin.
+- `Steam`
+  - Facepunch Steamworks binaries and redistributables.
+
+
+## 8. PixelVoxelPuzzle Project Layer
+
+Root:
+- `Assets/_Project/PixelVoxelPuzzle`
+
+Major folders:
+- `Runtime`
+- `Editor`
+- `Materials`
+- `ScriptableObjects`
+- `Prefabs`
+- `Generated`
+
+High-level architecture:
+- Template managers provide global app services.
+- PixelVoxelPuzzle Game scene provides scene-specific systems under `Systems`.
+- The active runtime puzzle is spawned/controlled under `Runtime/ActivePuzzleSession`.
+- Hand-authored map/UI content lives under `World`.
+- Temporary/testing objects live under `_Debug`.
+
+Current source-of-truth runtime path:
+- `Puzzle*` classes under `Assets/_Project/PixelVoxelPuzzle/Runtime/Puzzle`
+- `Hand*` classes under `Runtime/Hand`
+- input contexts under `Runtime/Input`
+- project UI modules under `Runtime/UI`
+
+Do not treat old names as current:
+- Old docs/prefabs may mention `PixelVoxelPuzzleBoard`, `PixelVoxelPuzzlePiece`, `PixelVoxelPuzzlePlacementPreview`, `PuzzleBoardFactory`, `PuzzlePieceFactory`.
+- Current runtime names are `PuzzleBoard`, `PuzzlePiece`, `PuzzlePieceHoldable`, `PuzzlePlacementService`, `PuzzleSessionFactory`, `PuzzleSessionManager`, `PuzzleCompletionService`.
+
+
+## 9. PixelVoxelPuzzle Runtime Setup Roots
+
+`Assets/_Project/PixelVoxelPuzzle/Runtime/Setup/PixelVoxelPuzzleGameRoot.cs`
+- Current high-level Game scene reference hub.
+- It is a reference hub only, not gameplay logic.
+- Serialized roots:
+  - `systemsRoot`
+  - `worldRoot`
+  - `runtimeRoot`
+  - `debugRoot`
+- Serialized systems:
+  - `InputContextStack`
+  - `InputContextRouter`
+  - `HandController`
+  - `PuzzlePlacementService`
+  - `PuzzleLibrary`
+  - `PuzzleSessionManager`
+  - `PuzzleAutoStartup`
+  - `SwingSystem`
+  - `CameraModeController`
+  - `CameraZoneController`
+  - `CameraLockController`
+  - `PixelVoxelPuzzleUIManager`
+- Runtime anchors:
+  - `activePuzzleSessionRoot`
+  - `runtimeBoardRoot`
+  - `runtimePiecesRoot`
+  - `placementPreviewRoot`
+- World anchors:
+  - `puzzleHubRoot`
+  - `physicalMenuRoot`
+  - `achievementGalleryRoot`
+  - `mainAssemblyDock`
+
+`Assets/_Project/PixelVoxelPuzzle/Runtime/Setup/PixelVoxelPuzzleSceneRoot.cs`
+- Older/shared scene-root style.
+- Inherits `SingletonManager<PixelVoxelPuzzleSceneRoot>`.
+- Fields:
+  - `tableRoot`
+  - `gameplayRoot`
+  - `piecesRoot`
+  - `boardRoot`
+  - `worldUiRoot`
+  - `cameraTargetsRoot`
+  - `materialPalette`
+- New MVP wiring should prefer `PixelVoxelPuzzleGameRoot`.
+
+`Assets/_Project/PixelVoxelPuzzle/Runtime/Setup/PixelVoxelPuzzleSetupValidator.cs`
+- Validates scene root references.
+
+`Assets/_Project/PixelVoxelPuzzle/Runtime/Setup/PixelVoxelPuzzleLayers.cs`
+- Central layer-name constants/helper for project layers.
+
+`Assets/_Project/PixelVoxelPuzzle/Runtime/Setup/PixelVoxelPuzzleMaterialPalette.cs`
+- ScriptableObject material palette.
+
+
+## 10. PixelVoxelPuzzle Scene/Editor Setup
+
+Main scene generator:
+- `Assets/_Project/PixelVoxelPuzzle/Editor/Setup/PixelVoxelPuzzleGameSceneGenerator.cs`
+
+Menu:
+- `Pixel Lust/Pixel Voxel Puzzle/MVP/Create Or Rebuild Game Scene`
+
+Generator behavior:
+- Opens `Assets/Scenes/Game.unity`.
+- Captures existing `WorldCameraBezierCurve` objects.
+- Rebuilds Game scene roots:
+  - `Systems`
+  - `World`
+  - `Runtime`
+  - `_Debug`
+- Builds environment, input, hand, interaction, puzzle, camera and UI systems.
+- Restores camera Bezier curves under the camera system.
+- Creates starter board, pieces and placement preview.
+- Creates `PuzzleLibrary`, `PuzzleSessionManager`, `PuzzleSessionFactory`, `PuzzleCompletionService`, `PuzzleAutoStartup`.
+- Builds MVP world UI:
+  - Main menu buttons
+  - Options buttons/sliders/roller
+  - Level Select buttons
+  - Dock controls: reset, pack, recover
+- Creates or updates MVP puzzle library assets:
+  - `Assets/Resources/Puzzles/Puzzle Library MVP.asset`
+  - `Assets/Resources/Puzzles/Puzzle Data/MVP`
+
+Other editor setup files:
+- `PixelVoxelPuzzleSceneSetToolbar.cs`
+  - Opens Main+UI+Game or PixelPuzzleGenerator scenes.
+- `PixelVoxelPuzzleSetupMenu.cs`
+  - Older setup helper for root hierarchy.
+- `PixelVoxelPuzzleWorldUITestPrefabBuilder.cs`
+  - Builds world UI test prefabs.
+- `PixelVoxelPuzzleCameraExamplesBuilder.cs`
+  - Builds camera examples.
+- `PixelVoxelPuzzleBoxPrefabConfigurator.cs`
+  - Configures box prefab structure/components.
+- `BoxLidAnimatorAssetBuilder.cs`
+  - Builds lid animator assets.
+- `PuzzlePieceHoldableEditor.cs`
+  - Custom editor for puzzle piece holdable setup/debug.
+- `PixelVoxelPuzzleEditorNoteWindow.cs`
+  - Editor note window.
+
+
+## 11. PixelVoxelPuzzle Data Assets
+
+Runtime data folder:
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/Data`
+
+Generated/resource data:
+- `Assets/Resources/Puzzles`
+- `Assets/Resources/Puzzles/Puzzle Library MVP.asset`
+- `Assets/Resources/Puzzles/Puzzle Library 1.asset`
+- `Assets/Resources/Puzzles/Puzzle Data/MVP/PixelPuzzleAsset_Level_001.asset` through Level 005
+- `Assets/Resources/Puzzles/Puzzle Data/Level_001`
+- `Assets/Resources/Puzzles/Puzzle Data/Level_002`
+- `Assets/Resources/Data/BoardAreaLibrary.asset`
+
+`PixelPuzzleAsset.cs`
+- Main ScriptableObject for one puzzle.
+- Key data:
+  - source/final/hint/achievement textures
+  - `levelId` / `PuzzleId`
+  - display name
+  - difficulty
+  - preview icon
+  - grid size
+  - board cell pixel size
+  - voxels per image pixel
+  - generated voxel size/height
+  - generation settings
+  - pieces
+  - targets
+  - piece spawn positions
+  - tray positions
+  - addressable key
+  - completion achievement id
+
+`PixelPuzzlePieceData.cs`
+- Baked source data for one piece.
+- Contains:
+  - piece id
+  - source puzzle id
+  - cells and shape cells
+  - bounds
+  - pivot
+  - default rotation index
+  - mesh
+  - piece prefab
+  - physics shape
+  - debug color
+  - difficulty weight
+
+`PixelPuzzleTarget` inside `PixelPuzzleAsset.cs`
+- Completion target:
+  - piece id
+  - target anchor cell
+  - optional target rotation index/euler
+
+`PuzzleLibraryAsset.cs`
+- ScriptableObject list of puzzle assets plus default puzzle.
+
+`PuzzleGenerationSettings.cs`
+- Seed, difficulty, target piece count, min/max piece size, noise/holes/thin parts, collider mode.
+
+`BoardGenerationSettings.cs`
+- Board insets and helpers for fitting grid/cell size into a board area.
+
+`BoardAreaLibraryAsset.cs`
+- Named board area definitions and bounds.
+
+`PhysicsShapeData.cs`
+- Collider mode, local bounds, outline points and compound boxes.
+
+`PixelPuzzleCell.cs`
+- Cell position and color.
+
+Enums:
+- `PuzzleDifficulty.cs`
+- `PuzzleColliderMode.cs`
+
+
+## 12. PixelVoxelPuzzle Input and Hand Flow
+
+Input runtime folder:
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/Input`
+
+Hand runtime folder:
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/Hand`
+
+Principle:
+- Template `InputManager` is the low-level key binder.
+- `InputContextRouter` decides what the same inputs mean based on current `PixelVoxelPuzzleInputContext`.
+- Puzzle/hand/camera/swing logic stays out of `InputManager`.
+
+`PixelVoxelPuzzleInputContext.cs`
+- Context enum. Docs mention contexts such as:
+  - TopDownGameplay
+  - PuzzleFocus
+  - HoldingObject
+  - FreeCamera
+  - MainMenu
+  - DebugOverlay
+
+`InputContextStack.cs`
+- Tracks current/base context.
+- APIs:
+  - `SetBaseContext`
+  - `Push`
+  - `Pop`
+  - `CurrentContext`
+  - `IsMainMenu`
+
+`InputContextRouter.cs`
+- Routes input to:
+  - `HandInputController`
+  - `SwingInputController`
+  - `TopDownCameraController`
+  - `CameraModeController`
+  - `CameraLockController`
+  - `PhysicalMenuNavigator`
+
+`PixelVoxelPuzzleCameraInputContextBridge.cs`
+- Listens to camera modes/locks and pushes/pops MainMenu or related contexts.
+
+Hand contracts:
+- `IHandHoldable.cs`
+  - `Transform`
+  - `GripRoot`
+  - `Body`
+  - pickup/hover/move/rotate/release/cancel methods
+- `IHandUsable.cs`
+  - usable contract
+  - `IHandHoverable`
+
+Hand components:
+- `HandController.cs`
+  - Owns one held object.
+  - APIs: `TryPickup`, `MoveHeld`, `RotateHeld`, `BeginHeldRotation`, `DragHeldRotation`, `ClickHeldRotation`, `EndHeldRotation`, `ReleaseHeld`, `CancelHeld`, `DetachHeldObject`.
+- `HandInputController.cs`
+  - Maps primary/secondary/wheel inputs to hand, placement and box systems.
+  - Checks `PuzzleBoxInteractionService` before normal board placement release.
+- `HandPointerRaycaster.cs`
+  - Produces pointer raycast context.
+- `HandGripProjector.cs`
+  - Projects pointer to hand/grip world position.
+- `HandPointerContext.cs`
+  - Immutable context with camera, ray, hit, screen position, grip world position and hand projection.
+- `UseSystem.cs`
+  - Invokes `IHandUsable` when no object is held.
+- `HeldObjectWobbleController.cs`
+  - Runtime wobble for held objects.
+
+
+## 13. PixelVoxelPuzzle Puzzle Runtime
+
+Runtime puzzle folder:
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/Puzzle`
+
+Current active loop:
+1. Player uses Level Select world button.
+2. `World3DLevelButton` calls `UILevelSelectModule.SelectPuzzleIndex`.
+3. `UILevelSelectModule` resolves `PuzzleLibrary` entry.
+4. `PuzzleSessionManager.StartSession` starts or replaces the active session.
+5. `PuzzleSessionFactory` builds board and pieces.
+6. `PuzzlePlacementService` validates hover/release placement.
+7. `PuzzleBoard` owns occupancy.
+8. `PuzzleCompletionService` checks targets.
+9. `PuzzleSessionManager` raises EventManager events and completion callbacks.
+10. `UILevelSelectModule`/save/progression refresh level states.
+
+`PuzzleSessionManager.cs`
+- Main active session owner.
+- Fields include:
+  - `PixelVoxelPuzzleGameRoot`
+  - default `PuzzleAssemblyDock`
+  - `PuzzlePlacementService`
+  - `PuzzleSessionFactory`
+  - `PuzzleCompletionService`
+  - board/pieces roots
+- Events:
+  - `SessionStarted`
+  - `SessionReset`
+  - `SessionPacked`
+  - `SessionCompleted`
+- APIs:
+  - `StartSession(PixelPuzzleAsset asset)`
+  - `StartSession(PixelPuzzleAsset asset, PuzzleAssemblyDock dock)`
+  - `CheckCompletionNow`
+  - `ResetActiveSession`
+  - `PackActiveSession`
+  - `AdoptExistingSession`
+- Raises PixelPuzzle EventManager events.
+
+`PuzzleSessionFactory.cs`
+- Builds session objects from `PixelPuzzleAsset`.
+- Owns board prefab, piece prefab, generated board/piece materials, board settings and optional board camera zone settings.
+- APIs:
+  - `BuildSession`
+  - `ReturnPieceToSpawn`
+
+`PuzzleSession.cs`
+- Runtime model of one active puzzle attempt.
+- Holds asset, dock, board, pieces, owned objects, completion state.
+
+`PuzzleSessionBuildResult.cs`
+- Build result value for session creation.
+
+`PuzzleLibrary.cs`
+- Runtime wrapper around `PuzzleLibraryAsset`.
+- Supports pre-instantiated puzzle cache and fallback puzzle.
+- APIs:
+  - `RebuildRuntimeCache`
+  - `GetPuzzleAt`
+  - `GetDefaultPuzzle`
+  - `TryGetPuzzle`
+  - `GetPuzzle`
+
+`PuzzleAutoStartup.cs`
+- Starts default puzzle/session automatically when configured.
+
+`PuzzleAssemblyDock.cs`
+- Authored dock/anchor component for active puzzle area.
+- Used for board area, piece spawn, return/recovery/camera focus anchors.
+
+`PuzzleBoardAreaAnchor.cs`
+- Named board area.
+- Transform position = area center.
+- Transform rotation = runtime board rotation.
+- Bounds define max board footprint.
+
+`PuzzleBoard.cs`
+- Logical board and placement state.
+- Key APIs:
+  - `SetGrid`
+  - `TryWorldToCell`
+  - `CellCenterToWorld`
+  - `CellVertexToWorld`
+  - `GetRootWorldPosition`
+  - `CanPlace`
+  - `HasOccupiedNeighbor`
+  - `HasOccupiedNeighborOrBoardEdge`
+  - `TryPlace`
+  - `TryGetPlacement`
+  - `Clear`
+  - `ClearAll`
+  - `TryGetPlacementOutline`
+  - `TryGetAdaptivePlacementOutline`
+- Events:
+  - `PiecePlaced`
+  - `PieceRemoved`
+  - `PlacementChanged`
+
+`PuzzleBoardController.cs`
+- Visual board layout.
+- Applies board size/insets to backing, walls and corners.
+- Keeps board root scale unchanged.
+
+`PuzzlePiece.cs`
+- Runtime piece identity and shape.
+- Stores piece id, shape cells, placed/free state and rotated cell offsets.
+
+`PuzzlePieceHoldable.cs`
+- Implements `IHandHoldable`.
+- Owns current held-piece behavior:
+  - pickup/release
+  - hidden/locked cursor target movement
+  - hover outline
+  - placement pose/tween
+  - release inertia
+  - board placement integration
+- Future split candidate: physics, hover outline and placement animator.
+
+`PuzzlePieceRotationController.cs`
+- Board-step and free rotation owner.
+- Current behavior:
+  - RMB click under threshold rotates one 90-degree step over board preview.
+  - RMB hold/drag rotates by mouse delta.
+  - Outside board preview, free rotation is allowed.
+  - Mouse wheel remains camera/control input unless explicitly handled by held object.
+
+`PuzzlePlacementService.cs`
+- Active board placement coordinator.
+- Uses held-piece target/placement root, not only live cursor position.
+- APIs:
+  - `TryGetHoverPlacement`
+  - `UpdateHoverPlacement`
+  - `TryReleaseHeldObject`
+  - `ClearHoverPlacement`
+
+`PuzzlePlacementCandidate.cs`
+- Value object for candidate placement.
+
+`PuzzlePlacementPreviewView.cs`
+- Visual feedback only.
+- Draws valid/invalid placement outlines.
+
+`PuzzleCompletionService.cs`
+- Checks whether session pieces match `PixelPuzzleAsset.Targets`.
+
+`PuzzlePieceColliderUtility.cs`
+- Creates/installs generated compound `BoxCollider` setups.
+
+
+## 14. Puzzle Box Runtime
+
+Prefab:
+- `Assets/Prefabs/Box.prefab`
+
+Important required child names:
+- `Box Pivot`
+- `Box-Hole-1`
+- `Box-Hole-2`
+- `Box-Hole-3`
+- `Box-Hole-4`
+- `[TRIGGER] BoxTriggerOutside` (old `BoxTriggerOutside` is still accepted)
+- `[TRIGGER] BoxTriggerInside` (old `BoxTriggerInside` is still accepted)
+- `[TRIGGER] PourSpawnPlane` (old `PourSpawnPlane` is still accepted)
+- `[COLLIDER] ModelBoundsCollider` (old `ModelBoundsCollider` is still accepted)
+- `[COLLIDER] BoxToggleTrigger` (old `BoxToggleTrigger` is still accepted)
+- `BoxGlowTape`
+- `TMP_Label`
+- `PuzzleImage`
+- `PuzzleImagePreview`
+- `Object For Some Preview to Image FX`
+
+Runtime components:
+- Root `Box`: `PuzzleBoxController`
+- `[TRIGGER] BoxTriggerOutside`: `PuzzleBoxTrigger` as Outside
+- `[TRIGGER] BoxTriggerInside`: `PuzzleBoxTrigger` as Inside
+- `[COLLIDER] BoxToggleTrigger`: `PuzzleBoxToggleButton`
+
+`PuzzleBoxController.cs`
+- Root controller for a puzzle box.
+- `BoxShrinkSource = "PuzzleBox"`.
+- Auto-wires expected child names through `AutoWire`.
+- Auto-wires both canonical `[TRIGGER]` / `[COLLIDER]` helper names and old unprefixed names so old generated prefabs keep working until rebake.
+- Controls open/closed state through animator/open parameter.
+- Tracks outside/inside triggers, opening transform and toggle button.
+- Stores captured pieces.
+- Exposes `TotalPieceCount`, `CurrentStoredPieceCount` and optional `TMP_Text pieceCountLabel` with format `{CURRENT} / {TOTAL}`.
+- Shows `BoxGlowTape` only after the close animation has fully reached the `Closed` animator state; opening hides it immediately. It replaces the old hover `HighlightPlane` and uses `Box Glow Tape.mat` / `Glow Strip Unlit` for a moving shimmer.
+- Shows an intake preview line from held piece to the box while hovering over an open capture trigger, and keeps it during capture until storage completes.
+- Uses `openingDirectionLocal` as the outward hole direction and `[TRIGGER] PourSpawnPlane` as the preferred random spawn plane for pouring; old generated prefabs fall back to `BoxTriggerInside`.
+- Open-box pour rate and impulse are angle-driven from `startPourAngleFromDown` to `fullPourAngleFromDown`, with inspector min/max pieces per second, min/max impulse, max pieces per frame, impulse spread, collision-ignore duration and `pourScaleRestoreDelay`. Poured pieces spawn shrinked and grow back after the restore delay.
+- Pouring only emits from a shuffled queue of `storedPieces`; pieces are removed from storage, reactivated, yaw-randomized, gravity/non-kinematic restored and pushed outward.
+- Held open boxes auto-tilt above the board only when `WorldDraggable.IsHeld` is true and a downward raycast hits `PuzzleBoardMask`; auto-tilt preserves player yaw/azimuth.
+- Selected gizmos draw the opening vector and spawn volume.
+- Applies image/preview materials and completed/incomplete visual state.
+- APIs:
+  - `AutoWire`
+  - `BindLevelState`
+  - `SetPuzzleVisualState`
+  - `SetOpen`
+  - `IsOutsideTrigger`
+  - `IsLidCollider`
+  - `TryCapturePiece`
+  - `ApplyPuzzleMaterials`
+
+`PuzzleBoxInteractionService.cs`
+- Used by `HandInputController`.
+- Checks box capture before board placement on release.
+- Downward raycasts held pieces into `BoxTriggerOutside`.
+- Forces `PuzzlePieceDragScaleController` shrink while held over an open box and keeps the intake preview line visible before release.
+- Requests `PuzzleBoxController.ShowCapturePreview` while hover target is valid and clears it when the piece leaves.
+
+`PuzzleBoxTrigger.cs`
+- Marks outside/inside trigger kind.
+
+`PuzzleBoxToggleButton.cs`
+- Inherits `World3DToggleButton`.
+- Implements `IHandUsable` and `IHandHoverable`.
+- Calls `PuzzleBoxController.SetOpen(bool)`.
+
+`PuzzlePieceDragScaleController.cs`
+- Scales held pieces along X/Z for drag/box interactions.
+- Supports forced shrink sources.
+- Shrink is box-only by default: `allowPuzzleBoxInOutShrink = true`, min X/Z scale is `0.4`, max X/Z scale is `1`, and normal pickup/release/idle does not change scale.
+- Legacy default min value `0.82` and the temporary scale-off min value `1` normalize to box shrink min `0.4`; `0.4` remains valid.
+- A placed puzzle piece must always resolve to max scale; `ApplyMaxScaleImmediate()` is called after board placement.
+
+`PuzzlePieceDragScaleSetup.cs`
+- Collects piece scale controllers under pieces root and applies global/per-piece settings.
+
+WorldInteraction bridge for physical box pickup:
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/WorldInteractionBridge/HandHoldableWorldDraggable.cs`
+  - Bridges hand system to generic `WorldDraggable`.
+  - Supports whole-object pickup.
+  - Uses `HeldObjectLiftUtility` only for box bottom clearance while `HeldObjectLiftUtility.ObstacleLiftGloballyEnabled` is false.
+  - Assigns model bounds to `ModelBounds` layer and ignores collisions.
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/Hand/HeldObjectLiftUtility.cs`
+  - Contains the disabled bounds/footprint obstacle lift prototype. It can raise held grip targets over obstacles using `modelBoundsCollider`, non-trigger child colliders, or renderer bounds when `ObstacleLiftGloballyEnabled` is re-enabled.
+  - Default obstacle mask is `PuzzleBoard | Table | PuzzleBox | PuzzlePiece`; self colliders, triggers, `ModelBounds`, and `BoxToggle` are ignored, but active stored/capturing pieces are not children of the held box and can cause jitter if `PuzzlePiece` remains in the box obstacle mask.
+
+Important ModelBounds rule:
+- `ModelBounds` is service-only.
+- Do not include `ModelBounds` in interaction masks.
+- Do not use ModelBounds collider for hover, pickup, toggle, physical contacts or placement.
+
+
+## 15. PixelVoxelPuzzle WorldInteractionBridge
+
+Folder:
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/WorldInteractionBridge`
+
+Purpose:
+- Project-side adapters between the PixelVoxelPuzzle hand/input stack and generic Template world interaction module.
+
+Classes:
+- `HandHoldableWorldDraggable`
+  - `IHandHoldable` bridge to `WorldDraggable`.
+- `HandHoldableWorld3DSliderHandle`
+  - Bridges a world slider handle into hand/pointer drag.
+- `HandUsableWorld3DStaticButton`
+  - Bridges static world button to hand use.
+- `HandUsableWorld3DToggleButton`
+  - Bridges toggle world button to hand use.
+- `World3DStaticToggleButton`
+  - Project-side static toggle button.
+- `World3DStaticToggleGroup`
+  - Project-side group for static toggles.
+- `PhysicalMenuNavigator`
+  - Physical menu navigation target for MainMenu context.
+
+
+## 16. PixelVoxelPuzzle UI Modules
+
+Folder:
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/UI`
+
+`PixelVoxelPuzzleUIManager.cs`
+- Scene/project UI module registry.
+- Can collect modules in children.
+- APIs:
+  - `RegisterModules`
+  - `GetModule<T>`
+  - `GetModule(string moduleId)`
+  - `ShowModule`
+  - `HideModule`
+  - `ToggleModule`
+  - `ShowOnly`
+  - `HideAll`
+
+`PixelVoxelPuzzleUIModule.cs`
+- Base module.
+- Fields:
+  - module id
+  - visible on initialize
+  - controlled roots
+- APIs:
+  - `Initialize`
+  - `Show`
+  - `Hide`
+  - `Toggle`
+  - `SetVisible`
+
+`UIMainMenuModule.cs`
+- Main menu/open/close/options bridge.
+- References camera modes, camera locks and input contexts.
+- APIs:
+  - `OpenMainMenu`
+  - `CloseMainMenu`
+  - `Play`
+  - `OpenOptions`
+  - `BackToMainMenu`
+  - `ExitGame`
+  - `ToggleMainMenu`
+
+`UIOptionsModule.cs`
+- Options state and application.
+- Handles audio volumes, quality, fullscreen, vSync, resolution, target framerate and language.
+- Calls Template config/sound/localization APIs where appropriate.
+- APIs include:
+  - `ApplyOptions`
+  - `SetMasterVolume`
+  - `SetMusicVolume`
+  - `SetSfxVolume`
+  - `SetQualityLevel`
+  - `SetFullscreen`
+  - `SetResolution`
+  - `SetResolutionIndex`
+  - `ApplySelectedResolution`
+  - `SetTargetFrameRate`
+  - `SetVSync`
+  - `SetLanguageEn`
+  - `SetLanguageRu`
+  - `SetLanguage`
+
+`UILevelSelectModule.cs`
+- MVP level selection coordinator.
+- References:
+  - `PixelVoxelPuzzleGameRoot`
+  - `PuzzleLibrary`
+  - `PuzzleSessionManager`
+  - `PuzzleAssemblyDock`
+  - `GroundPivotFastTravelController`
+- State:
+  - list of `LevelState`
+  - `ActiveLevelIndex`
+  - unlock/completion states
+- APIs:
+  - `IsUnlocked`
+  - `IsCompleted`
+  - `SelectPuzzleIndex`
+  - `ResetActivePuzzle`
+  - `PackActivePuzzle`
+  - `RecoverActivePuzzleObjects`
+  - `UnlockLevel`
+  - `GetLevelStateCopy`
+  - `ApplySavedLevelStates`
+  - `FindPuzzleIndex`
+- Raises PixelPuzzle EventManager events.
+
+`World3DLevelButton.cs`
+- Physical/world Level Select button.
+- Implements `IWorldUsable`.
+- Shows material state:
+  - available
+  - active
+  - completed
+  - locked
+- APIs:
+  - `Configure`
+  - `Select`
+  - `Use`
+  - `Refresh`
+
+`World3DActionButton.cs`
+- Bridge from generic `IWorldUsable` / `World3DStaticButton` into project actions.
+- Supports actions for main menu, options, level select, reset, pack, recover, save/load and resolution apply.
+- APIs:
+  - `Use`
+  - `Press`
+  - `Execute`
+
+`UICameraModule.cs`
+- Camera UI module.
+
+`UIMapMovementModule.cs`
+- Map movement UI module.
+
+`GroundPivotFastTravelController.cs`
+- Named fast travel for TopDown `GroundPivot`.
+- Raises:
+  - `PixelPuzzle_OnFastTravelRequested`
+  - `PixelPuzzle_OnFastTravelCompleted`
+
+Other UI bindings:
+- `World3DOptionsSliderBinding.cs`
+- `World3DResolutionRollerBinding.cs`
+- `PixelVoxelPuzzleLanguageWorld3DController.cs`
+- `PixelVoxelPuzzleWorld3DButtonTestController.cs`
+
+
+## 17. PixelVoxelPuzzle Camera Runtime
+
+Template module owns generic camera:
+- `Assets/Template/Modules/DanieloZ.CameraSystem`
+
+Project camera integration:
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/Input/PixelVoxelPuzzleCameraInputContextBridge.cs`
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/UI/GroundPivotFastTravelController.cs`
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/Puzzle/PuzzleBoardCameraZoneSettings.cs`
+
+Current generator builds in Game scene:
+- `CameraSystem`
+- `RenderCamera`
+- `GroundPivot`
+- `CameraRails`
+- `VCam_GameplayTopDown`
+- `VCam_MainMenu`
+- `TopDownCameraController`
+- `CameraModeController`
+- `CameraZoneController`
+- `CameraLockController`
+- camera locks such as MainMenu/Options
+- fast travel controller
+
+Input separation:
+- Camera module does not own key bindings.
+- `InputContextRouter` calls camera public methods.
+- `PixelVoxelPuzzleCameraInputContextBridge` keeps input context in sync with menu locks/modes.
+
+
+## 18. PixelVoxelPuzzle Swing/Interaction Runtime
+
+Folder:
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/Interaction`
+
+`SwingSurfaceResolver.cs`
+- Resolves cursor/surface hit point.
+
+`SwingSystem.cs`
+- Applies impulses/callback style swing interaction around cursor surface point.
+
+`SwingInputController.cs`
+- Handles begin/update/end swing calls.
+- Disabled or redirected when context is MainMenu or when held-object logic has priority.
+
+Generic world interaction still exists:
+- `WorldInteractionController` from Template may be in scene for generic world UI/object interaction.
+- Puzzle pieces currently use the hand/holdable path, not generic `WorldDraggable`.
+
+
+## 19. PixelVoxelPuzzle Save Runtime
+
+Folder:
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/Save`
+
+Note:
+- Save runtime now exists in the working tree even though older docs describe save as planned.
+
+`PixelVoxelPuzzleSaveData.cs`
+- Save data model:
+  - `PixelVoxelPuzzleSaveData`
+  - `PixelVoxelPuzzleLevelSaveData`
+  - `PixelVoxelPuzzleSessionSaveData`
+  - `PixelVoxelPuzzlePieceSaveData`
+  - vector/quaternion serializable structs
+- Bootstrap defaults:
+  - Level 1 open
+  - Levels 2-5 locked
+  - no active puzzle unless restored/started
+  - achievements list empty
+
+`PixelVoxelPuzzleSaveController.cs`
+- Scene save adapter/controller.
+- References:
+  - `PixelVoxelPuzzleGameRoot`
+  - `UILevelSelectModule`
+  - `PuzzleSessionManager`
+- APIs:
+  - `SaveNow`
+  - `LoadNow`
+  - `CaptureSaveData`
+  - `ApplySaveData`
+- Defines `PixelVoxelPuzzleSaveItem : SaveItem` for Template `SaveManager`.
+
+
+## 20. PixelVoxelPuzzle Generator
+
+Runtime/editor generator controller:
+- `Assets/_Project/PixelVoxelPuzzle/Runtime/Generation/PixelPuzzleGeneratorController.cs`
+
+Editor UI:
+- `Assets/_Project/PixelVoxelPuzzle/Editor/Generator/PixelPuzzleGeneratorWindow.cs`
+- Menu: `Tools/Pixel Puzzle/Generator Window`
+
+Custom inspector:
+- `Assets/_Project/PixelVoxelPuzzle/Editor/Generator/PixelPuzzleGeneratorControllerEditor.cs`
+
+Generator scene:
+- `Assets/Scenes/PixelPuzzleGenerator.unity`
+
+Generator responsibilities:
+- Source image processing.
+- Segmentation modes:
+  - rectangular/color-mask/rough-grid/custom-grid/random style flows depending current settings.
+- Mesh generation.
+- Preview generation.
+- Board area selection and auto-fit.
+- Preview board spawn.
+- Collider generation and per-piece collider tuning.
+- Bake meshes/colliders.
+- Create/update `PixelPuzzleAsset`.
+- Export generated level prefab.
+- Optionally instantiate/configure `Assets/Prefabs/Box.prefab` next to the board.
+
+Important APIs:
+- `GeneratePreview`
+- `GeneratePieceColliders`
+- `ApplyPreviewMode`
+- `InstallColliderEditorsOnPreviewPieces`
+- `ApplyGlobalColliderSettingsToAllPreviewPieces`
+- `ClearPreview`
+- `BakeLevelPrefab`
+- `ShowExportFolderInProject`
+- `CreateGeneratorScene`
+
+Generator output paths/settings:
+- Default output folder in controller: `Assets/_Project/PixelVoxelPuzzle/Generated`
+- Current resource assets also live under `Assets/Resources/Puzzles/Puzzle Data`
+- Box materials may use source texture folder or `Assets/Resources/Girls`
+
+Collider settings:
+- `PuzzlePieceColliderSettings` is attached to preview pieces before bake.
+- Coverage modes include full coverage and simplified best-fit variants.
+- `PuzzlePieceColliderUtility` installs final colliders at runtime.
+
+
+## 21. Current Gameplay Flow
+
+Startup:
+1. `Assets/Scenes/Main.unity` starts first.
+2. `AppManager` loads configured additive scenes.
+3. Template managers initialize through singleton/stage flow.
+4. Game scene provides `PixelVoxelPuzzleGameRoot` and scene-specific systems.
+5. `PuzzleAutoStartup` may start a default puzzle if configured.
+
+Input:
+1. Template `InputManager` detects key/mouse input.
+2. `InputContextRouter` checks current `PixelVoxelPuzzleInputContext`.
+3. Router sends commands to hand, camera, swing or physical menu.
+
+Level selection:
+1. Player uses `World3DLevelButton`.
+2. `UILevelSelectModule.SelectPuzzleIndex` checks lock state and puzzle library.
+3. Existing active puzzle is packed if needed.
+4. `PuzzleSessionManager.StartSession` builds the selected puzzle.
+5. `GroundPivotFastTravelController` can move the camera pivot to `PuzzleAssemblyDock_Main`.
+
+Puzzle session:
+1. `PuzzleSessionFactory` builds board/pieces.
+2. Pieces are held through `HandController` and `PuzzlePieceHoldable`.
+3. `PuzzlePlacementService` previews and validates placement.
+4. `PuzzleBoard` writes occupancy.
+5. `PuzzleCompletionService` checks target completion.
+6. `PuzzleSessionManager` raises completion/placement events.
+
+Save:
+1. `PixelVoxelPuzzleSaveController` captures level/session/piece state.
+2. It integrates with Template `SaveManager` through `PixelVoxelPuzzleSaveItem`.
+3. Save data restores level button states and active session if configured.
+
+
+## 22. Scene Hierarchy Rules
+
+Preferred Game hierarchy:
+
+```text
+Game
+  Systems
+  World
+  Runtime
+  _Debug
+```
+
+`Systems`
+- Logic only:
+  - input
+  - hand
+  - interaction/swing
+  - puzzle session
+  - camera system
+  - UI manager modules
+  - save bridge
+  - recovery
+
+`World`
+- Hand-authored world content:
+  - environment
+  - level select
+  - assembly docks
+  - physical menu
+  - world UI
+  - achievement gallery
+  - secrets
+  - puzzle boxes if authored/generated as world objects
+
+`Runtime`
+- Spawned/controlled runtime content:
+  - `ActivePuzzleSession`
+  - board
+  - pieces
+  - placement preview
+  - generated objects
+  - pool
+
+`_Debug`
+- Temporary test/debug objects.
+- If deleting `_Debug` breaks normal play, the architecture is wrong.
+
+Current important assembly dock structure:
+
+```text
+PuzzleAssemblyDock_Main
+  BoardArea_Main
+  PiecesSpawnArea
+  PiecesReturnAnchor
+  BoxReturnAnchor
+  CameraFocus
+  RecoveryAnchor
+  ResetButtonAnchor
+  PackButtonAnchor
+```
+
+
+## 23. Materials, Prefabs and Resources
+
+Project materials:
+- `Assets/_Project/PixelVoxelPuzzle/Materials`
+- World UI materials:
+  - `Assets/_Project/PixelVoxelPuzzle/Materials/WorldUI/WorldUI Static Button.mat`
+  - `WorldUI Physical Button.mat`
+  - `WorldUI Slot.mat`
+  - `WorldUI Slot Active.mat`
+  - `WorldUI Toggle On.mat`
+  - `WorldUI Toggle Off.mat`
+  - `WorldUI Hover.mat`
+  - `WorldUI Blocked.mat`
+- Placement materials:
+  - `Placement Valid.mat`
+  - `Placement Invalid.mat`
+- Shaders:
+  - `PixelVoxelPuzzleVertexColorUnlit.shader`
+  - `PixelVoxelPuzzlePlacementLineUnlit.shader`
+  - `PixelVoxelPuzzleHoverOutline.shader`
+
+Project prefabs:
+- `Assets/Prefabs/Box.prefab`
+- `Assets/_Project/PixelVoxelPuzzle/Prefabs/Test/[TEST] Board.prefab`
+- `Assets/_Project/PixelVoxelPuzzle/Prefabs/Test/[TEST] Piece.prefab`
+- `Assets/_Project/PixelVoxelPuzzle/Prefabs/Test/[TEST] Placement Preview.prefab`
+
+Resources:
+- `Assets/Resources/Puzzles`
+- `Assets/Resources/Data/BoardAreaLibrary.asset`
+- `Assets/Resources/Girls`
+- `Assets/Settings`
+
+
+## 24. AI Search Recipes
+
+Find project classes:
+```text
+rg -n "\b(class|interface|enum|struct|record)\b" Assets/_Project/PixelVoxelPuzzle -g "*.cs"
+```
+
+Find Template managers:
+```text
+rg -n "\bclass .*Manager\b|SingletonManager" Assets/Template/Managers -g "*.cs"
+```
+
+Find Template modules:
+```text
+rg --files Assets/Template/Modules
+```
+
+Find PixelPuzzle events:
+```text
+rg -n "PixelPuzzle_" Assets/Template/Managers/Events Assets/_Project/PixelVoxelPuzzle -g "*.cs"
+```
+
+Find current scene root names:
+```text
+rg -n "m_Name: (Systems|World|Runtime|_Debug|CameraSystem|PuzzleSystem|HandSystem|InputSystem|PuzzleAssemblyDock_Main)" Assets/Scenes/Game.unity
+```
+
+Find generated puzzle assets:
+```text
+rg --files Assets/Resources/Puzzles
+```
+
+Find docs:
+```text
+rg --files Docs Assets/Template -g "*.txt" -g "*.md"
+```
+
+
+## 25. AI Editing Guidelines
+
+Before changing architecture:
+- Read the relevant README/doc and the actual class implementation.
+- Check whether the behavior belongs in Template generic code or PixelVoxelPuzzle project code.
+- Use bridges for project-specific behavior.
+- Keep Main-scene singleton managers unique.
+- Keep Game-scene systems under `Systems`, authored objects under `World`, spawned objects under `Runtime`, temporary objects under `_Debug`.
+
+When changing input:
+- Do not put puzzle rules into `InputManager`.
+- Use `InputContextRouter`, `InputContextStack`, `HandInputController`, camera bridge or physical menu navigator.
+
+When changing camera:
+- Prefer `DanieloZ.CameraSystem`.
+- Do not add direct key reads to camera module classes.
+- Route input through PixelVoxelPuzzle input bridge/router.
+
+When changing world interaction:
+- Generic reusable interaction goes under `Assets/Template/Modules/DanieloZ.WorldInteraction`.
+- PixelVoxelPuzzle-specific rules go under `Assets/_Project/PixelVoxelPuzzle/Runtime/WorldInteractionBridge` or feature-specific runtime folders.
+
+When changing puzzle placement:
+- Board logic belongs in `PuzzleBoard`.
+- Candidate/validation/release coordination belongs in `PuzzlePlacementService`.
+- Visual lines belong in `PuzzlePlacementPreviewView`.
+- Held-object behavior belongs in `PuzzlePieceHoldable`.
+- Completion target checks belong in `PuzzleCompletionService`.
+
+When changing Level Select:
+- `UILevelSelectModule` owns selection/progression-facing state.
+- `World3DLevelButton` is the physical view.
+- Do not make level buttons spawn puzzle pieces directly.
+
+When changing save:
+- PixelVoxelPuzzle capture/apply logic belongs in `PixelVoxelPuzzleSaveController`.
+- Serializable data belongs in `PixelVoxelPuzzleSaveData`.
+- Integration with global persistence goes through Template `SaveManager` and `SaveItem`.
+
+When changing generated scenes:
+- Prefer updating `PixelVoxelPuzzleGameSceneGenerator.cs` if the scene is meant to be reproducible.
+- Be careful: generator can rebuild/overwrite `Assets/Scenes/Game.unity`.
+- Preserve existing Bezier curve data if camera curves are user-tuned.
+
+When changing puzzle generation:
+- `PixelPuzzleGeneratorController.cs` is large and owns many responsibilities.
+- Use `PixelPuzzleGeneratorWindow` and custom editor only for editor UX.
+- Keep baked runtime data in `PixelPuzzleAsset`, `PixelPuzzlePieceData`, `PhysicsShapeData` and generated meshes/materials.
+
+When touching dirty working tree:
+- Do not revert user changes.
+- Check `git status --short`.
+- Touch only files required by the task.
+
+
+## 26. Quick Ownership Index
+
+Template reusable ownership:
+- App/stages/config/input/save/events/audio/camera/UI/pooling: `Assets/Template/Managers`
+- Generic physical interaction: `Assets/Template/Modules/DanieloZ.WorldInteraction`
+- Generic camera system: `Assets/Template/Modules/DanieloZ.CameraSystem`
+- Transitions: `Assets/Template/Modules/DanieloZ.Transitions`
+- Generic pool utility: `Assets/Template/Modules/DanieloZ.Collections`
+- Promise helpers: `Assets/Template/Modules/DanieloZ.InstancePromise`
+- Migration helpers: `Assets/Template/Modules/DanieloZ.DataMigration`
+
+PixelVoxelPuzzle ownership:
+- Runtime data: `Assets/_Project/PixelVoxelPuzzle/Runtime/Data`
+- Runtime puzzle: `Assets/_Project/PixelVoxelPuzzle/Runtime/Puzzle`
+- Runtime input: `Assets/_Project/PixelVoxelPuzzle/Runtime/Input`
+- Runtime hand: `Assets/_Project/PixelVoxelPuzzle/Runtime/Hand`
+- Runtime world bridges: `Assets/_Project/PixelVoxelPuzzle/Runtime/WorldInteractionBridge`
+- Runtime UI modules: `Assets/_Project/PixelVoxelPuzzle/Runtime/UI`
+- Runtime save: `Assets/_Project/PixelVoxelPuzzle/Runtime/Save`
+- Runtime generator controller: `Assets/_Project/PixelVoxelPuzzle/Runtime/Generation`
+- Editor setup/generation: `Assets/_Project/PixelVoxelPuzzle/Editor`
+- Materials: `Assets/_Project/PixelVoxelPuzzle/Materials`
+- Main puzzle resources: `Assets/Resources/Puzzles`
+- Box prefab: `Assets/Prefabs/Box.prefab`

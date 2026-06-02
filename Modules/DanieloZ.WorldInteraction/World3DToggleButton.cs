@@ -100,6 +100,26 @@ namespace DanieloZ.WorldInteraction
             pressAnimation.Play(localPressOffset, pressInDuration, releaseDuration, pressEase, HandlePressed);
         }
 
+        public void BeginPress()
+        {
+            if (!Interactable)
+            {
+                return;
+            }
+
+            pressAnimation.PressIn(localPressOffset, pressInDuration, pressEase);
+        }
+
+        public void EndPress(bool activate)
+        {
+            if (activate && Interactable)
+            {
+                HandlePressed();
+            }
+
+            pressAnimation.Release(releaseDuration, pressEase);
+        }
+
         public void Toggle()
         {
             if (IsActive && !allowToggleOff)
