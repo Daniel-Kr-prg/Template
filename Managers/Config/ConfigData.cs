@@ -21,7 +21,7 @@ namespace DanieloZ.Config
         public AudioSettings AudioSettings;
         public InterfaceSettings InterfaceSettings;
 
-        public SerializedDictionary<string, string> customSettings;
+        public SerializedDictionary<string, string> customSettings = new();
 
         public override SerializedDictionary<string, string> GetSaveableConfigData()
         {
@@ -34,6 +34,7 @@ namespace DanieloZ.Config
             result.AddRange(AudioSettings.GetSaveableConfigData());
             result.AddRange(InterfaceSettings.GetSaveableConfigData());
 
+            customSettings ??= new SerializedDictionary<string, string>();
             foreach (KeyValuePair<string, string> kvp in customSettings)
             {
                 result.Add($"{(kvp.Key.Contains($"{CFG_KEY}_") ? "" : CFG_KEY)}_{kvp.Key}", kvp.Value);
@@ -60,6 +61,7 @@ namespace DanieloZ.Config
         public override string CFG_KEY => "GAME";
 
         [Range(60, 120)] public int FOV;
+        [Min(0f)] public float AutoSaveMinutes = 5f;
 
         public ConfigAvailableSettings.Language Language;
 
