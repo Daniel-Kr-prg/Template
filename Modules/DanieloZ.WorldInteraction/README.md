@@ -163,4 +163,4 @@ Physical collision alone does not insert the item. The collider is the raycast/h
 
 `Examples/Scenes/WorldInteractionExamples.unity` shows the components in one standalone scene.
 
-Project-specific bridge components for PixelVoxelPuzzle hand/use input live in `Assets/_Project/PixelVoxelPuzzle/Runtime/WorldInteractionBridge`.
+Project-specific bridge components for PixelVoxelPuzzle hand/use input live in `Assets/Runtime/WorldInteractionBridge`.

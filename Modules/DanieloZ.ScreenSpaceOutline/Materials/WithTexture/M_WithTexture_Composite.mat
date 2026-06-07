@@ -31,17 +31,17 @@ Material:
     - _EnableOccludedOutline: 1
     - _EnableOccludedSilhouette: 1
     - _EnableVisibleOutline: 1
-    - _OccludedOutlineAlpha: 0.373
+    - _OccludedOutlineAlpha: 0.5
     - _OccludedOutlineThicknessPixels: 2
-    - _OccludedSilhouetteAlpha: 0.7
-    - _OccludedSilhouetteTextureMix: 0.5
+    - _OccludedSilhouetteAlpha: 0.75
+    - _OccludedSilhouetteTextureMix: 0.9
     - _OutlineThicknessPixels: 7.92
     - _UseDistanceThicknessScale: 0
     - _VisibleOutlineAlpha: 1
     - _VisibleOutlineThicknessPixels: 2
     m_Colors:
     - _OccludedOutlineColor: {r: 0.9622642, g: 0.9622642, b: 0.9622642, a: 1}
-    - _OccludedSilhouetteColor: {r: 0.6886792, g: 0.6886792, b: 0.6886792, a: 1}
+    - _OccludedSilhouetteColor: {r: 1, g: 1, b: 1, a: 1}
     - _VisibleOutlineColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

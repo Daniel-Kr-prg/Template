@@ -1,11 +1,11 @@
 # AI Context for PixelLust Template and PixelVoxelPuzzle
 
-Last updated: 2026-05-31
+Last updated: 2026-06-07
 Purpose: one navigation file for AI agents working in this Unity project. Use this as a fast map of Template modules, managers, scenes, setup flow, PixelVoxelPuzzle runtime architecture, and important file locations.
 
 Important rule for AI work:
 - The generic Template lives under `Assets/Template`.
-- The game-specific PixelVoxelPuzzle implementation lives under `Assets/_Project/PixelVoxelPuzzle`.
+- The game-specific PixelVoxelPuzzle implementation lives under `Assets`.
 - Do not put puzzle-specific rules into generic Template modules unless the user explicitly asks for a reusable Template change.
 - Prefer project-side bridge components when connecting PixelVoxelPuzzle to generic systems.
 - Several docs describe future/planned systems. Current code is the source of truth when docs disagree.
@@ -15,7 +15,11 @@ Important rule for AI work:
 
 Root project folders:
 - `Assets/Template` - reusable project template, managers, modules, plugins and template scenes.
-- `Assets/_Project/PixelVoxelPuzzle` - game-specific runtime/editor code, materials, prefabs and ScriptableObjects.
+- `Assets/Runtime` - game-specific runtime code.
+- `Assets/Editor` - game-specific editor tooling outside PuzzleGenerator.
+- `Assets/Art` - project materials, models, shaders and textures.
+- `Assets/PuzzleGenerator` - standalone generator scene, source tooling and exported levels.
+- `Assets/_Imported` - third-party imported assets that are not part of Template.
 - `Assets/Scenes` - active project scenes.
 - `Assets/Resources` - puzzle libraries, generated puzzle data, board-area data and generated visual resources.
 - `Assets/Prefabs` - project prefabs outside Template; currently important: `Assets/Prefabs/Box.prefab`.
@@ -39,6 +43,7 @@ Older docs:
 
 Noise to usually ignore:
 - `Packages/com.unity.ai.assistant/**` contains Unity AI package docs/code and is not project architecture.
+- `Assets/AI Toolkit` is a package-managed temporary asset folder and must stay at that exact path.
 - `Library`, `Temp`, `Logs`, `obj`, `.vs` are generated/local.
 
 
@@ -89,7 +94,7 @@ Active build scenes from `ProjectSettings/EditorBuildSettings.asset`:
 - `Assets/Scenes/Game.unity`
 
 Other project scenes:
-- `Assets/Scenes/PixelPuzzleGenerator.unity` - editor/generator scene, not in build settings.
+- `Assets/PuzzleGenerator/Generator.unity` - editor/generator scene, not in build settings.
 - `Assets/Scenes/Test Game.unity` - test/prototype scene.
 - `Assets/Scenes/Game_MVP.unity` - clean/rebuild target/reference.
 - `Assets/Scenes/Game_Old.unity` - old scene reference.
@@ -142,14 +147,14 @@ Game scene:
   - `_Debug`
 
 PixelPuzzleGenerator scene:
-- `Assets/Scenes/PixelPuzzleGenerator.unity`
+- `Assets/PuzzleGenerator/Generator.unity`
 - Important objects:
   - `PixelPuzzleGenerator`
   - `PreviewRoot`
 - Used by `PixelPuzzleGeneratorController` and `PixelPuzzleGeneratorWindow`.
 
 Scene toolbar/editor shortcuts:
-- `Assets/_Project/PixelVoxelPuzzle/Editor/Setup/PixelVoxelPuzzleSceneSetToolbar.cs`
+- `Assets/Editor/Setup/PixelVoxelPuzzleSceneSetToolbar.cs`
 - Menu: `Pixel Lust/Scenes/Open Main + UI + Game`
 - Menu: `Pixel Lust/Scenes/Open Puzzle Generator`
 - Toolbar buttons: `Main/UI/Game` and `Generator`
@@ -468,7 +473,7 @@ Examples:
 - Example scene mentioned by README: `Examples/Scenes/WorldInteractionExamples.unity`
 
 PixelVoxelPuzzle bridge components:
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/WorldInteractionBridge`
+- `Assets/Runtime/WorldInteractionBridge`
 
 ### DanieloZ.CameraSystem
 
@@ -513,7 +518,7 @@ Core files/classes:
   - Scene handles/editor for Bezier curves.
 
 PixelVoxelPuzzle input bridge:
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/Input/PixelVoxelPuzzleCameraInputContextBridge.cs`
+- `Assets/Runtime/Input/PixelVoxelPuzzleCameraInputContextBridge.cs`
 
 ### DanieloZ.ScreenSpaceOutline
 
@@ -637,7 +642,7 @@ Important plugin folders:
 ## 8. PixelVoxelPuzzle Project Layer
 
 Root:
-- `Assets/_Project/PixelVoxelPuzzle`
+- `Assets`
 
 Major folders:
 - `Runtime`
@@ -655,7 +660,7 @@ High-level architecture:
 - Temporary/testing objects live under `_Debug`.
 
 Current source-of-truth runtime path:
-- `Puzzle*` classes under `Assets/_Project/PixelVoxelPuzzle/Runtime/Puzzle`
+- `Puzzle*` classes under `Assets/Runtime/Puzzle`
 - `Hand*` classes under `Runtime/Hand`
 - input contexts under `Runtime/Input`
 - project UI modules under `Runtime/UI`
@@ -667,7 +672,7 @@ Do not treat old names as current:
 
 ## 9. PixelVoxelPuzzle Runtime Setup Roots
 
-`Assets/_Project/PixelVoxelPuzzle/Runtime/Setup/PixelVoxelPuzzleGameRoot.cs`
+`Assets/Runtime/Setup/PixelVoxelPuzzleGameRoot.cs`
 - Current high-level Game scene reference hub.
 - It is a reference hub only, not gameplay logic.
 - Serialized roots:
@@ -699,7 +704,7 @@ Do not treat old names as current:
   - `achievementGalleryRoot`
   - `mainAssemblyDock`
 
-`Assets/_Project/PixelVoxelPuzzle/Runtime/Setup/PixelVoxelPuzzleSceneRoot.cs`
+`Assets/Runtime/Setup/PixelVoxelPuzzleSceneRoot.cs`
 - Older/shared scene-root style.
 - Inherits `SingletonManager<PixelVoxelPuzzleSceneRoot>`.
 - Fields:
@@ -712,20 +717,20 @@ Do not treat old names as current:
   - `materialPalette`
 - New MVP wiring should prefer `PixelVoxelPuzzleGameRoot`.
 
-`Assets/_Project/PixelVoxelPuzzle/Runtime/Setup/PixelVoxelPuzzleSetupValidator.cs`
+`Assets/Runtime/Setup/PixelVoxelPuzzleSetupValidator.cs`
 - Validates scene root references.
 
-`Assets/_Project/PixelVoxelPuzzle/Runtime/Setup/PixelVoxelPuzzleLayers.cs`
+`Assets/Runtime/Setup/PixelVoxelPuzzleLayers.cs`
 - Central layer-name constants/helper for project layers.
 
-`Assets/_Project/PixelVoxelPuzzle/Runtime/Setup/PixelVoxelPuzzleMaterialPalette.cs`
+`Assets/Runtime/Setup/PixelVoxelPuzzleMaterialPalette.cs`
 - ScriptableObject material palette.
 
 
 ## 10. PixelVoxelPuzzle Scene/Editor Setup
 
 Main scene generator:
-- `Assets/_Project/PixelVoxelPuzzle/Editor/Setup/PixelVoxelPuzzleGameSceneGenerator.cs`
+- `Assets/Editor/Setup/PixelVoxelPuzzleGameSceneGenerator.cs`
 
 Menu:
 - `Pixel Lust/Pixel Voxel Puzzle/MVP/Create Or Rebuild Game Scene`
@@ -773,7 +778,7 @@ Other editor setup files:
 ## 11. PixelVoxelPuzzle Data Assets
 
 Runtime data folder:
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/Data`
+- `Assets/Runtime/Data`
 
 Generated/resource data:
 - `Assets/Resources/Puzzles`
@@ -851,10 +856,10 @@ Enums:
 ## 12. PixelVoxelPuzzle Input and Hand Flow
 
 Input runtime folder:
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/Input`
+- `Assets/Runtime/Input`
 
 Hand runtime folder:
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/Hand`
+- `Assets/Runtime/Hand`
 
 Principle:
 - Template `InputManager` is the low-level key binder.
@@ -923,7 +928,7 @@ Hand components:
 ## 13. PixelVoxelPuzzle Puzzle Runtime
 
 Runtime puzzle folder:
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/Puzzle`
+- `Assets/Runtime/Puzzle`
 
 Current active loop:
 1. Player uses Level Select world button.
@@ -1151,12 +1156,12 @@ Runtime components:
 - Collects piece scale controllers under pieces root and applies global/per-piece settings.
 
 WorldInteraction bridge for physical box pickup:
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/WorldInteractionBridge/HandHoldableWorldDraggable.cs`
+- `Assets/Runtime/WorldInteractionBridge/HandHoldableWorldDraggable.cs`
   - Bridges hand system to generic `WorldDraggable`.
   - Supports whole-object pickup.
   - Uses `HeldObjectLiftUtility` only for box bottom clearance while `HeldObjectLiftUtility.ObstacleLiftGloballyEnabled` is false.
   - Assigns model bounds to `ModelBounds` layer and ignores collisions.
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/Hand/HeldObjectLiftUtility.cs`
+- `Assets/Runtime/Hand/HeldObjectLiftUtility.cs`
   - Contains the disabled bounds/footprint obstacle lift prototype. It can raise held grip targets over obstacles using `modelBoundsCollider`, non-trigger child colliders, or renderer bounds when `ObstacleLiftGloballyEnabled` is re-enabled.
   - Default obstacle mask is `PuzzleBoard | Table | PuzzleBox | PuzzlePiece`; self colliders, triggers, `ModelBounds`, and `BoxToggle` are ignored, but active stored/capturing pieces are not children of the held box and can cause jitter if `PuzzlePiece` remains in the box obstacle mask.
 
@@ -1169,7 +1174,7 @@ Important ModelBounds rule:
 ## 15. PixelVoxelPuzzle WorldInteractionBridge
 
 Folder:
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/WorldInteractionBridge`
+- `Assets/Runtime/WorldInteractionBridge`
 
 Purpose:
 - Project-side adapters between the PixelVoxelPuzzle hand/input stack and generic Template world interaction module.
@@ -1194,7 +1199,7 @@ Classes:
 ## 16. PixelVoxelPuzzle UI Modules
 
 Folder:
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/UI`
+- `Assets/Runtime/UI`
 
 `PixelVoxelPuzzleUIManager.cs`
 - Scene/project UI module registry.
@@ -1326,9 +1331,9 @@ Template module owns generic camera:
 - `Assets/Template/Modules/DanieloZ.CameraSystem`
 
 Project camera integration:
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/Input/PixelVoxelPuzzleCameraInputContextBridge.cs`
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/UI/GroundPivotFastTravelController.cs`
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/Puzzle/PuzzleBoardCameraZoneSettings.cs`
+- `Assets/Runtime/Input/PixelVoxelPuzzleCameraInputContextBridge.cs`
+- `Assets/Runtime/UI/GroundPivotFastTravelController.cs`
+- `Assets/Runtime/Puzzle/PuzzleBoardCameraZoneSettings.cs`
 
 Current generator builds in Game scene:
 - `CameraSystem`
@@ -1353,7 +1358,7 @@ Input separation:
 ## 18. PixelVoxelPuzzle Swing/Interaction Runtime
 
 Folder:
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/Interaction`
+- `Assets/Runtime/Interaction`
 
 `SwingSurfaceResolver.cs`
 - Resolves cursor/surface hit point.
@@ -1373,7 +1378,7 @@ Generic world interaction still exists:
 ## 19. PixelVoxelPuzzle Save Runtime
 
 Folder:
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/Save`
+- `Assets/Runtime/Save`
 
 Note:
 - Save runtime now exists in the working tree even though older docs describe save as planned.
@@ -1408,17 +1413,17 @@ Note:
 ## 20. PixelVoxelPuzzle Generator
 
 Runtime/editor generator controller:
-- `Assets/_Project/PixelVoxelPuzzle/Runtime/Generation/PixelPuzzleGeneratorController.cs`
+- `Assets/PuzzleGenerator/Core/Runtime/PixelPuzzleGeneratorController.cs`
 
 Editor UI:
-- `Assets/_Project/PixelVoxelPuzzle/Editor/Generator/PixelPuzzleGeneratorWindow.cs`
+- `Assets/PuzzleGenerator/Core/Editor/PixelPuzzleGeneratorWindow.cs`
 - Menu: `Tools/Pixel Puzzle/Generator Window`
 
 Custom inspector:
-- `Assets/_Project/PixelVoxelPuzzle/Editor/Generator/PixelPuzzleGeneratorControllerEditor.cs`
+- `Assets/PuzzleGenerator/Core/Editor/PixelPuzzleGeneratorControllerEditor.cs`
 
 Generator scene:
-- `Assets/Scenes/PixelPuzzleGenerator.unity`
+- `Assets/PuzzleGenerator/Generator.unity`
 
 Generator responsibilities:
 - Source image processing.
@@ -1446,7 +1451,7 @@ Important APIs:
 - `CreateGeneratorScene`
 
 Generator output paths/settings:
-- Default output folder in controller: `Assets/_Project/PixelVoxelPuzzle/Generated`
+- Default output folder in controller: `Assets/PuzzleGenerator/Exported`
 - Current resource assets also live under `Assets/Resources/Puzzles/Puzzle Data`
 - Box materials may use source texture folder or `Assets/Resources/Girls`
 
@@ -1556,9 +1561,9 @@ PuzzleAssemblyDock_Main
 ## 23. Materials, Prefabs and Resources
 
 Project materials:
-- `Assets/_Project/PixelVoxelPuzzle/Materials`
+- `Assets/Art/Materials`
 - World UI materials:
-  - `Assets/_Project/PixelVoxelPuzzle/Materials/WorldUI/WorldUI Static Button.mat`
+  - `Assets/Art/Materials/WorldUI/WorldUI Static Button.mat`
   - `WorldUI Physical Button.mat`
   - `WorldUI Slot.mat`
   - `WorldUI Slot Active.mat`
@@ -1576,9 +1581,9 @@ Project materials:
 
 Project prefabs:
 - `Assets/Prefabs/Box.prefab`
-- `Assets/_Project/PixelVoxelPuzzle/Prefabs/Test/[TEST] Board.prefab`
-- `Assets/_Project/PixelVoxelPuzzle/Prefabs/Test/[TEST] Piece.prefab`
-- `Assets/_Project/PixelVoxelPuzzle/Prefabs/Test/[TEST] Placement Preview.prefab`
+- `Assets/Prefabs/Test/[TEST] Board.prefab`
+- `Assets/Prefabs/Test/[TEST] Piece.prefab`
+- `Assets/Prefabs/Test/[TEST] Placement Preview.prefab`
 
 Resources:
 - `Assets/Resources/Puzzles`
@@ -1591,7 +1596,7 @@ Resources:
 
 Find project classes:
 ```text
-rg -n "\b(class|interface|enum|struct|record)\b" Assets/_Project/PixelVoxelPuzzle -g "*.cs"
+rg -n "\b(class|interface|enum|struct|record)\b" Assets/Runtime Assets/Editor Assets/PuzzleGenerator/Core -g "*.cs"
 ```
 
 Find Template managers:
@@ -1606,7 +1611,7 @@ rg --files Assets/Template/Modules
 
 Find PixelPuzzle events:
 ```text
-rg -n "PixelPuzzle_" Assets/Template/Managers/Events Assets/_Project/PixelVoxelPuzzle -g "*.cs"
+rg -n "PixelPuzzle_" Assets/Template/Managers/Events Assets/Runtime -g "*.cs"
 ```
 
 Find current scene root names:
@@ -1645,7 +1650,7 @@ When changing camera:
 
 When changing world interaction:
 - Generic reusable interaction goes under `Assets/Template/Modules/DanieloZ.WorldInteraction`.
-- PixelVoxelPuzzle-specific rules go under `Assets/_Project/PixelVoxelPuzzle/Runtime/WorldInteractionBridge` or feature-specific runtime folders.
+- PixelVoxelPuzzle-specific rules go under `Assets/Runtime/WorldInteractionBridge` or feature-specific runtime folders.
 
 When changing screen-space outlines:
 - Generic RenderFeature, shaders and material profiles belong in `Assets/Template/Modules/DanieloZ.ScreenSpaceOutline`.
@@ -1699,15 +1704,17 @@ Template reusable ownership:
 - Migration helpers: `Assets/Template/Modules/DanieloZ.DataMigration`
 
 PixelVoxelPuzzle ownership:
-- Runtime data: `Assets/_Project/PixelVoxelPuzzle/Runtime/Data`
-- Runtime puzzle: `Assets/_Project/PixelVoxelPuzzle/Runtime/Puzzle`
-- Runtime input: `Assets/_Project/PixelVoxelPuzzle/Runtime/Input`
-- Runtime hand: `Assets/_Project/PixelVoxelPuzzle/Runtime/Hand`
-- Runtime world bridges: `Assets/_Project/PixelVoxelPuzzle/Runtime/WorldInteractionBridge`
-- Runtime UI modules: `Assets/_Project/PixelVoxelPuzzle/Runtime/UI`
-- Runtime save: `Assets/_Project/PixelVoxelPuzzle/Runtime/Save`
-- Runtime generator controller: `Assets/_Project/PixelVoxelPuzzle/Runtime/Generation`
-- Editor setup/generation: `Assets/_Project/PixelVoxelPuzzle/Editor`
-- Materials: `Assets/_Project/PixelVoxelPuzzle/Materials`
+- Runtime data: `Assets/Runtime/Data`
+- Runtime puzzle: `Assets/Runtime/Puzzle`
+- Runtime input: `Assets/Runtime/Input`
+- Runtime hand: `Assets/Runtime/Hand`
+- Runtime world bridges: `Assets/Runtime/WorldInteractionBridge`
+- Runtime UI modules: `Assets/Runtime/UI`
+- Runtime save: `Assets/Runtime/Save`
+- Puzzle generator controller: `Assets/PuzzleGenerator/Core/Runtime`
+- Puzzle generator editor tooling: `Assets/PuzzleGenerator/Core/Editor`
+- Puzzle generator exports: `Assets/PuzzleGenerator/Exported`
+- Editor setup/tooling: `Assets/Editor`
+- Materials: `Assets/Art/Materials`
 - Main puzzle resources: `Assets/Resources/Puzzles`
 - Box prefab: `Assets/Prefabs/Box.prefab`
