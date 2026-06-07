@@ -92,6 +92,14 @@ namespace DanieloZ.CameraSystem
             moveInput += input;
         }
 
+        // Pointer-driven pan that reuses the WASD movement pipeline but scales the top speed by speedScale
+        // (speedScale 1 == WASD moveSpeed, 2 == 2x moveSpeed, etc.).
+        public void MoveByPointer(Vector2 input, float speedScale)
+        {
+            pointerMoveInput += input;
+            pointerMoveSpeedScale = Mathf.Max(0f, speedScale);
+        }
+
         public void Orbit(float direction)
         {
             orbitInput += direction;
@@ -173,6 +181,8 @@ namespace DanieloZ.CameraSystem
         #region Runtime State
 
         private Vector2 moveInput;
+        private Vector2 pointerMoveInput;
+        private float pointerMoveSpeedScale = 1f;
         private float orbitInput;
         private Vector3 currentMoveVelocity;
         private Vector2 previousOrbitPointerPosition;
@@ -215,6 +225,7 @@ namespace DanieloZ.CameraSystem
             ApplyRigPose();
             ApplyVirtualCameraPose(false);
             moveInput = Vector2.zero;
+            pointerMoveInput = Vector2.zero;
             orbitInput = 0f;
         }
 
@@ -233,19 +244,27 @@ namespace DanieloZ.CameraSystem
         {
             if (positionLerpTarget == null)
             {
+                pointerMoveInput = Vector2.zero;
                 return;
             }
+
+            var movementRotation = UsesSeparatedRigSmoothing
+                ? Quaternion.Euler(0f, desiredPivotYaw, 0f)
+                : positionLerpTarget.rotation;
+            var forward = Vector3.ProjectOnPlane(movementRotation * Vector3.forward, Vector3.up).normalized;
+            var right = Vector3.ProjectOnPlane(movementRotation * Vector3.right, Vector3.up).normalized;
 
             var desiredVelocity = Vector3.zero;
             if (moveInput.sqrMagnitude > 0.0001f)
             {
                 var input = Vector2.ClampMagnitude(moveInput, 1f);
-                var movementRotation = UsesSeparatedRigSmoothing
-                    ? Quaternion.Euler(0f, desiredPivotYaw, 0f)
-                    : positionLerpTarget.rotation;
-                var forward = Vector3.ProjectOnPlane(movementRotation * Vector3.forward, Vector3.up).normalized;
-                var right = Vector3.ProjectOnPlane(movementRotation * Vector3.right, Vector3.up).normalized;
-                desiredVelocity = (forward * input.y + right * input.x) * moveSpeed;
+                desiredVelocity += (forward * input.y + right * input.x) * moveSpeed;
+            }
+
+            if (pointerMoveInput.sqrMagnitude > 0.0001f)
+            {
+                var input = Vector2.ClampMagnitude(pointerMoveInput, 1f);
+                desiredVelocity += (forward * input.y + right * input.x) * moveSpeed * pointerMoveSpeedScale;
             }
 
             var acceleration = desiredVelocity.sqrMagnitude > currentMoveVelocity.sqrMagnitude

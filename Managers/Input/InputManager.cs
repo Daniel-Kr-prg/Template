@@ -175,6 +175,8 @@ namespace DanieloZ.InputManagement
             changed |= TryAddFallbackKey(keysMap, InputActionKey.JUMP, KeyCode.Space);
             changed |= TryAddFallbackKey(keysMap, InputActionKey.CROUNCH, KeyCode.LeftControl);
             changed |= TryAddFallbackKey(keysMap, InputActionKey.RUN, KeyCode.LeftShift);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.ROTATE_PIECE, KeyCode.R);
+            changed |= TryAddFallbackKey(keysMap, InputActionKey.TARGET_BOARD_LOCK, KeyCode.LeftShift);
             changed |= TryAddFallbackKey(keysMap, InputActionKey.TEXT_CHAT, KeyCode.T);
             changed |= TryAddFallbackKey(keysMap, InputActionKey.VOICE_CHAT, KeyCode.V);
             changed |= TryAddFallbackKey(keysMap, InputActionKey.MOUSE_LEFT, KeyCode.Mouse0);

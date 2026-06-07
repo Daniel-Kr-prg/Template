@@ -90,6 +90,10 @@ public enum InputActionKey
     PETRIFY,
     UNSTUCK,
 
+    // Puzzle interaction
+    ROTATE_PIECE,
+    TARGET_BOARD_LOCK,
+
     // Social
     TEXT_CHAT,
     VOICE_CHAT,
