@@ -31,6 +31,7 @@ Main docs to read first:
 - `Docs/CurrentRefactorPlan.txt`
 - `Assets/Template/Modules/DanieloZ.WorldInteraction/README.md`
 - `Assets/Template/Modules/DanieloZ.CameraSystem/README.md`
+- `Assets/Template/Modules/DanieloZ.ScreenSpaceOutline/README.md`
 - `Assets/Template/README.md`
 
 Older docs:
@@ -513,6 +514,40 @@ Core files/classes:
 
 PixelVoxelPuzzle input bridge:
 - `Assets/_Project/PixelVoxelPuzzle/Runtime/Input/PixelVoxelPuzzleCameraInputContextBridge.cs`
+
+### DanieloZ.ScreenSpaceOutline
+
+Path:
+- `Assets/Template/Modules/DanieloZ.ScreenSpaceOutline`
+
+README:
+- `Assets/Template/Modules/DanieloZ.ScreenSpaceOutline/README.md`
+
+Purpose:
+- Reusable URP RenderGraph screen-space outline rendering.
+- Selects outlined renderers through a layer mask.
+- Supports visible outlines, occluded outlines, solid-color occluded silhouettes and an optional mix with the object's front-most rendered visual.
+- Multiple feature instances may use different layer masks and material profiles, but each instance adds rendering cost.
+
+Core files/assets:
+- `Runtime/ScreenSpaceOutlineMaskFeature.cs`
+  - Renders visible and occluded masks, optional object visual, and the final composite.
+  - Remains in `Assembly-CSharp`; do not add an asmdef without migrating serialized Renderer Feature instances.
+- `Shaders/MaskShader.shader`
+  - Visible mask.
+- `Shaders/OutlineOccludedMask.shader`
+  - Occluded mask.
+- `Shaders/ScreenSpaceOutlineComposite.shader`
+  - Outline and silhouette composite.
+- `Materials/WithTexture`
+  - Material profile that renders and mixes the selected object's visual into the occluded silhouette.
+- `Materials/WithoutTexture`
+  - Solid-color silhouette profile that skips the object-visual pass.
+
+PixelVoxelPuzzle renderer setup:
+- `ScreenSpaceOutlineMaskFeatureWithTexture` targets `PuzzlePieceSelect`.
+- `ScreenSpaceOutlineMaskFeatureWithoutTexture` targets the remaining outline layers.
+- Project-side selection components switch renderer layers; outline rendering itself stays generic in Template.
 
 ### DanieloZ.Transitions
 
@@ -1612,6 +1647,12 @@ When changing world interaction:
 - Generic reusable interaction goes under `Assets/Template/Modules/DanieloZ.WorldInteraction`.
 - PixelVoxelPuzzle-specific rules go under `Assets/_Project/PixelVoxelPuzzle/Runtime/WorldInteractionBridge` or feature-specific runtime folders.
 
+When changing screen-space outlines:
+- Generic RenderFeature, shaders and material profiles belong in `Assets/Template/Modules/DanieloZ.ScreenSpaceOutline`.
+- Keep object selection and layer-switching rules in project-side runtime code.
+- Prefer grouping layers under shared feature instances because every additional feature adds mask and composite passes.
+- Preserve the RenderFeature script GUID and assembly identity when moving or restructuring it.
+
 When changing puzzle placement:
 - Board logic belongs in `PuzzleBoard`.
 - Candidate/validation/release coordination belongs in `PuzzlePlacementService`.
@@ -1651,6 +1692,7 @@ Template reusable ownership:
 - App/stages/config/input/save/events/audio/camera/UI/pooling: `Assets/Template/Managers`
 - Generic physical interaction: `Assets/Template/Modules/DanieloZ.WorldInteraction`
 - Generic camera system: `Assets/Template/Modules/DanieloZ.CameraSystem`
+- Screen-space outline rendering: `Assets/Template/Modules/DanieloZ.ScreenSpaceOutline`
 - Transitions: `Assets/Template/Modules/DanieloZ.Transitions`
 - Generic pool utility: `Assets/Template/Modules/DanieloZ.Collections`
 - Promise helpers: `Assets/Template/Modules/DanieloZ.InstancePromise`
