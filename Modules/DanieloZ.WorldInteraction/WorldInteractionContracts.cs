@@ -45,6 +45,14 @@ namespace DanieloZ.WorldInteraction
             Cursor.lockState = state.LockMode;
         }
 
+        public static void Restore(WorldCursorState state, Vector2 screenPosition)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            TryWarpToScreenPosition(screenPosition);
+            Cursor.visible = state.Visible;
+            Cursor.lockState = state.LockMode;
+        }
+
         public static bool TryWarpToWorldPosition(Camera camera, Vector3 worldPosition)
         {
             if (camera == null)

@@ -264,6 +264,17 @@ namespace DanieloZ.WorldInteraction
             rotationState.BeginFreeRotation(transform.rotation);
         }
 
+        public bool TrySetFreeHeldRotation(Quaternion rootRotation)
+        {
+            if (!IsHeld)
+            {
+                return false;
+            }
+
+            rotationState.SetFreeRotation(rootRotation);
+            return true;
+        }
+
         public void RotateHeldFreely(Vector2 mouseDelta, Camera camera, float degreesPerMouseUnit)
         {
             if (!IsHeld || mouseDelta.sqrMagnitude <= 0.000001f || degreesPerMouseUnit <= 0f)

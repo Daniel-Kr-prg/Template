@@ -34,9 +34,19 @@ namespace DanieloZ.WorldInteraction
         [FoldoutGroup("Indicators")]
         [SerializeField] private GameObject activeIndicator;
         [FoldoutGroup("Indicators")]
+        [SerializeField] private GameObject hoverPreview;
+        [FoldoutGroup("Indicators")]
         [SerializeField] private GameObject acceptedHoverIndicator;
         [FoldoutGroup("Indicators")]
         [SerializeField] private GameObject rejectedHoverIndicator;
+        [FoldoutGroup("Indicators/Hover Preview Animation")]
+        [SerializeField] private bool animateHoverPreview = true;
+        [FoldoutGroup("Indicators/Hover Preview Animation")]
+        [SerializeField, Min(0f)] private float hoverPreviewPulseSpeed = 5f;
+        [FoldoutGroup("Indicators/Hover Preview Animation")]
+        [SerializeField, Min(0f)] private float hoverPreviewScaleAmplitude = 0.035f;
+        [FoldoutGroup("Indicators/Hover Preview Animation")]
+        [SerializeField, Min(0f)] private float hoverPreviewBobAmplitude = 0.025f;
 
         [FoldoutGroup("Events")]
         [FormerlySerializedAs("onButtonInserted")]
@@ -86,6 +96,10 @@ namespace DanieloZ.WorldInteraction
         private World3DSlotItem hoveredItem;
         private bool hasHoverResult;
         private bool hoverCanInsert;
+        private bool hoverPreviewVisible;
+        private bool hasHoverPreviewBasePose;
+        private Vector3 hoverPreviewBaseLocalPosition;
+        private Vector3 hoverPreviewBaseLocalScale;
 
         #endregion
 
@@ -108,6 +122,21 @@ namespace DanieloZ.WorldInteraction
         private void OnDisable()
         {
             ClearHeldItemHover();
+        }
+
+        private void Update()
+        {
+            if (!hoverPreviewVisible || hoverPreview == null || !animateHoverPreview)
+            {
+                return;
+            }
+
+            EnsureHoverPreviewBasePose();
+            var pulse = Mathf.Sin(Time.time * hoverPreviewPulseSpeed);
+            var scale = 1f + pulse * hoverPreviewScaleAmplitude;
+            hoverPreview.transform.localScale = hoverPreviewBaseLocalScale * scale;
+            hoverPreview.transform.localPosition = hoverPreviewBaseLocalPosition
+                + Vector3.up * (pulse * hoverPreviewBobAmplitude);
         }
 
         #endregion
@@ -255,12 +284,11 @@ namespace DanieloZ.WorldInteraction
 
         public virtual bool TryInsertHeldItem(World3DSlotItem item)
         {
-            if (item == null || !item.IsHeld || !CanInsert(item))
+            if (item == null || !CanInsert(item) || !TryReleaseHeldDraggable(item))
             {
                 return false;
             }
 
-            item.Release();
             return TryInsert(item);
         }
 
@@ -351,6 +379,8 @@ namespace DanieloZ.WorldInteraction
                 rejectedHoverIndicator.SetActive(!canInsert);
             }
 
+            SetHoverPreviewVisible(canInsert);
+
             if (canInsert)
             {
                 onHeldItemHoverAccepted?.Invoke();
@@ -373,6 +403,8 @@ namespace DanieloZ.WorldInteraction
                 rejectedHoverIndicator.SetActive(false);
             }
 
+            SetHoverPreviewVisible(false);
+
             if (hasHoverResult)
             {
                 onHeldItemHoverEnded?.Invoke();
@@ -381,6 +413,41 @@ namespace DanieloZ.WorldInteraction
             hoveredItem = null;
             hasHoverResult = false;
             hoverCanInsert = false;
+        }
+
+        private void SetHoverPreviewVisible(bool visible)
+        {
+            if (hoverPreview == null)
+            {
+                hoverPreviewVisible = false;
+                return;
+            }
+
+            EnsureHoverPreviewBasePose();
+            if (!visible)
+            {
+                hoverPreview.transform.localPosition = hoverPreviewBaseLocalPosition;
+                hoverPreview.transform.localScale = hoverPreviewBaseLocalScale;
+            }
+
+            if (hoverPreview.activeSelf != visible)
+            {
+                hoverPreview.SetActive(visible);
+            }
+
+            hoverPreviewVisible = visible;
+        }
+
+        private void EnsureHoverPreviewBasePose()
+        {
+            if (hasHoverPreviewBasePose || hoverPreview == null)
+            {
+                return;
+            }
+
+            hoverPreviewBaseLocalPosition = hoverPreview.transform.localPosition;
+            hoverPreviewBaseLocalScale = hoverPreview.transform.localScale;
+            hasHoverPreviewBasePose = true;
         }
 
         #endregion
@@ -407,6 +474,35 @@ namespace DanieloZ.WorldInteraction
                     EventName.WorldInteraction_OnMatchingSlotInserted,
                     new object[] { slotId, this, item });
             }
+        }
+
+        private static bool TryReleaseHeldDraggable(World3DSlotItem item)
+        {
+            if (item == null)
+            {
+                return false;
+            }
+
+            if (item.IsHeld)
+            {
+                item.Release();
+                return true;
+            }
+
+            var draggables = item.GetComponents<WorldDraggable>();
+            for (var i = 0; i < draggables.Length; i++)
+            {
+                var draggable = draggables[i];
+                if (draggable == null || !draggable.IsHeld)
+                {
+                    continue;
+                }
+
+                draggable.Release();
+                return true;
+            }
+
+            return false;
         }
 
         #endregion

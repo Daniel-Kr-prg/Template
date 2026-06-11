@@ -142,9 +142,12 @@ Inspector fields use Odin foldout groups where the component has several concern
 2. Assign `Anchor`, the transform where the item should snap.
 3. Fill `acceptedItemIds`. An empty list accepts any item.
 4. Add `World3DSlotItem` to the carried object and assign its `ItemId`.
-5. Let `WorldInteractionController` or a project-side hand bridge release the held item over the slot.
+5. Configure the item's inserted local position/rotation. These offsets are relative to the slot `Anchor`.
+6. Use the item's Inspector `Preview` tab to assign a slot, show the item in that slot, then capture the current pose after tuning.
+7. Let `WorldInteractionController` or a project-side hand bridge release the held item over the slot.
 
 Physical collision alone does not insert the item. The collider is the raycast/hover area; insertion is done by release logic or by `TryInsert`.
+When inserted, the item becomes a child of the slot `Anchor` and is restored to its previous parent when removed.
 
 ## Examples
 

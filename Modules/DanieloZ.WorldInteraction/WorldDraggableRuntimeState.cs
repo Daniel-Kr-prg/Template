@@ -97,6 +97,13 @@ namespace DanieloZ.WorldInteraction
             FreeRotation = rootRotation;
         }
 
+        public void SetFreeRotation(Quaternion rootRotation)
+        {
+            KillTween();
+            UsesFreeRotation = true;
+            FreeRotation = rootRotation;
+        }
+
         public void RotateFreely(Vector2 mouseDelta, Camera camera, Transform root, float degreesPerMouseUnit)
         {
             if (mouseDelta.sqrMagnitude <= 0.000001f || degreesPerMouseUnit <= 0f)

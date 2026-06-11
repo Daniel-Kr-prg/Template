@@ -15,6 +15,12 @@ namespace DanieloZ.WorldInteraction
         [FormerlySerializedAs("buttonId")]
         [SerializeField] private string itemId;
         [FoldoutGroup("Slot Item")]
+        [LabelText("Inserted Local Position")]
+        [SerializeField] private Vector3 insertedLocalPosition;
+        [FoldoutGroup("Slot Item")]
+        [LabelText("Inserted Local Rotation")]
+        [SerializeField] private Vector3 insertedLocalEulerRotation;
+        [FoldoutGroup("Slot Item")]
         [SerializeField, Min(0f)] private float slotSnapDuration = 0.18f;
         [FoldoutGroup("Slot Item")]
         [SerializeField] private Ease slotSnapEase = Ease.OutCubic;
@@ -32,12 +38,16 @@ namespace DanieloZ.WorldInteraction
 
         public string ItemId => itemId;
         public World3DButtonSlotBase CurrentSlot { get; private set; }
+        public Vector3 InsertedLocalPosition => insertedLocalPosition;
+        public Vector3 InsertedLocalEulerRotation => insertedLocalEulerRotation;
 
         #endregion
 
         #region Runtime State
 
         private Tween slotTween;
+        private Transform parentBeforeSlot;
+        private bool hasParentBeforeSlot;
 
         #endregion
 
@@ -80,7 +90,9 @@ namespace DanieloZ.WorldInteraction
                 return;
             }
 
+            slotTween?.Kill();
             CurrentSlot = null;
+            RestoreParentBeforeSlot();
             onRemovedFromSlot?.Invoke();
             RemovedFromSlot?.Invoke(this, slot);
         }
@@ -96,8 +108,6 @@ namespace DanieloZ.WorldInteraction
                 return;
             }
 
-            slotTween?.Kill();
-
             if (Body != null)
             {
                 Body.isKinematic = true;
@@ -106,15 +116,31 @@ namespace DanieloZ.WorldInteraction
                 Body.angularVelocity = Vector3.zero;
             }
 
-            if (slotSnapDuration <= 0f)
+            AttachToSlotAnchor(slot.Anchor);
+            MoveToInsertedSlotPose(true);
+        }
+
+        public void PreviewInSlot(World3DButtonSlotBase slot)
+        {
+            if (slot == null || slot.Anchor == null)
             {
-                transform.SetPositionAndRotation(slot.Anchor.position, slot.Anchor.rotation);
                 return;
             }
 
-            slotTween = DOTween.Sequence()
-                .Join(transform.DOMove(slot.Anchor.position, slotSnapDuration).SetEase(slotSnapEase))
-                .Join(transform.DORotateQuaternion(slot.Anchor.rotation, slotSnapDuration).SetEase(slotSnapEase));
+            transform.SetParent(slot.Anchor, true);
+            transform.localPosition = insertedLocalPosition;
+            transform.localRotation = Quaternion.Euler(insertedLocalEulerRotation);
+        }
+
+        public void CaptureInsertedPoseFromSlot(World3DButtonSlotBase slot)
+        {
+            if (slot == null || slot.Anchor == null)
+            {
+                return;
+            }
+
+            insertedLocalPosition = slot.Anchor.InverseTransformPoint(transform.position);
+            insertedLocalEulerRotation = (Quaternion.Inverse(slot.Anchor.rotation) * transform.rotation).eulerAngles;
         }
 
         #endregion
@@ -143,6 +169,67 @@ namespace DanieloZ.WorldInteraction
         {
             base.OnDisable();
             slotTween?.Kill();
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private void AttachToSlotAnchor(Transform slotAnchor)
+        {
+            if (slotAnchor == null || transform.parent == slotAnchor)
+            {
+                return;
+            }
+
+            if (!hasParentBeforeSlot)
+            {
+                parentBeforeSlot = transform.parent;
+                hasParentBeforeSlot = true;
+            }
+
+            transform.SetParent(slotAnchor, true);
+        }
+
+        private void MoveToInsertedSlotPose(bool animated)
+        {
+            slotTween?.Kill();
+            if (!animated || slotSnapDuration <= 0f)
+            {
+                ApplyInsertedSlotPose();
+                return;
+            }
+
+            var targetRotation = Quaternion.Euler(insertedLocalEulerRotation);
+            var tween = DOTween.Sequence()
+                .Join(transform.DOLocalMove(insertedLocalPosition, slotSnapDuration).SetEase(slotSnapEase))
+                .Join(transform.DOLocalRotateQuaternion(targetRotation, slotSnapDuration).SetEase(slotSnapEase));
+            slotTween = tween;
+            tween.OnKill(() =>
+            {
+                if (slotTween == tween)
+                {
+                    slotTween = null;
+                }
+            });
+        }
+
+        private void ApplyInsertedSlotPose()
+        {
+            transform.localPosition = insertedLocalPosition;
+            transform.localRotation = Quaternion.Euler(insertedLocalEulerRotation);
+        }
+
+        private void RestoreParentBeforeSlot()
+        {
+            if (!hasParentBeforeSlot)
+            {
+                return;
+            }
+
+            transform.SetParent(parentBeforeSlot, true);
+            parentBeforeSlot = null;
+            hasParentBeforeSlot = false;
         }
 
         #endregion

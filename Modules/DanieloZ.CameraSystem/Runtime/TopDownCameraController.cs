@@ -8,6 +8,8 @@ namespace DanieloZ.CameraSystem
 {
     public sealed class TopDownCameraController : MonoBehaviour
     {
+        private const float SameMoveDirectionDotThreshold = 0.95f;
+
         #region Inspector
 
         [FoldoutGroup("Rig")]
@@ -267,9 +269,14 @@ namespace DanieloZ.CameraSystem
                 desiredVelocity += (forward * input.y + right * input.x) * moveSpeed * pointerMoveSpeedScale;
             }
 
+            var velocityDirectionDot = currentMoveVelocity.sqrMagnitude > 0.000001f
+                && desiredVelocity.sqrMagnitude > 0.000001f
+                    ? Vector3.Dot(currentMoveVelocity.normalized, desiredVelocity.normalized)
+                    : 1f;
             var acceleration = desiredVelocity.sqrMagnitude > currentMoveVelocity.sqrMagnitude
-                ? moveAcceleration
-                : moveDeceleration;
+                && velocityDirectionDot >= SameMoveDirectionDotThreshold
+                    ? moveAcceleration
+                    : moveDeceleration;
 
             currentMoveVelocity = Mathf.Approximately(acceleration, 0f)
                 ? desiredVelocity
