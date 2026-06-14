@@ -8,7 +8,7 @@ using DanieloZ.Managers;
 
 
 /// <summary>
-/// Перечень ключей для enum-хранилища. Расширяй под проект.
+/// РџРµСЂРµС‡РµРЅСЊ РєР»СЋС‡РµР№ РґР»СЏ enum-С…СЂР°РЅРёР»РёС‰Р°. Р Р°СЃС€РёСЂСЏР№ РїРѕРґ РїСЂРѕРµРєС‚.
 /// </summary>
 public enum GlobalKey
 {
@@ -38,29 +38,28 @@ public enum GlobalKey
 
 
 /// <summary>
-/// Единый менеджер глобальных переменных (любой тип значений).
-/// - Ключи-энумы (GlobalKey) и произвольные string-ключи.
-/// - Типобезопасные Set/Get<T>.
-/// - Подписки на изменения (Observe).
-/// - Интеграция с SaveManager: галочками выбираешь, что писать в сейв.
+/// Р•РґРёРЅС‹Р№ РјРµРЅРµРґР¶РµСЂ РіР»РѕР±Р°Р»СЊРЅС‹С… РїРµСЂРµРјРµРЅРЅС‹С… (Р»СЋР±РѕР№ С‚РёРї Р·РЅР°С‡РµРЅРёР№).
+/// - РљР»СЋС‡Рё-СЌРЅСѓРјС‹ (GlobalKey) Рё РїСЂРѕРёР·РІРѕР»СЊРЅС‹Рµ string-РєР»СЋС‡Рё.
+/// - РўРёРїРѕР±РµР·РѕРїР°СЃРЅС‹Рµ Set/Get<T>.
+/// - РџРѕРґРїРёСЃРєРё РЅР° РёР·РјРµРЅРµРЅРёСЏ (Observe).
+/// - РРЅС‚РµРіСЂР°С†РёСЏ СЃ SaveManager: РіР°Р»РѕС‡РєР°РјРё РІС‹Р±РёСЂР°РµС€СЊ, С‡С‚Рѕ РїРёСЃР°С‚СЊ РІ СЃРµР№РІ.
 /// </summary>
 public sealed class GlobalVarsManager : SingletonManager<GlobalVarsManager>
 {
     #region Inspector
 
     [TitleGroup("Persistence")]
-    [LabelText("Enum-ключи в сейв"), InlineProperty, Sirenix.OdinInspector.HideLabel]
+    [LabelText("Enum-РєР»СЋС‡Рё")]
     [SerializeField] private GlobalKeyChecklist persistedEnumKeys = new GlobalKeyChecklist();
 
     [TitleGroup("Persistence")]
-    [LabelText("String-ключи в сейв")]
-    [ListDrawerSettings(ShowPaging = false, DraggableItems = false)]
-    [SerializeField] private List<string> persistedStringKeys = new();
+    [LabelText("String-РєР»СЋС‡Рё")]
+    [SerializeField] private GlobalStringKeyChecklist persistedStringKeyTable = new GlobalStringKeyChecklist();
+
+    [SerializeField, UnityEngine.HideInInspector] private List<string> persistedStringKeys = new();
 
     [FoldoutGroup("Debug"), ReadOnly, ShowInInspector] private int EnumCount => _enumValues.Count;
     [FoldoutGroup("Debug"), ReadOnly, ShowInInspector] private int StringCount => _stringValues.Count;
-
-    
 
     #endregion
 
@@ -72,7 +71,7 @@ public sealed class GlobalVarsManager : SingletonManager<GlobalVarsManager>
     private readonly Dictionary<GlobalKey, Action<object>> _enumChanged = new();
     private readonly Dictionary<string, Action<object>> _stringChanged = new();
 
-    private GlobalStateSaveItem _saveItem; // регистрируетcя в SaveManager
+    private GlobalStateSaveItem _saveItem; // СЂРµРіРёСЃС‚СЂРёСЂСѓРµС‚cСЏ РІ SaveManager
 
     #endregion
 
@@ -81,6 +80,8 @@ public sealed class GlobalVarsManager : SingletonManager<GlobalVarsManager>
     protected override void Awake()
     {
         base.Awake();
+        EnsurePersistenceTables();
+        MigrateLegacyStringKeys();
     }
 
     private void Start()
@@ -89,13 +90,26 @@ public sealed class GlobalVarsManager : SingletonManager<GlobalVarsManager>
         _saveItem = new GlobalStateSaveItem("GlobalState", this);
     }
 
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        EnsurePersistenceTables();
+        MigrateLegacyStringKeys();
+    }
+#endif
+
     #endregion
 
     #region Public API (Enum keys)
 
-    public static void Set<T>(GlobalKey key, T value, bool notify = true)
+    public static void Set<T>(GlobalKey key, T value, bool notify = true, bool saveable = false)
     {
         var m = Instance; if (m == null) return;
+        m.EnsurePersistenceTables();
+        m.persistedEnumKeys.EnsureKeyExists(key);
+        if (saveable)
+            m.persistedEnumKeys.SetSaveable(key, true);
+
         m._enumValues[key] = value;
         if (notify && m._enumChanged.TryGetValue(key, out var del)) del?.Invoke(value);
     }
@@ -110,6 +124,13 @@ public sealed class GlobalVarsManager : SingletonManager<GlobalVarsManager>
 
     public static T GetOr<T>(GlobalKey key, T fallback = default) => TryGet<T>(key, out var v) ? v : fallback;
 
+    public static void SetKeySaveable(GlobalKey key, bool saveable)
+    {
+        var m = Instance; if (m == null) return;
+        m.EnsurePersistenceTables();
+        m.persistedEnumKeys.SetSaveable(key, saveable);
+    }
+
     public static void Remove(GlobalKey key, bool notify = true)
     {
         var m = Instance; if (m == null) return;
@@ -117,7 +138,7 @@ public sealed class GlobalVarsManager : SingletonManager<GlobalVarsManager>
         if (notify && m._enumChanged.TryGetValue(key, out var del)) del?.Invoke(null);
     }
 
-    /// <summary>Подписка на изменения значения по enum-ключу.</summary>
+    /// <summary>РџРѕРґРїРёСЃРєР° РЅР° РёР·РјРµРЅРµРЅРёСЏ Р·РЅР°С‡РµРЅРёСЏ РїРѕ enum-РєР»СЋС‡Сѓ.</summary>
     public static IDisposable Observe(GlobalKey key, Action<object> onChanged, bool invokeImmediately = false)
     {
         var m = Instance; if (m == null) return DummyDisposable.Instance;
@@ -137,11 +158,13 @@ public sealed class GlobalVarsManager : SingletonManager<GlobalVarsManager>
 
     #region Public API (String keys)
 
-    public static void Set<T>(string key, T value, bool notify = true)
+    public static void Set<T>(string key, T value, bool notify = true, bool saveable = false)
     {
         if (string.IsNullOrEmpty(key)) return;
         var m = Instance; if (m == null) return;
+        m.EnsurePersistenceTables();
 
+        m.persistedStringKeyTable.AddOrUpdateKey(key, value, saveable);
         m._stringValues[key] = value;
         if (notify && m._stringChanged.TryGetValue(key, out var del)) del?.Invoke(value);
     }
@@ -156,6 +179,14 @@ public sealed class GlobalVarsManager : SingletonManager<GlobalVarsManager>
     }
 
     public static T GetOr<T>(string key, T fallback = default) => TryGet<T>(key, out var v) ? v : fallback;
+
+    public static void SetKeySaveable(string key, bool saveable)
+    {
+        if (string.IsNullOrEmpty(key)) return;
+        var m = Instance; if (m == null) return;
+        m.EnsurePersistenceTables();
+        m.persistedStringKeyTable.SetSaveable(key, saveable);
+    }
 
     public static void Remove(string key, bool notify = true)
     {
@@ -183,6 +214,31 @@ public sealed class GlobalVarsManager : SingletonManager<GlobalVarsManager>
 
     #region Debug helpers
 
+    internal static bool TryGetRaw(GlobalKey key, out object value)
+    {
+        value = null;
+        return HaveInstance() && Instance._enumValues.TryGetValue(key, out value);
+    }
+
+    internal static bool TryGetRaw(string key, out object value)
+    {
+        value = null;
+        return HaveInstance()
+            && !string.IsNullOrEmpty(key)
+            && Instance._stringValues.TryGetValue(key, out value);
+    }
+
+    internal static string FormatValueForInspector(object value)
+    {
+        if (value == null)
+            return "null";
+
+        if (value is UnityEngine.Object unityObject)
+            return unityObject != null ? unityObject.name : "null";
+
+        return value.ToString();
+    }
+
     [FoldoutGroup("Debug"), Button(ButtonSizes.Medium)]
     private void DumpToConsole()
     {
@@ -198,8 +254,11 @@ public sealed class GlobalVarsManager : SingletonManager<GlobalVarsManager>
 
     internal PersistSpec BuildPersistSpec()
     {
-        var e = persistedEnumKeys.ToSet(); // вот тут берём отметки галочек
-        var s = new HashSet<string>(persistedStringKeys ?? new List<string>());
+        EnsurePersistenceTables();
+        MigrateLegacyStringKeys();
+
+        var e = persistedEnumKeys.ToSet(); // РІРѕС‚ С‚СѓС‚ Р±РµСЂС‘Рј РѕС‚РјРµС‚РєРё РіР°Р»РѕС‡РµРє
+        var s = persistedStringKeyTable.ToSet();
         return new PersistSpec(e, s);
     }
 
@@ -226,12 +285,30 @@ public sealed class GlobalVarsManager : SingletonManager<GlobalVarsManager>
     {
         if (snapshot == null) return;
 
-        foreach (var kv in snapshot.enumValues)
-            if (Enum.TryParse(kv.Key, out GlobalKey key))
-                Set<object>(key, kv.Value, notify);
+        if (snapshot.enumValues != null)
+        {
+            foreach (var kv in snapshot.enumValues)
+                if (Enum.TryParse(kv.Key, out GlobalKey key))
+                    Set<object>(key, kv.Value, notify, saveable: true);
+        }
 
-        foreach (var kv in snapshot.stringValues)
-            Set<object>(kv.Key, kv.Value, notify);
+        if (snapshot.stringValues != null)
+        {
+            foreach (var kv in snapshot.stringValues)
+                Set<object>(kv.Key, kv.Value, notify, saveable: true);
+        }
+    }
+
+    private void EnsurePersistenceTables()
+    {
+        persistedEnumKeys ??= new GlobalKeyChecklist();
+        persistedStringKeyTable ??= new GlobalStringKeyChecklist();
+        persistedStringKeys ??= new List<string>();
+    }
+
+    private void MigrateLegacyStringKeys()
+    {
+        persistedStringKeyTable.AddSavedKeys(persistedStringKeys);
     }
 
     #endregion
@@ -247,8 +324,8 @@ public sealed class GlobalVarsManager : SingletonManager<GlobalVarsManager>
 }
 
 /// <summary>
-/// Снапшот глобальных переменных для сейва. Сериализуется Newtonsoft.Json с TypeNameHandling.Auto,
-/// чтобы сохранить любые типы (bool/int/float/string/DTO).
+/// РЎРЅР°РїС€РѕС‚ РіР»РѕР±Р°Р»СЊРЅС‹С… РїРµСЂРµРјРµРЅРЅС‹С… РґР»СЏ СЃРµР№РІР°. РЎРµСЂРёР°Р»РёР·СѓРµС‚СЃСЏ Newtonsoft.Json СЃ TypeNameHandling.Auto,
+/// С‡С‚РѕР±С‹ СЃРѕС…СЂР°РЅРёС‚СЊ Р»СЋР±С‹Рµ С‚РёРїС‹ (bool/int/float/string/DTO).
 /// </summary>
 [Serializable]
 public sealed class GlobalVarsSnapshot
@@ -258,7 +335,7 @@ public sealed class GlobalVarsSnapshot
 }
 
 /// <summary>
-/// Выбор ключей, которые попадают в сейв.
+/// Р’С‹Р±РѕСЂ РєР»СЋС‡РµР№, РєРѕС‚РѕСЂС‹Рµ РїРѕРїР°РґР°СЋС‚ РІ СЃРµР№РІ.
 /// </summary>
 public readonly struct PersistSpec
 {
@@ -268,7 +345,7 @@ public readonly struct PersistSpec
 }
 
 /// <summary>
-/// SaveItem для SaveManager: сохраняет только отмеченные ключи GlobalVarsManager.
+/// SaveItem РґР»СЏ SaveManager: СЃРѕС…СЂР°РЅСЏРµС‚ С‚РѕР»СЊРєРѕ РѕС‚РјРµС‡РµРЅРЅС‹Рµ РєР»СЋС‡Рё GlobalVarsManager.
 /// </summary>
 public sealed class GlobalStateSaveItem : SaveItem
 {

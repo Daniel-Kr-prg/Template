@@ -241,6 +241,11 @@ namespace DanieloZ.WorldInteraction
                 ButtonInserted?.Invoke(this, button);
             }
 
+            if (EventManager.HaveInstance())
+            {
+                EventManager.CallEvent(EventName.WorldInteraction_OnSlotItemInserted, new object[] { this, item });
+            }
+
             if (MatchesId(item))
             {
                 HandleMatchingItemInserted(item);

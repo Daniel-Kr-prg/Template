@@ -137,6 +137,10 @@ namespace DanieloZ.Managers
         SaveManager_Load,
         SaveManager_LoadFailure,
 
+        // UI
+        UI_StartupScreenRelease, // releases StartupScreen when a timed screen keeps itself until event
+        UI_LoadingScreenRelease, // releases LoadingScreen when a timed screen keeps itself until event
+
         // World Interaction
         WorldInteraction_OnMatchingSlotInserted, // payload: [string id, World3DButtonSlotBase slot, World3DSlotItem item]
 
@@ -150,10 +154,26 @@ namespace DanieloZ.Managers
         PixelPuzzle_OnLevelPacked, // payload: [PuzzleSession session]
         PixelPuzzle_OnLevelCompleted, // payload: [PuzzleSession session]
         PixelPuzzle_OnLevelLockedSelected, // payload: [int levelIndex, PixelPuzzleAsset asset]
-        PixelPuzzle_OnPiecePlaced, // payload: [PuzzleSession session, PuzzlePiece piece, PuzzleBoard board]
-        PixelPuzzle_OnPieceRemoved, // payload: [PuzzleSession session, PuzzlePiece piece, PuzzleBoard board]
+        PixelPuzzle_OnPiecePlaced, // payload: [PuzzleSession session, PuzzlePiece piece, PuzzleBoard/PuzzlePlacementArea placementSurface]
+        PixelPuzzle_OnPieceRemoved, // payload: [PuzzleSession session, PuzzlePiece piece, PuzzleBoard/PuzzlePlacementArea placementSurface]
         PixelPuzzle_OnFastTravelRequested, // payload: [string pointId, Transform anchor]
         PixelPuzzle_OnFastTravelCompleted, // payload: [string pointId, Transform anchor]
+        PixelPuzzle_OnInputContextChanged, // payload: [PixelVoxelPuzzleInputContext previous, PixelVoxelPuzzleInputContext current]
+        PixelPuzzle_OnMainMenuOpened, // payload: [UIMainMenuModule module, string cameraLockId]
+        PixelPuzzle_OnMainMenuClosed, // payload: [UIMainMenuModule module]
+        PixelPuzzle_OnOptionsOpened, // payload: [UIMainMenuModule module, string cameraLockId]
+        PixelPuzzle_OnOptionsClosed, // payload: [UIMainMenuModule module]
+        PixelPuzzle_OnUIActionPressed, // payload: [string actionId, UnityEngine.Object source, optional context]
+        PixelPuzzle_OnClearSaveRequested, // payload: [UIOptionsModule module]
+        PixelPuzzle_OnClearSaveConfirmed, // payload: [UIOptionsModule module]
+        PixelPuzzle_OnSaveStarted, // payload: [string reason]
+        PixelPuzzle_OnSaveCompleted, // payload: [string reason]
+        PixelPuzzle_OnSaveFailed, // payload: [string reason]
+        PixelPuzzle_OnSaveLoaded, // payload: [bool success]
+        PixelPuzzle_OnObjectPickedUp, // payload: [IInteractionPickupTarget target]
+        PixelPuzzle_OnObjectReleased, // payload: [IInteractionPickupTarget target]
+        PixelPuzzle_OnMainMenuTitleSpawned, // payload: [string titleId, GameObject instance]
+        PixelPuzzle_OnMainMenuTitleUnlocked, // payload: [string titleId]
 
         // Game Flow
         Game_OnLevelStarted,
@@ -186,7 +206,25 @@ namespace DanieloZ.Managers
 
         // Triggered when a new wave is about to appear (for ghost ball logic, etc)
         Game_OnNewWaveComing, // Triggered when new wave movement starts (bricks move)
-        Game_OnNewWaveCame    // Triggered when new wave movement ends (bricks stop)
+        Game_OnNewWaveCame,   // Triggered when new wave movement ends (bricks stop)
+
+        // Pixel Voxel Puzzle MVP audio routing
+        PixelPuzzle_OnObjectHoverStarted, // payload: [IInteractionHoverTarget target, InteractionCollider collider]
+        PixelPuzzle_OnObjectHoverEnded, // payload: [IInteractionHoverTarget target, InteractionCollider collider]
+        PixelPuzzle_OnPieceRotated, // payload: [PuzzlePieceRotationController rotation]
+        PixelPuzzle_OnWorldControlDragStarted, // payload: [string controlId, UnityEngine.Object source]
+        PixelPuzzle_OnWorldControlDragEnded, // payload: [string controlId, UnityEngine.Object source]
+        PixelPuzzle_OnBoxOpened, // payload: [PuzzleBoxController box]
+        PixelPuzzle_OnBoxClosed, // payload: [PuzzleBoxController box]
+        PixelPuzzle_OnBoxPieceCaptureStarted, // payload: [PuzzleBoxController box, PuzzlePieceHoldable holdable, PuzzlePiece piece]
+        PixelPuzzle_OnBoxPourStarted, // payload: [PuzzleBoxController box]
+        PixelPuzzle_OnBoxPourEnded, // payload: [PuzzleBoxController box]
+        PixelPuzzle_OnBoxAutoDropChargeStarted, // payload: [PuzzleBoxController box, PuzzleBoxAutoDropZone zone]
+        PixelPuzzle_OnBoxAutoDropChargeCompleted, // payload: [PuzzleBoxController box, PuzzleBoxAutoDropZone zone]
+        PixelPuzzle_OnBoxAutoDropChargeCancelled, // payload: [PuzzleBoxController box, PuzzleBoxAutoDropZone zone]
+        WorldInteraction_OnSlotItemInserted, // payload: [World3DButtonSlotBase slot, World3DSlotItem item]
+        WorldInteraction_OnOptionRollerChanged, // payload: [World3DOptionRoller roller, int index]
+        WorldInteraction_OnSliderValueChanged // payload: [World3DSlider slider, float value]
     }
 
 }

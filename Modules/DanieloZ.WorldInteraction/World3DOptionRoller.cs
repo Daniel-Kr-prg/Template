@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DanieloZ.Managers;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
@@ -264,9 +265,20 @@ namespace DanieloZ.WorldInteraction
             SetSelectedIndex(0, true);
         }
 
+        public void SetOptionsSilently(IReadOnlyList<string> newOptions)
+        {
+            options = newOptions != null ? new List<string>(newOptions) : new List<string>();
+            SetSelectedIndex(0, false);
+        }
+
         public void SetSelectedIndex(int index)
         {
             SetSelectedIndex(index, true);
+        }
+
+        public void SetSelectedIndexSilently(int index)
+        {
+            SetSelectedIndex(index, false);
         }
 
         public void SelectNext()
@@ -379,6 +391,10 @@ namespace DanieloZ.WorldInteraction
             onIndexChanged?.Invoke(selectedIndex);
             onOptionChanged?.Invoke(SelectedOption);
             IndexChanged?.Invoke(this, selectedIndex);
+            if (EventManager.HaveInstance())
+            {
+                EventManager.CallEvent(EventName.WorldInteraction_OnOptionRollerChanged, new object[] { this, selectedIndex });
+            }
         }
 
         private bool ShouldRefreshLabelsAtStep(int step)

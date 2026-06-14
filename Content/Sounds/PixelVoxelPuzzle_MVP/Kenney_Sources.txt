@@ -1,0 +1,10 @@
+PixelVoxelPuzzle MVP audio source note
+
+Selected clips are from Kenney audio asset packs under Creative Commons Zero (CC0):
+- UI Audio: https://kenney.nl/assets/ui-audio
+- Interface Sounds: https://kenney.nl/assets/interface-sounds
+- Impact Sounds: https://kenney.nl/assets/impact-sounds
+- RPG Audio: https://kenney.nl/assets/rpg-audio
+- Music Jingles: https://kenney.nl/assets/music-jingles
+
+Kenney credit is appreciated by the author but not required by the license.

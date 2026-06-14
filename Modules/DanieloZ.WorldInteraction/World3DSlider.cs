@@ -1,4 +1,5 @@
 using System;
+using DanieloZ.Managers;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Events;
@@ -205,6 +206,10 @@ namespace DanieloZ.WorldInteraction
             {
                 onValueChanged?.Invoke(value);
                 ValueChanged?.Invoke(this, value);
+                if (EventManager.HaveInstance())
+                {
+                    EventManager.CallEvent(EventName.WorldInteraction_OnSliderValueChanged, new object[] { this, value });
+                }
             }
         }
 

@@ -9,21 +9,26 @@ public class GlobalKeyChecklist
     [Serializable]
     public class Item
     {
-        [ReadOnly, HorizontalGroup("row", 0.65f)] public GlobalKey Key;
-        [ToggleLeft, HorizontalGroup("row", 0.35f), LabelText("Сохранять")] public bool Save;
+        [ReadOnly, HorizontalGroup("row", 0.35f)] public GlobalKey Key;
+        [ToggleLeft, HorizontalGroup("row", 0.2f), LabelText("РЎРѕС…СЂР°РЅСЏС‚СЊ")] public bool Save;
+
+        [ShowInInspector, ReadOnly, HorizontalGroup("row", 0.45f), LabelText("Р—РЅР°С‡РµРЅРёРµ")]
+        public string CurrentValue => GlobalVarsManager.TryGetRaw(Key, out var value)
+            ? GlobalVarsManager.FormatValueForInspector(value)
+            : string.Empty;
     }
 
     [TableList(IsReadOnly = false, AlwaysExpanded = true, ShowIndexLabels = false)]
     [SerializeField] private List<Item> _items = new();
 
     /// <summary>
-    /// Обновить список по текущему enum GlobalKey, сохранив отмеченные галочки.
-    /// Новые значения добавятся (Save=false), удалённые исчезнут.
+    /// РћР±РЅРѕРІРёС‚СЊ СЃРїРёСЃРѕРє РїРѕ С‚РµРєСѓС‰РµРјСѓ enum GlobalKey, СЃРѕС…СЂР°РЅРёРІ РѕС‚РјРµС‡РµРЅРЅС‹Рµ РіР°Р»РѕС‡РєРё.
+    /// РќРѕРІС‹Рµ Р·РЅР°С‡РµРЅРёСЏ РґРѕР±Р°РІСЏС‚СЃСЏ (Save=false), СѓРґР°Р»С‘РЅРЅС‹Рµ РёСЃС‡РµР·РЅСѓС‚.
     /// </summary>
-    [Button("Обновить список ключей", ButtonSizes.Medium)]
+    [Button("РћР±РЅРѕРІРёС‚СЊ СЃРїРёСЃРѕРє РєР»СЋС‡РµР№", ButtonSizes.Medium)]
     public void RefreshFromEnum()
     {
-        // 1) запомним текущее состояние
+        // 1) Р·Р°РїРѕРјРЅРёРј С‚РµРєСѓС‰РµРµ СЃРѕСЃС‚РѕСЏРЅРёРµ
         var previous = new Dictionary<GlobalKey, bool>();
         foreach (var it in _items)
         {
@@ -31,7 +36,7 @@ public class GlobalKeyChecklist
                 previous.Add(it.Key, it.Save);
         }
 
-        // 2) соберём новые элементы строго по enum
+        // 2) СЃРѕР±РµСЂС‘Рј РЅРѕРІС‹Рµ СЌР»РµРјРµРЅС‚С‹ СЃС‚СЂРѕРіРѕ РїРѕ enum
         _items.Clear();
         foreach (GlobalKey key in Enum.GetValues(typeof(GlobalKey)))
         {
@@ -40,7 +45,7 @@ public class GlobalKeyChecklist
         }
     }
 
-    /// <summary>Хелпер: вернуть отмеченные ключи как множество.</summary>
+    /// <summary>РҐРµР»РїРµСЂ: РІРµСЂРЅСѓС‚СЊ РѕС‚РјРµС‡РµРЅРЅС‹Рµ РєР»СЋС‡Рё РєР°Рє РјРЅРѕР¶РµСЃС‚РІРѕ.</summary>
     public HashSet<GlobalKey> ToSet()
     {
         var hs = new HashSet<GlobalKey>();
@@ -48,20 +53,152 @@ public class GlobalKeyChecklist
         return hs;
     }
 
-    /// <summary>Опционально: выставить отметки из множества (если нужно программно).</summary>
+    public void SetSaveable(GlobalKey key, bool saveable)
+    {
+        EnsureKey(key).Save = saveable;
+    }
+
+    public void EnsureKeyExists(GlobalKey key)
+    {
+        EnsureKey(key);
+    }
+
+    /// <summary>РћРїС†РёРѕРЅР°Р»СЊРЅРѕ: РІС‹СЃС‚Р°РІРёС‚СЊ РѕС‚РјРµС‚РєРё РёР· РјРЅРѕР¶РµСЃС‚РІР° (РµСЃР»Рё РЅСѓР¶РЅРѕ РїСЂРѕРіСЂР°РјРјРЅРѕ).</summary>
     public void FromSet(HashSet<GlobalKey> set)
     {
         if (set == null) return;
-        RefreshFromEnum(); // чтобы точно были все ключи
+        RefreshFromEnum(); // С‡С‚РѕР±С‹ С‚РѕС‡РЅРѕ Р±С‹Р»Рё РІСЃРµ РєР»СЋС‡Рё
         foreach (var it in _items) it.Save = set.Contains(it.Key);
     }
 
-    // Удобно автообновлять при открытии инспектора/перекомпиляции:
+    // РЈРґРѕР±РЅРѕ Р°РІС‚РѕРѕР±РЅРѕРІР»СЏС‚СЊ РїСЂРё РѕС‚РєСЂС‹С‚РёРё РёРЅСЃРїРµРєС‚РѕСЂР°/РїРµСЂРµРєРѕРјРїРёР»СЏС†РёРё:
     [OnInspectorInit]
     private void OnInspectorInit() => RefreshFromEnum();
 
 #if UNITY_EDITOR
-    // и при изменениях в редакторе (без потери галочек)
+    // Рё РїСЂРё РёР·РјРµРЅРµРЅРёСЏС… РІ СЂРµРґР°РєС‚РѕСЂРµ (Р±РµР· РїРѕС‚РµСЂРё РіР°Р»РѕС‡РµРє)
     private void OnValidate() => RefreshFromEnum();
 #endif
+
+    private Item EnsureKey(GlobalKey key)
+    {
+        foreach (var it in _items)
+        {
+            if (it.Key == key)
+                return it;
+        }
+
+        var item = new Item { Key = key };
+        _items.Add(item);
+        return item;
+    }
+}
+
+[Serializable]
+public class GlobalStringKeyChecklist
+{
+    [Serializable]
+    public class Item
+    {
+        [HorizontalGroup("row", 0.45f), LabelText("РљР»СЋС‡")]
+        public string Key;
+
+        [ToggleLeft, HorizontalGroup("row", 0.2f), LabelText("РЎРѕС…СЂР°РЅСЏС‚СЊ")]
+        public bool Save;
+
+        [ShowInInspector, ReadOnly, HorizontalGroup("row", 0.35f), LabelText("Р—РЅР°С‡РµРЅРёРµ")]
+        public string CurrentValue => GlobalVarsManager.TryGetRaw(Key, out var value)
+            ? GlobalVarsManager.FormatValueForInspector(value)
+            : string.Empty;
+    }
+
+    [TableList(IsReadOnly = false, AlwaysExpanded = true, ShowIndexLabels = false)]
+    [SerializeField] private List<Item> _items = new();
+
+    [Button("РћР±РЅРѕРІРёС‚СЊ СЃРїРёСЃРѕРє РєР»СЋС‡РµР№", ButtonSizes.Medium)]
+    public void Refresh()
+    {
+        var cleaned = new List<Item>();
+        foreach (var it in _items)
+        {
+            if (it == null || string.IsNullOrWhiteSpace(it.Key) || ContainsKey(cleaned, it.Key))
+                continue;
+
+            cleaned.Add(it);
+        }
+
+        _items = cleaned;
+    }
+
+    public void AddOrUpdateKey(string key, object value, bool saveable)
+    {
+        var item = EnsureKey(key);
+        if (item == null)
+            return;
+
+        if (saveable)
+            item.Save = true;
+    }
+
+    public void SetSaveable(string key, bool saveable)
+    {
+        var item = EnsureKey(key);
+        if (item != null)
+            item.Save = saveable;
+    }
+
+    public HashSet<string> ToSet()
+    {
+        var hs = new HashSet<string>();
+        foreach (var it in _items)
+        {
+            if (it != null && it.Save && !string.IsNullOrWhiteSpace(it.Key))
+                hs.Add(it.Key);
+        }
+
+        return hs;
+    }
+
+    public void AddSavedKeys(IEnumerable<string> keys)
+    {
+        if (keys == null)
+            return;
+
+        foreach (var key in keys)
+            SetSaveable(key, true);
+    }
+
+    [OnInspectorInit]
+    private void OnInspectorInit() => Refresh();
+
+#if UNITY_EDITOR
+    private void OnValidate() => Refresh();
+#endif
+
+    private Item EnsureKey(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return null;
+
+        foreach (var it in _items)
+        {
+            if (it != null && it.Key == key)
+                return it;
+        }
+
+        var item = new Item { Key = key };
+        _items.Add(item);
+        return item;
+    }
+
+    private static bool ContainsKey(List<Item> items, string key)
+    {
+        foreach (var it in items)
+        {
+            if (it != null && it.Key == key)
+                return true;
+        }
+
+        return false;
+    }
 }

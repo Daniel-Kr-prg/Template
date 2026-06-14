@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using Cinemachine;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.Events;
@@ -38,6 +40,11 @@ namespace DanieloZ.CameraSystem
         #region Runtime State
 
         private readonly List<CameraLock> locks = new();
+        private Coroutine restoreDefaultBlendCoroutine;
+        private CinemachineBrain instantBlendBrain;
+        private CinemachineBrain cachedBrain;
+        private CinemachineBlendDefinition defaultBlendBeforeInstant;
+        private bool hasDefaultBlendBeforeInstant;
 
         #endregion
 
@@ -93,6 +100,18 @@ namespace DanieloZ.CameraSystem
             return true;
         }
 
+        public bool ActivateLockInstant(string lockId)
+        {
+            var cameraLock = FindLock(lockId);
+            if (cameraLock == null)
+            {
+                return false;
+            }
+
+            ActivateLockInstant(cameraLock);
+            return true;
+        }
+
         public void ActivateLock(CameraLock cameraLock)
         {
             if (cameraLock == null)
@@ -117,6 +136,25 @@ namespace DanieloZ.CameraSystem
             CurrentLock.Enter();
             LockActivated?.Invoke(CurrentLock);
             onLockActivated?.Invoke(CurrentLock);
+        }
+
+        public void ActivateLockInstant(CameraLock cameraLock)
+        {
+            if (cameraLock == null)
+            {
+                return;
+            }
+
+            var brain = ResolveBrain();
+            if (brain == null)
+            {
+                ActivateLock(cameraLock);
+                return;
+            }
+
+            ApplyInstantBlend(brain);
+            ActivateLock(cameraLock);
+            brain.ManualUpdate();
         }
 
         public bool SwitchToLock(string lockId)
@@ -174,6 +212,71 @@ namespace DanieloZ.CameraSystem
 
                 cameraLock.SetCameraPriority(cameraLock == CurrentLock ? activePriority : inactivePriority);
             }
+        }
+
+        private void ApplyInstantBlend(CinemachineBrain brain)
+        {
+            if (brain == null)
+            {
+                return;
+            }
+
+            if (hasDefaultBlendBeforeInstant && instantBlendBrain != null && instantBlendBrain != brain)
+            {
+                instantBlendBrain.m_DefaultBlend = defaultBlendBeforeInstant;
+                hasDefaultBlendBeforeInstant = false;
+            }
+
+            if (!hasDefaultBlendBeforeInstant)
+            {
+                defaultBlendBeforeInstant = brain.m_DefaultBlend;
+                hasDefaultBlendBeforeInstant = true;
+            }
+
+            instantBlendBrain = brain;
+            brain.m_DefaultBlend = new CinemachineBlendDefinition(CinemachineBlendDefinition.Style.Cut, 0f);
+
+            if (restoreDefaultBlendCoroutine != null)
+            {
+                StopCoroutine(restoreDefaultBlendCoroutine);
+            }
+
+            restoreDefaultBlendCoroutine = StartCoroutine(RestoreDefaultBlendNextFrame());
+        }
+
+        private IEnumerator RestoreDefaultBlendNextFrame()
+        {
+            yield return null;
+
+            if (instantBlendBrain != null && hasDefaultBlendBeforeInstant)
+            {
+                instantBlendBrain.m_DefaultBlend = defaultBlendBeforeInstant;
+            }
+
+            instantBlendBrain = null;
+            hasDefaultBlendBeforeInstant = false;
+            restoreDefaultBlendCoroutine = null;
+        }
+
+        private CinemachineBrain ResolveBrain()
+        {
+            if (cachedBrain != null)
+            {
+                return cachedBrain;
+            }
+
+            var mainCamera = Camera.main;
+            if (mainCamera != null && mainCamera.TryGetComponent(out cachedBrain))
+            {
+                return cachedBrain;
+            }
+
+#if UNITY_2023_1_OR_NEWER
+            cachedBrain = FindAnyObjectByType<CinemachineBrain>(FindObjectsInactive.Include);
+#else
+            cachedBrain = FindObjectOfType<CinemachineBrain>(true);
+#endif
+            return cachedBrain;
         }
 
         #endregion
