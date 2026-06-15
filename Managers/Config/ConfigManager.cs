@@ -527,6 +527,21 @@ namespace DanieloZ.Managers.Config
                             UpdateVoiceChatVolume();
                         }
                     })
+                },
+                {
+                    SettingsKeyname.UI_CONTROL_HINTS, new Action<object>(x =>
+                    {
+                        if (x is bool enabled)
+                        {
+                            SetControlHintsEnabled(enabled);
+                            Debug.Log($"[M] ConfigManager: Set control hints to {enabled}");
+                        }
+                        else
+                        {
+                            Debug.Log($"[M] ConfigManager / UI_CONTROL_HINTS: Invalid value passed. Value will be updated from ConfigData.");
+                            UpdateControlHintsEnabled();
+                        }
+                    })
                 }
             };
         }
@@ -899,6 +914,13 @@ namespace DanieloZ.Managers.Config
             configData.AudioSettings.VoiceChatVolume = volume;
             SoundManager.SetVCVolume(volume);
             Debug.Log($"[M] ConfigManager: Voice chat volume set to {volume}");
+        }
+
+        public void SetControlHintsEnabled(bool enabled)
+        {
+            configData.InterfaceSettings ??= new InterfaceSettings();
+            configData.InterfaceSettings.ControlHintsEnabled = enabled;
+            Debug.Log($"[M] ConfigManager: Control hints set to {enabled}");
         }
 
         #endregion
@@ -1410,6 +1432,12 @@ namespace DanieloZ.Managers.Config
             {
                 Debug.LogWarning("[M] ConfigManager: Cannot update voice chat volume, configData or volume is null");
             }
+        }
+
+        public void UpdateControlHintsEnabled()
+        {
+            configData.InterfaceSettings ??= new InterfaceSettings();
+            Debug.Log($"[M] ConfigManager: Control hints updated to {configData.InterfaceSettings.ControlHintsEnabled}");
         }
 
         #endregion

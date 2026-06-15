@@ -1,6 +1,6 @@
 # AI Context for PixelLust Template and PixelVoxelPuzzle
 
-Last updated: 2026-06-07
+Last updated: 2026-06-14
 Purpose: one navigation file for AI agents working in this Unity project. Use this as a fast map of Template modules, managers, scenes, setup flow, PixelVoxelPuzzle runtime architecture, and important file locations.
 
 Important rule for AI work:
@@ -95,9 +95,6 @@ Active build scenes from `ProjectSettings/EditorBuildSettings.asset`:
 
 Other project scenes:
 - `Assets/PuzzleGenerator/Generator.unity` - editor/generator scene, not in build settings.
-- `Assets/Scenes/Test Game.unity` - test/prototype scene.
-- `Assets/Scenes/Game_MVP.unity` - clean/rebuild target/reference.
-- `Assets/Scenes/Game_Old.unity` - old scene reference.
 
 Template scenes:
 - `Assets/Template/Scenes/Main.unity`
@@ -666,8 +663,8 @@ Current source-of-truth runtime path:
 - project UI modules under `Runtime/UI`
 
 Do not treat old names as current:
-- Old docs/prefabs may mention `PixelVoxelPuzzleBoard`, `PixelVoxelPuzzlePiece`, `PixelVoxelPuzzlePlacementPreview`, `PuzzleBoardFactory`, `PuzzlePieceFactory`.
-- Current runtime names are `PuzzleBoard`, `PuzzlePiece`, `PuzzlePieceHoldable`, `PuzzlePlacementService`, `PuzzleSessionFactory`, `PuzzleSessionManager`, `PuzzleCompletionService`.
+- Current placement runtime uses `BoardAreaController`, `PuzzlePlacementArea`, `PuzzlePiece`, `PuzzlePieceHoldable`, `PuzzlePlacementService`, `PuzzleSessionFactory`, `PuzzleSessionManager`, `PuzzleCompletionService` and `PuzzleCompletionHandler`.
+- BoardArea owns authored world presentation and controls; puzzle sessions only provide puzzle logic, pieces and optional box state.
 
 
 ## 9. PixelVoxelPuzzle Runtime Setup Roots
@@ -745,7 +742,7 @@ Generator behavior:
   - `_Debug`
 - Builds environment, input, hand, interaction, puzzle, camera and UI systems.
 - Restores camera Bezier curves under the camera system.
-- Creates starter board, pieces and placement preview.
+- Creates scene-authored BoardArea, pieces and placement preview.
 - Creates `PuzzleLibrary`, `PuzzleSessionManager`, `PuzzleSessionFactory`, `PuzzleCompletionService`, `PuzzleAutoStartup`.
 - Builds MVP world UI:
   - Main menu buttons
@@ -798,7 +795,7 @@ Generated/resource data:
   - difficulty
   - preview icon
   - grid size
-  - board cell pixel size
+  - placement cell pixel size
   - voxels per image pixel
   - generated voxel size/height
   - generation settings
@@ -824,20 +821,17 @@ Generated/resource data:
   - debug color
   - difficulty weight
 
-`PixelPuzzleTarget` inside `PixelPuzzleAsset.cs`
+`PuzzleRelativeCompletionData` inside `PixelPuzzleAsset.cs`
 - Completion target:
-  - piece id
-  - target anchor cell
-  - optional target rotation index/euler
+  - adjacency constraints between puzzle pieces
+  - relative cell offset from source piece
+  - target rotation delta
 
 `PuzzleLibraryAsset.cs`
 - ScriptableObject list of puzzle assets plus default puzzle.
 
 `PuzzleGenerationSettings.cs`
-- Seed, difficulty, target piece count, min/max piece size, noise/holes/thin parts, collider mode.
-
-`BoardGenerationSettings.cs`
-- Board insets and helpers for fitting grid/cell size into a board area.
+- Seed, difficulty, target piece count, min/max piece size, noise/holes/thin parts, collider mode and placement-area fit data.
 
 `BoardAreaLibraryAsset.cs`
 - Named board area definitions and bounds.
@@ -912,7 +906,7 @@ Hand components:
   - APIs: `TryPickup`, `MoveHeld`, `RotateHeld`, `BeginHeldRotation`, `DragHeldRotation`, `ClickHeldRotation`, `EndHeldRotation`, `ReleaseHeld`, `CancelHeld`, `DetachHeldObject`.
 - `HandInputController.cs`
   - Maps primary/secondary/wheel inputs to hand, placement and box systems.
-  - Checks `PuzzleBoxInteractionService` before normal board placement release.
+- Checks `PuzzleBoxInteractionService` before normal placement-area release.
 - `HandPointerRaycaster.cs`
   - Produces pointer raycast context.
 - `HandGripProjector.cs`
@@ -934,23 +928,22 @@ Current active loop:
 1. Player uses Level Select world button.
 2. `World3DLevelButton` calls `UILevelSelectModule.SelectPuzzleIndex`.
 3. `UILevelSelectModule` resolves `PuzzleLibrary` entry.
-4. `PuzzleSessionManager.StartSession` starts or replaces the active session.
-5. `PuzzleSessionFactory` builds board and pieces.
+4. `PuzzleSessionManager.StartSession` starts or replaces the session on the selected puzzle's `BoardAreaController`.
+5. `PuzzleSessionFactory` resolves BoardArea, spawns pieces and optional box under BoardArea session roots.
 6. `PuzzlePlacementService` validates hover/release placement.
-7. `PuzzleBoard` owns occupancy.
-8. `PuzzleCompletionService` checks targets.
+7. `PuzzlePlacementArea` owns grid occupancy and placement callbacks.
+8. `PuzzleCompletionService`/`PuzzleCompletionHandler` checks relative adjacency completion.
 9. `PuzzleSessionManager` raises EventManager events and completion callbacks.
 10. `UILevelSelectModule`/save/progression refresh level states.
 
 `PuzzleSessionManager.cs`
-- Main active session owner.
+- Multi-BoardArea session owner.
 - Fields include:
   - `PixelVoxelPuzzleGameRoot`
-  - default `PuzzleAssemblyDock`
   - `PuzzlePlacementService`
   - `PuzzleSessionFactory`
   - `PuzzleCompletionService`
-  - board/pieces roots
+  - session/pieces roots
 - Events:
   - `SessionStarted`
   - `SessionReset`
@@ -958,23 +951,27 @@ Current active loop:
   - `SessionCompleted`
 - APIs:
   - `StartSession(PixelPuzzleAsset asset)`
-  - `StartSession(PixelPuzzleAsset asset, PuzzleAssemblyDock dock)`
+  - `StartSession(PixelPuzzleAsset asset, bool packActiveSession)`
   - `CheckCompletionNow`
+  - `CheckCompletionNow(PuzzleSession session)`
   - `ResetActiveSession`
+  - `ResetSession(PuzzleSession session)`
   - `PackActiveSession`
+  - `PackSession(PuzzleSession session)`
   - `AdoptExistingSession`
 - Raises PixelPuzzle EventManager events.
 
 `PuzzleSessionFactory.cs`
 - Builds session objects from `PixelPuzzleAsset`.
-- Owns board prefab, piece prefab, generated board/piece materials, board settings and optional board camera zone settings.
+- Resolves target `BoardAreaController`, instantiates generated piece prefab and optional box prefab.
+- Board visual, stand, autodrop zone, controls and placement area are scene-authored BoardArea content.
 - APIs:
   - `BuildSession`
   - `ReturnPieceToSpawn`
 
 `PuzzleSession.cs`
 - Runtime model of one active puzzle attempt.
-- Holds asset, dock, board, pieces, owned objects, completion state.
+- Holds asset, BoardArea, pieces, owned objects, optional box and completion state.
 
 `PuzzleSessionBuildResult.cs`
 - Build result value for session creation.
@@ -992,42 +989,29 @@ Current active loop:
 `PuzzleAutoStartup.cs`
 - Starts default puzzle/session automatically when configured.
 
-`PuzzleAssemblyDock.cs`
-- Authored dock/anchor component for active puzzle area.
-- Used for board area, piece spawn, return/recovery/camera focus anchors.
+`BoardAreaController.cs`
+- Scene-authored world controller for one puzzle placement station.
+- Owns references to placement area, session controller, containment area, completion handler, stand, autodrop zone, buttons and session roots.
 
-`PuzzleBoardAreaAnchor.cs`
-- Named board area.
-- Transform position = area center.
-- Transform rotation = runtime board rotation.
-- Bounds define max board footprint.
-
-`PuzzleBoard.cs`
-- Logical board and placement state.
+`PuzzlePlacementArea.cs`
+- Logical grid placement and occupancy state.
 - Key APIs:
-  - `SetGrid`
+  - `Configure`
   - `TryWorldToCell`
   - `CellCenterToWorld`
   - `CellVertexToWorld`
-  - `GetRootWorldPosition`
+  - `GetPieceRootWorldPosition`
   - `CanPlace`
-  - `HasOccupiedNeighbor`
-  - `HasOccupiedNeighborOrBoardEdge`
+  - `HasPlacementSupportBoundary`
   - `TryPlace`
   - `TryGetPlacement`
   - `Clear`
   - `ClearAll`
   - `TryGetPlacementOutline`
-  - `TryGetAdaptivePlacementOutline`
 - Events:
   - `PiecePlaced`
   - `PieceRemoved`
   - `PlacementChanged`
-
-`PuzzleBoardController.cs`
-- Visual board layout.
-- Applies board size/insets to backing, walls and corners.
-- Keeps board root scale unchanged.
 
 `PuzzlePiece.cs`
 - Runtime piece identity and shape.
@@ -1041,19 +1025,19 @@ Current active loop:
   - hover outline
   - placement pose/tween
   - release inertia
-  - board placement integration
+  - placement-area integration
 - Future split candidate: physics, hover outline and placement animator.
 
 `PuzzlePieceRotationController.cs`
 - Board-step and free rotation owner.
 - Current behavior:
-  - RMB click under threshold rotates one 90-degree step over board preview.
+  - RMB click under threshold rotates one 90-degree step over placement preview.
   - RMB hold/drag rotates by mouse delta.
-  - Outside board preview, free rotation is allowed.
+  - Outside placement preview, free rotation is allowed.
   - Mouse wheel remains camera/control input unless explicitly handled by held object.
 
 `PuzzlePlacementService.cs`
-- Active board placement coordinator.
+- Active placement-area coordinator.
 - Uses held-piece target/placement root, not only live cursor position.
 - APIs:
   - `TryGetHoverPlacement`
@@ -1069,7 +1053,7 @@ Current active loop:
 - Draws valid/invalid placement outlines.
 
 `PuzzleCompletionService.cs`
-- Checks whether session pieces match `PixelPuzzleAsset.Targets`.
+- Checks whether session pieces match the puzzle's relative completion targets.
 
 `PuzzlePieceColliderUtility.cs`
 - Creates/installs generated compound `BoxCollider` setups.
@@ -1117,7 +1101,7 @@ Runtime components:
 - Uses `openingDirectionLocal` as the outward hole direction and `[TRIGGER] PourSpawnPlane` as the preferred random spawn plane for pouring; old generated prefabs fall back to `BoxTriggerInside`.
 - Open-box pour rate and impulse are angle-driven from `startPourAngleFromDown` to `fullPourAngleFromDown`, with inspector min/max pieces per second, min/max impulse, max pieces per frame, impulse spread, collision-ignore duration and `pourScaleRestoreDelay`. Poured pieces spawn shrinked and grow back after the restore delay.
 - Pouring only emits from a shuffled queue of `storedPieces`; pieces are removed from storage, reactivated, yaw-randomized, gravity/non-kinematic restored and pushed outward.
-- Held open boxes auto-tilt above the board only when `WorldDraggable.IsHeld` is true and a downward raycast hits `PuzzleBoardMask`; auto-tilt preserves player yaw/azimuth.
+- Held open boxes auto-tilt above placement surfaces only when `WorldDraggable.IsHeld` is true and a downward raycast hits `PuzzlePlacementAreaMask`; auto-tilt preserves player yaw/azimuth.
 - Selected gizmos draw the opening vector and spawn volume.
 - Applies image/preview materials and completed/incomplete visual state.
 - APIs:
@@ -1132,7 +1116,7 @@ Runtime components:
 
 `PuzzleBoxInteractionService.cs`
 - Used by `HandInputController`.
-- Checks box capture before board placement on release.
+- Checks box capture before placement-area release.
 - Downward raycasts held pieces into `BoxTriggerOutside`.
 - Forces `PuzzlePieceDragScaleController` shrink while held over an open box and keeps the intake preview line visible before release.
 - Requests `PuzzleBoxController.ShowCapturePreview` while hover target is valid and clears it when the piece leaves.
@@ -1150,7 +1134,7 @@ Runtime components:
 - Supports forced shrink sources.
 - Shrink is box-only by default: `allowPuzzleBoxInOutShrink = true`, min X/Z scale is `0.4`, max X/Z scale is `1`, and normal pickup/release/idle does not change scale.
 - Legacy default min value `0.82` and the temporary scale-off min value `1` normalize to box shrink min `0.4`; `0.4` remains valid.
-- A placed puzzle piece must always resolve to max scale; `ApplyMaxScaleImmediate()` is called after board placement.
+- A placed puzzle piece must always resolve to max scale; `ApplyMaxScaleImmediate()` is called after placement-area placement.
 
 `PuzzlePieceDragScaleSetup.cs`
 - Collects piece scale controllers under pieces root and applies global/per-piece settings.
@@ -1163,7 +1147,7 @@ WorldInteraction bridge for physical box pickup:
   - Assigns model bounds to `ModelBounds` layer and ignores collisions.
 - `Assets/Runtime/Hand/HeldObjectLiftUtility.cs`
   - Contains the disabled bounds/footprint obstacle lift prototype. It can raise held grip targets over obstacles using `modelBoundsCollider`, non-trigger child colliders, or renderer bounds when `ObstacleLiftGloballyEnabled` is re-enabled.
-  - Default obstacle mask is `PuzzleBoard | Table | PuzzleBox | PuzzlePiece`; self colliders, triggers, `ModelBounds`, and `BoxToggle` are ignored, but active stored/capturing pieces are not children of the held box and can cause jitter if `PuzzlePiece` remains in the box obstacle mask.
+  - Default obstacle mask is `PuzzlePlacementArea | Table | PuzzleBox | PuzzlePiece`; self colliders, triggers, `ModelBounds`, and `BoxToggle` are ignored, but active stored/capturing pieces are not children of the held box and can cause jitter if `PuzzlePiece` remains in the box obstacle mask.
 
 Important ModelBounds rule:
 - `ModelBounds` is service-only.
@@ -1333,7 +1317,6 @@ Template module owns generic camera:
 Project camera integration:
 - `Assets/Runtime/Input/PixelVoxelPuzzleCameraInputContextBridge.cs`
 - `Assets/Runtime/UI/GroundPivotFastTravelController.cs`
-- `Assets/Runtime/Puzzle/PuzzleBoardCameraZoneSettings.cs`
 
 Current generator builds in Game scene:
 - `CameraSystem`
@@ -1432,12 +1415,12 @@ Generator responsibilities:
 - Mesh generation.
 - Preview generation.
 - Board area selection and auto-fit.
-- Preview board spawn.
+- Preview placement-area spawn.
 - Collider generation and per-piece collider tuning.
 - Bake meshes/colliders.
 - Create/update `PixelPuzzleAsset`.
 - Export generated level prefab.
-- Optionally instantiate/configure `Assets/Prefabs/Box.prefab` next to the board.
+- Optionally instantiate/configure `Assets/Prefabs/Box.prefab` next to the preview placement area.
 
 Important APIs:
 - `GeneratePreview`
@@ -1478,15 +1461,15 @@ Input:
 Level selection:
 1. Player uses `World3DLevelButton`.
 2. `UILevelSelectModule.SelectPuzzleIndex` checks lock state and puzzle library.
-3. Existing active puzzle is packed if needed.
-4. `PuzzleSessionManager.StartSession` builds the selected puzzle.
-5. `GroundPivotFastTravelController` can move the camera pivot to `PuzzleAssemblyDock_Main`.
+3. Existing session on the target BoardArea is packed if needed.
+4. `PuzzleSessionManager.StartSession` builds the selected puzzle on its BoardArea.
+5. `GroundPivotFastTravelController` can move the camera pivot to the active BoardArea.
 
 Puzzle session:
-1. `PuzzleSessionFactory` builds board/pieces.
+1. `PuzzleSessionFactory` resolves BoardArea and spawns pieces/optional box.
 2. Pieces are held through `HandController` and `PuzzlePieceHoldable`.
 3. `PuzzlePlacementService` previews and validates placement.
-4. `PuzzleBoard` writes occupancy.
+4. `PuzzlePlacementArea` writes occupancy.
 5. `PuzzleCompletionService` checks target completion.
 6. `PuzzleSessionManager` raises completion/placement events.
 
@@ -1523,7 +1506,7 @@ Game
 - Hand-authored world content:
   - environment
   - level select
-  - assembly docks
+  - board areas
   - physical menu
   - world UI
   - achievement gallery
@@ -1533,7 +1516,6 @@ Game
 `Runtime`
 - Spawned/controlled runtime content:
   - `ActivePuzzleSession`
-  - board
   - pieces
   - placement preview
   - generated objects
@@ -1543,18 +1525,18 @@ Game
 - Temporary test/debug objects.
 - If deleting `_Debug` breaks normal play, the architecture is wrong.
 
-Current important assembly dock structure:
+Current important BoardArea structure:
 
 ```text
-PuzzleAssemblyDock_Main
-  BoardArea_Main
-  PiecesSpawnArea
-  PiecesReturnAnchor
-  BoxReturnAnchor
-  CameraFocus
-  RecoveryAnchor
-  ResetButtonAnchor
-  PackButtonAnchor
+BoardArea_Main
+  PlacementArea
+  ContainmentArea
+  SessionPieces
+  SessionBox
+  Effects
+  BoxSpawnAnchor
+  BoxPreviewAnchor
+  Buttons
 ```
 
 
@@ -1581,9 +1563,6 @@ Project materials:
 
 Project prefabs:
 - `Assets/Prefabs/Box.prefab`
-- `Assets/Prefabs/Test/[TEST] Board.prefab`
-- `Assets/Prefabs/Test/[TEST] Piece.prefab`
-- `Assets/Prefabs/Test/[TEST] Placement Preview.prefab`
 
 Resources:
 - `Assets/Resources/Puzzles`
@@ -1659,7 +1638,8 @@ When changing screen-space outlines:
 - Preserve the RenderFeature script GUID and assembly identity when moving or restructuring it.
 
 When changing puzzle placement:
-- Board logic belongs in `PuzzleBoard`.
+- Grid placement and occupancy logic belongs in `PuzzlePlacementArea`.
+- BoardArea world wiring belongs in `BoardAreaController`.
 - Candidate/validation/release coordination belongs in `PuzzlePlacementService`.
 - Visual lines belong in `PuzzlePlacementPreviewView`.
 - Held-object behavior belongs in `PuzzlePieceHoldable`.

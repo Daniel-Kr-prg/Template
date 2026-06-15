@@ -43,5 +43,7 @@ public enum SettingsKeyname
     AUDIO_MASTER,
     AUDIO_MUSIC,
     AUDIO_EFFECTS,
-    AUDIO_VOICE_CHAT
+    AUDIO_VOICE_CHAT,
+
+    UI_CONTROL_HINTS
 }

@@ -27,6 +27,13 @@ namespace DanieloZ.Config
         {
             SerializedDictionary<string, string> result = new SerializedDictionary<string, string>();
 
+            GameSettings ??= new GameSettings();
+            GraphicsSettings ??= new GraphicsSettings();
+            QualitySettings ??= new QualitySettings();
+            PostProcessingSettings ??= new PostProcessingSettings();
+            AudioSettings ??= new AudioSettings();
+            InterfaceSettings ??= new InterfaceSettings();
+
             result.AddRange(GameSettings.GetSaveableConfigData());
             result.AddRange(GraphicsSettings.GetSaveableConfigData());
             result.AddRange(QualitySettings.GetSaveableConfigData());
@@ -158,18 +165,7 @@ namespace DanieloZ.Config
     {
         public override string CFG_KEY => "UI";
 
-        public override SerializedDictionary<string, string> GetSaveableConfigData()
-        {
-            return new SerializedDictionary<string, string>
-            {
-                {  $"{CFG_KEY}_meow", "cat" }
-            };
-        }
-
-        public override void HandleSaveableConfigData(SerializedDictionary<string, string> data)
-        {
-            Debug.LogError("meow?");
-        }
+        public bool ControlHintsEnabled = true;
     }
 
 
