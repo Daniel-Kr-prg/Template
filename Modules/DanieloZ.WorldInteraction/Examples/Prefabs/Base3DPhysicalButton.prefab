@@ -14,7 +14,6 @@ GameObject:
   - component: {fileID: 6313868416858134376}
   - component: {fileID: 8588205629658595647}
   - component: {fileID: 4040652439708422081}
-  - component: {fileID: 6736779478805151191}
   m_Layer: 10
   m_Name: Base3DPhysicalButton
   m_TagString: Untagged
@@ -205,19 +204,6 @@ MonoBehaviour:
   onRemovedFromSlot:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &6736779478805151191
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 760372172261384570}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0f61c26fa8fe4c3280cff5d9e9d4d43e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelLust.PixelVoxelPuzzle.HandHoldableWorldDraggable
-  draggable: {fileID: 0}
 --- !u!1 &1647455475782384091
 GameObject:
   m_ObjectHideFlags: 0

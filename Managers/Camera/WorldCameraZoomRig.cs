@@ -365,7 +365,7 @@ namespace DanieloZ.WorldInteraction
         [SerializeField] private Transform movableRoot;
 
         [Tooltip("Optional radius marker used by pivot constraint volumes.")]
-        [SerializeField] private WorldCameraPivotIndicator pivotIndicator;
+        [SerializeField] private WorldInteraction_Camera_PivotIndicator pivotIndicator;
 
         [Header("Zoom")]
         [Tooltip("Current global zoom value. Camera entries use this value to choose active range and evaluate curves.")]
@@ -494,7 +494,7 @@ namespace DanieloZ.WorldInteraction
 
         [Header("Pivot Constraints")]
         [Tooltip("Constraint volumes applied to Ground Pivot in list order.")]
-        [SerializeField] private List<WorldCameraPivotConstraintVolume> pivotConstraints = new();
+        [SerializeField] private List<WorldInteraction_Camera_PivotConstraintVolume> pivotConstraints = new();
 
         [Header("Debug")]
         [Tooltip("Draw selected gizmos for camera rig debug information.")]
@@ -549,7 +549,7 @@ namespace DanieloZ.WorldInteraction
 
             if (pivotIndicator == null && groundPivot != null)
             {
-                pivotIndicator = groundPivot.GetComponent<WorldCameraPivotIndicator>();
+                pivotIndicator = groundPivot.GetComponent<WorldInteraction_Camera_PivotIndicator>();
             }
 
             if (useStartZoom)
@@ -617,9 +617,9 @@ namespace DanieloZ.WorldInteraction
 
         private void UpdateZoomInput()
         {
-            if (WorldInteractionInputGate.BlocksCameraWheel)
+            if (WorldInteraction_Runtime_InputGate.BlocksCameraWheel)
             {
-                DebugLog($"Wheel blocked by held object {WorldInteractionInputGate.HeldObject?.name ?? "none"}.");
+                DebugLog($"Wheel blocked by held object {WorldInteraction_Runtime_InputGate.HeldObject?.name ?? "none"}.");
                 return;
             }
 

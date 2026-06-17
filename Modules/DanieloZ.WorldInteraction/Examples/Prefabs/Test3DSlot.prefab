@@ -58,7 +58,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c6710938a0ed579479b69c58da8d9cb3, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.World3DButtonSlotBase
+  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.WorldInteraction_Slot_Base
   slotId: TestSlotItem
   anchor: {fileID: 200101}
   isActive: 0

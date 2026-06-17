@@ -142,7 +142,7 @@ namespace DanieloZ.Managers
         UI_LoadingScreenRelease, // releases LoadingScreen when a timed screen keeps itself until event
 
         // World Interaction
-        WorldInteraction_OnMatchingSlotInserted, // payload: [string id, World3DButtonSlotBase slot, World3DSlotItem item]
+        WorldInteraction_OnMatchingSlotInserted, // payload: [string id, WorldInteraction_Slot_Base slot, WorldInteraction_Slot_Item item]
 
         // Pixel Voxel Puzzle MVP Flow
         PixelPuzzle_OnLevelSelectRequested, // payload: [int levelIndex, PixelPuzzleAsset asset]
@@ -170,8 +170,8 @@ namespace DanieloZ.Managers
         PixelPuzzle_OnSaveCompleted, // payload: [string reason]
         PixelPuzzle_OnSaveFailed, // payload: [string reason]
         PixelPuzzle_OnSaveLoaded, // payload: [bool success]
-        PixelPuzzle_OnObjectPickedUp, // payload: [IInteractionPickupTarget target]
-        PixelPuzzle_OnObjectReleased, // payload: [IInteractionPickupTarget target]
+        PixelPuzzle_OnObjectPickedUp, // payload: [IWorldInteraction_Drag_PickupTarget target]
+        PixelPuzzle_OnObjectReleased, // payload: [IWorldInteraction_Drag_PickupTarget target]
         PixelPuzzle_OnMainMenuTitleSpawned, // payload: [string titleId, GameObject instance]
         PixelPuzzle_OnMainMenuTitleUnlocked, // payload: [string titleId]
 
@@ -209,8 +209,8 @@ namespace DanieloZ.Managers
         Game_OnNewWaveCame,   // Triggered when new wave movement ends (bricks stop)
 
         // Pixel Voxel Puzzle MVP audio routing
-        PixelPuzzle_OnObjectHoverStarted, // payload: [IInteractionHoverTarget target, InteractionCollider collider]
-        PixelPuzzle_OnObjectHoverEnded, // payload: [IInteractionHoverTarget target, InteractionCollider collider]
+        PixelPuzzle_OnObjectHoverStarted, // payload: [IWorldInteraction_Surface_HoverTarget target, WorldInteraction_Surface_Collider collider]
+        PixelPuzzle_OnObjectHoverEnded, // payload: [IWorldInteraction_Surface_HoverTarget target, WorldInteraction_Surface_Collider collider]
         PixelPuzzle_OnPieceRotated, // payload: [PuzzlePieceRotationController rotation]
         PixelPuzzle_OnWorldControlDragStarted, // payload: [string controlId, UnityEngine.Object source]
         PixelPuzzle_OnWorldControlDragEnded, // payload: [string controlId, UnityEngine.Object source]
@@ -222,9 +222,9 @@ namespace DanieloZ.Managers
         PixelPuzzle_OnBoxAutoDropChargeStarted, // payload: [PuzzleBoxController box, PuzzleBoxAutoDropZone zone]
         PixelPuzzle_OnBoxAutoDropChargeCompleted, // payload: [PuzzleBoxController box, PuzzleBoxAutoDropZone zone]
         PixelPuzzle_OnBoxAutoDropChargeCancelled, // payload: [PuzzleBoxController box, PuzzleBoxAutoDropZone zone]
-        WorldInteraction_OnSlotItemInserted, // payload: [World3DButtonSlotBase slot, World3DSlotItem item]
-        WorldInteraction_OnOptionRollerChanged, // payload: [World3DOptionRoller roller, int index]
-        WorldInteraction_OnSliderValueChanged // payload: [World3DSlider slider, float value]
+        WorldInteraction_OnSlotItemInserted, // payload: [WorldInteraction_Slot_Base slot, WorldInteraction_Slot_Item item]
+        WorldInteraction_OnOptionRollerChanged, // payload: [WorldInteraction_Control_OptionRoller roller, int index]
+        WorldInteraction_OnSliderValueChanged // payload: [WorldInteraction_Control_Slider slider, float value]
     }
 
 }

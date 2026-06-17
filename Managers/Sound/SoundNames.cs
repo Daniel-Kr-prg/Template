@@ -13,6 +13,7 @@ public enum SoundCategory
 [System.Serializable]
 public enum SoundName
 {
+    None = -1,
     Meow,
     Boo,
     UI_press_1,

@@ -59,7 +59,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d487efb80f454191acdb0c899895f64b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.World3DToggleButton
+  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.WorldInteraction_Toggle_Button
   buttonId: TestToggleButton
   interactable: 1
   isActive: 0
@@ -86,7 +86,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 40fd4fa1fe5942d598326c1114502be5, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelLust.PixelVoxelPuzzle.HandUsableWorld3DToggleButton
+  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.WorldInteraction_Hand_ToggleBridge
   toggleButton: {fileID: 400005}
   debugMessage: Test standalone 3D toggle pressed.
   logToConsole: 1

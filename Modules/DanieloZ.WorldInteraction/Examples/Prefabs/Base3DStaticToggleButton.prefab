@@ -124,7 +124,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e5d2b8a7f00e4f438ec87ecf5fe30984, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelLust.PixelVoxelPuzzle.World3DStaticToggleButton
+  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.WorldInteraction_Toggle_StaticButton
   toggleId: 
   interactable: 1
   isOn: 0

@@ -62,7 +62,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d1e227a058c504b41a3d57f008347a60, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.World3DStaticButton
+  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.WorldInteraction_Press_StaticButton
   buttonId: TestStaticButton
   interactable: 1
   isActive: 0

@@ -64,7 +64,7 @@ It intentionally does not reference project gameplay input, menu navigation, or 
 
 `GroundPivot` Bounds
 
-- The camera system keeps movement and bounds input-agnostic. PixelVoxelPuzzle MVP should constrain the `GroundPivot` with the existing `WorldCameraPivotConstraintVolume` / `WorldBoxConstraintSettings` compatibility components, or with a thin project-facing `CameraBox` wrapper if that name is preferred in scenes.
+- The camera system keeps movement and bounds input-agnostic. PixelVoxelPuzzle MVP should constrain the `GroundPivot` with the existing `WorldInteraction_Camera_PivotConstraintVolume` / `WorldInteraction_Drag_BoxConstraintSettings` compatibility components, or with a thin project-facing `CameraBox` wrapper if that name is preferred in scenes.
 - The prototype map pass should tune the base TopDown angle, Options lock angle and Main Menu lock angle together with those bounds.
 
 `CameraManagerSwitcher`

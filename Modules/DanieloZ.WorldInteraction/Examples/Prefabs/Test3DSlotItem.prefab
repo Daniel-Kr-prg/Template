@@ -89,7 +89,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2bd8d752e1e84b0bbf5601a97b46b671, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.World3DSlotItem
+  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.WorldInteraction_Slot_Item
   body: {fileID: 100005}
   gripRoot: {fileID: 100001}
   pickupDuration: 0.12

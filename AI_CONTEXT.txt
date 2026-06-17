@@ -22,7 +22,7 @@ Root project folders:
 - `Assets/_Imported` - third-party imported assets that are not part of Template.
 - `Assets/Scenes` - active project scenes.
 - `Assets/Resources` - puzzle libraries, generated puzzle data, board-area data and generated visual resources.
-- `Assets/Prefabs` - project prefabs outside Template; currently important: `Assets/Prefabs/Box.prefab`.
+- `Assets/Prefabs` - project prefabs outside Template; currently important: `Assets/Prefabs/Base/Box/Box.prefab`.
 - `Assets/Settings` - synced settings/config assets from Template setup: URP, localization, controls, DOTween, input actions.
 - `Docs` - design and module docs for PixelVoxelPuzzle.
 - `Packages/manifest.json` - package dependency list.
@@ -126,14 +126,14 @@ Game scene:
   - `HandSystem`
   - `PuzzleSystem`
   - `CameraSystem`
-  - `WorldInteractionController`
+  - `WorldInteraction_Runtime_Controller`
   - `GroundPivot`
   - `World`
   - `LevelSelect`
   - `LevelSelect_MVP`
   - `WorldUI`
   - `PhysicalMenu`
-  - `PhysicalMenuNavigator`
+  - `WorldInteraction_Menu_PhysicalNavigator`
   - `AssemblyDocks`
   - `PuzzleAssemblyDock_Main`
   - `PuzzleBoxes`
@@ -348,7 +348,7 @@ PixelVoxelPuzzle event names currently present:
 
 `Assets/Template/Managers/PoolingManagement/PoolingManager.cs`
 - Singleton pooling manager.
-- `DanieloZ.WorldInteraction.World3DUIObjectPool` can register pools through it.
+- `DanieloZ.WorldInteraction.WorldInteraction_UI_ObjectPool` can register pools through it.
 
 `Assets/Template/Managers/Timing/TimeManager.cs`
 - Singleton time utilities.
@@ -402,65 +402,65 @@ Purpose:
 - It is generic. Game-specific systems should subscribe to events, call public APIs, or use project-side bridge components.
 
 Core files/classes:
-- `WorldInteractionController.cs`
+- `WorldInteraction_Runtime_Controller.cs`
   - Central mouse/raycast router for drag, use, hover and swing.
   - Registers through Template `InputManager`.
   - Delegates runtime flows to service helpers.
-- `WorldInteractionInputGate.cs`
+- `WorldInteraction_Runtime_InputGate.cs`
   - Static held-object/shared interaction state.
   - Helps camera/UI/drag systems avoid fighting.
 - `WorldInteractionContracts.cs`
   - `WorldInteractionContext`
   - `WorldDragReleaseContext`
   - `WorldSwingContext`
-  - `IWorldUsable`
-  - `IWorldHoverable`
-  - `IWorldPointerDraggable`
-  - `IWorldDraggableReleaseHandler`
-  - `IWorldSwingable`
-  - `WorldCursorUtility`
+  - `IWorldInteraction_Press_Usable`
+  - `IWorldInteraction_Surface_Hoverable`
+  - `IWorldInteraction_Pointer_Draggable`
+  - `IWorldInteraction_Drag_ReleaseHandler`
+  - `IWorldInteraction_Swing_Target`
+  - `WorldInteraction_Pointer_CursorUtility`
 - `WorldInteractionRuntimeServices.cs`
   - Internal lookup, mask, pointer, drag, hover and swing flows.
-- `WorldDraggable.cs`
+- `WorldInteraction_Drag_Object.cs`
   - Generic physical draggable with pickup, hold, constraints, free rotation, wobble and release inertia.
-- `WorldDragConstraintSettings.cs`
+- `WorldInteraction_Drag_ConstraintSettings.cs`
   - Serializable drag axis/range constraints.
-- `World3DButtonBase.cs`
+- `WorldInteraction_Press_ButtonBase.cs`
   - Base for active/interactable 3D buttons.
-- `World3DStaticButton.cs`
-  - Pressable 3D button implementing `IWorldUsable`.
-- `World3DToggleButton.cs`
-  - Toggle 3D button implementing `IWorldUsable`.
+- `WorldInteraction_Press_StaticButton.cs`
+  - Pressable 3D button implementing `IWorldInteraction_Press_Usable`.
+- `WorldInteraction_Toggle_Button.cs`
+  - Toggle 3D button implementing `IWorldInteraction_Press_Usable`.
   - Must stay inheritable because `PuzzleBoxToggleButton` derives from it.
-- `World3DPressAnimation.cs`
+- `WorldInteraction_Press_Animation.cs`
   - Shared press animation helper.
-- `World3DButtonSlotBase.cs`
-  - Generic world slot for `World3DSlotItem`.
-- `World3DSlotItem.cs`
+- `WorldInteraction_Slot_Base.cs`
+  - Generic world slot for `WorldInteraction_Slot_Item`.
+- `WorldInteraction_Slot_Item.cs`
   - Draggable item with `ItemId` that can be inserted into a compatible slot.
 - `World3DPhysicalButton.cs`
-  - Compatibility alias inheriting `World3DSlotItem`.
-- `World3DToggleGroup.cs` and `World3DToggleObject.cs`
+  - Compatibility alias inheriting `WorldInteraction_Slot_Item`.
+- `WorldInteraction_Toggle_Group.cs` and `WorldInteraction_Toggle_Object.cs`
   - Physical toggle-state system.
-- `World3DSlider.cs`
+- `WorldInteraction_Control_Slider.cs`
   - Delta-driven world slider.
-- `World3DOptionRoller.cs`
+- `WorldInteraction_Control_OptionRoller.cs`
   - Four-sided option roller.
-- `World3DUIObjectPool.cs`
+- `WorldInteraction_UI_ObjectPool.cs`
   - Registers component pool through `PoolingManager`.
-- `WorldWaterVolume.cs`
+- `WorldInteraction_Surface_WaterVolume.cs`
   - Water/recovery trigger volume.
-- `WorldHardBoundsRecovery.cs`
+- `WorldInteraction_Drag_HardBoundsRecovery.cs`
   - Recovery registry for rigidbodies.
-- `WorldCameraPivotConstraintVolume.cs`
+- `WorldInteraction_Camera_PivotConstraintVolume.cs`
   - Pivot bounds/constraint helper.
-- `WorldBoxConstraintSettings.cs`
+- `WorldInteraction_Drag_BoxConstraintSettings.cs`
   - Box constraint data.
-- `WorldCameraPivotIndicator.cs`
+- `WorldInteraction_Camera_PivotIndicator.cs`
   - Visual/debug pivot indicator.
-- `WorldHoverable.cs`, `WorldUsable.cs`, `WorldSwingable.cs`
+- `WorldInteraction_Surface_Hoverable.cs`, `WorldInteraction_Press_Usable.cs`, `WorldInteraction_Swing_Target.cs`
   - Simple contract components.
-- `WorldPointerRaycaster.cs`
+- `WorldInteraction_Pointer_Raycaster.cs`
   - Pointer raycast helper.
 - `GameManagersStageInitializer.cs`
   - Stage initializer bridge.
@@ -680,12 +680,12 @@ Do not treat old names as current:
 - Serialized systems:
   - `InputContextStack`
   - `InputContextRouter`
-  - `HandController`
+  - `WorldInteraction_Hand_Controller`
   - `PuzzlePlacementService`
   - `PuzzleLibrary`
   - `PuzzleSessionManager`
   - `PuzzleAutoStartup`
-  - `SwingSystem`
+  - `WorldInteraction_Swing_System`
   - `CameraModeController`
   - `CameraZoneController`
   - `CameraLockController`
@@ -880,12 +880,12 @@ Principle:
 
 `InputContextRouter.cs`
 - Routes input to:
-  - `HandInputController`
-  - `SwingInputController`
+  - `WorldInteraction_Hand_InputController`
+  - `WorldInteraction_Swing_InputController`
   - `TopDownCameraController`
   - `CameraModeController`
   - `CameraLockController`
-  - `PhysicalMenuNavigator`
+  - `WorldInteraction_Menu_PhysicalNavigator`
 
 `PixelVoxelPuzzleCameraInputContextBridge.cs`
 - Listens to camera modes/locks and pushes/pops MainMenu or related contexts.
@@ -901,21 +901,21 @@ Hand contracts:
   - `IHandHoverable`
 
 Hand components:
-- `HandController.cs`
+- `WorldInteraction_Hand_Controller.cs`
   - Owns one held object.
   - APIs: `TryPickup`, `MoveHeld`, `RotateHeld`, `BeginHeldRotation`, `DragHeldRotation`, `ClickHeldRotation`, `EndHeldRotation`, `ReleaseHeld`, `CancelHeld`, `DetachHeldObject`.
-- `HandInputController.cs`
+- `WorldInteraction_Hand_InputController.cs`
   - Maps primary/secondary/wheel inputs to hand, placement and box systems.
 - Checks `PuzzleBoxInteractionService` before normal placement-area release.
-- `HandPointerRaycaster.cs`
+- `WorldInteraction_Hand_Raycaster.cs`
   - Produces pointer raycast context.
-- `HandGripProjector.cs`
+- `WorldInteraction_Hand_GripProjector.cs`
   - Projects pointer to hand/grip world position.
-- `HandPointerContext.cs`
+- `WorldInteraction_Pointer_Context.cs`
   - Immutable context with camera, ray, hit, screen position, grip world position and hand projection.
 - `UseSystem.cs`
   - Invokes `IHandUsable` when no object is held.
-- `HeldObjectWobbleController.cs`
+- `WorldInteraction_Drag_WobbleController.cs`
   - Runtime wobble for held objects.
 
 
@@ -1062,7 +1062,7 @@ Current active loop:
 ## 14. Puzzle Box Runtime
 
 Prefab:
-- `Assets/Prefabs/Box.prefab`
+- `Assets/Prefabs/Base/Box/Box.prefab`
 
 Important required child names:
 - `Box Pivot`
@@ -1074,7 +1074,7 @@ Important required child names:
 - `[TRIGGER] BoxTriggerInside` (old `BoxTriggerInside` is still accepted)
 - `[TRIGGER] PourSpawnPlane` (old `PourSpawnPlane` is still accepted)
 - `[COLLIDER] ModelBoundsCollider` (old `ModelBoundsCollider` is still accepted)
-- `[COLLIDER] BoxToggleTrigger` (old `BoxToggleTrigger` is still accepted)
+- `[INTERACTION] BoxToggleTrigger` (old `BoxToggleTrigger` is still accepted)
 - `BoxGlowTape`
 - `TMP_Label`
 - `PuzzleImage`
@@ -1085,7 +1085,7 @@ Runtime components:
 - Root `Box`: `PuzzleBoxController`
 - `[TRIGGER] BoxTriggerOutside`: `PuzzleBoxTrigger` as Outside
 - `[TRIGGER] BoxTriggerInside`: `PuzzleBoxTrigger` as Inside
-- `[COLLIDER] BoxToggleTrigger`: `PuzzleBoxToggleButton`
+- `[INTERACTION] BoxToggleTrigger`: `PuzzleBoxToggleButton`
 
 `PuzzleBoxController.cs`
 - Root controller for a puzzle box.
@@ -1101,7 +1101,7 @@ Runtime components:
 - Uses `openingDirectionLocal` as the outward hole direction and `[TRIGGER] PourSpawnPlane` as the preferred random spawn plane for pouring; old generated prefabs fall back to `BoxTriggerInside`.
 - Open-box pour rate and impulse are angle-driven from `startPourAngleFromDown` to `fullPourAngleFromDown`, with inspector min/max pieces per second, min/max impulse, max pieces per frame, impulse spread, collision-ignore duration and `pourScaleRestoreDelay`. Poured pieces spawn shrinked and grow back after the restore delay.
 - Pouring only emits from a shuffled queue of `storedPieces`; pieces are removed from storage, reactivated, yaw-randomized, gravity/non-kinematic restored and pushed outward.
-- Held open boxes auto-tilt above placement surfaces only when `WorldDraggable.IsHeld` is true and a downward raycast hits `PuzzlePlacementAreaMask`; auto-tilt preserves player yaw/azimuth.
+- Held open boxes auto-tilt above placement surfaces only when `WorldInteraction_Drag_Object.IsHeld` is true and a downward raycast hits `PuzzlePlacementAreaMask`; auto-tilt preserves player yaw/azimuth.
 - Selected gizmos draw the opening vector and spawn volume.
 - Applies image/preview materials and completed/incomplete visual state.
 - APIs:
@@ -1115,7 +1115,7 @@ Runtime components:
   - `ApplyPuzzleMaterials`
 
 `PuzzleBoxInteractionService.cs`
-- Used by `HandInputController`.
+- Used by `WorldInteraction_Hand_InputController`.
 - Checks box capture before placement-area release.
 - Downward raycasts held pieces into `BoxTriggerOutside`.
 - Forces `PuzzlePieceDragScaleController` shrink while held over an open box and keeps the intake preview line visible before release.
@@ -1125,7 +1125,7 @@ Runtime components:
 - Marks outside/inside trigger kind.
 
 `PuzzleBoxToggleButton.cs`
-- Inherits `World3DToggleButton`.
+- Inherits `WorldInteraction_Toggle_Button`.
 - Implements `IHandUsable` and `IHandHoverable`.
 - Calls `PuzzleBoxController.SetOpen(bool)`.
 
@@ -1140,12 +1140,12 @@ Runtime components:
 - Collects piece scale controllers under pieces root and applies global/per-piece settings.
 
 WorldInteraction bridge for physical box pickup:
-- `Assets/Runtime/WorldInteractionBridge/HandHoldableWorldDraggable.cs`
-  - Bridges hand system to generic `WorldDraggable`.
+- `Assets/Runtime/WorldInteractionBridge/WorldInteraction_Hand_DraggableBridge.cs`
+  - Bridges hand system to generic `WorldInteraction_Drag_Object`.
   - Supports whole-object pickup.
-  - Uses `HeldObjectLiftUtility` only for box bottom clearance while `HeldObjectLiftUtility.ObstacleLiftGloballyEnabled` is false.
+  - Uses `WorldInteraction_Drag_LiftUtility` only for box bottom clearance while `WorldInteraction_Drag_LiftUtility.ObstacleLiftGloballyEnabled` is false.
   - Assigns model bounds to `ModelBounds` layer and ignores collisions.
-- `Assets/Runtime/Hand/HeldObjectLiftUtility.cs`
+- `Assets/Runtime/Hand/WorldInteraction_Drag_LiftUtility.cs`
   - Contains the disabled bounds/footprint obstacle lift prototype. It can raise held grip targets over obstacles using `modelBoundsCollider`, non-trigger child colliders, or renderer bounds when `ObstacleLiftGloballyEnabled` is re-enabled.
   - Default obstacle mask is `PuzzlePlacementArea | Table | PuzzleBox | PuzzlePiece`; self colliders, triggers, `ModelBounds`, and `BoxToggle` are ignored, but active stored/capturing pieces are not children of the held box and can cause jitter if `PuzzlePiece` remains in the box obstacle mask.
 
@@ -1164,19 +1164,19 @@ Purpose:
 - Project-side adapters between the PixelVoxelPuzzle hand/input stack and generic Template world interaction module.
 
 Classes:
-- `HandHoldableWorldDraggable`
-  - `IHandHoldable` bridge to `WorldDraggable`.
-- `HandHoldableWorld3DSliderHandle`
+- `WorldInteraction_Hand_DraggableBridge`
+  - `IHandHoldable` bridge to `WorldInteraction_Drag_Object`.
+- `WorldInteraction_Hand_SliderBridge`
   - Bridges a world slider handle into hand/pointer drag.
-- `HandUsableWorld3DStaticButton`
+- `WorldInteraction_Hand_StaticButtonBridge`
   - Bridges static world button to hand use.
-- `HandUsableWorld3DToggleButton`
+- `WorldInteraction_Hand_ToggleBridge`
   - Bridges toggle world button to hand use.
-- `World3DStaticToggleButton`
+- `WorldInteraction_Toggle_StaticButton`
   - Project-side static toggle button.
-- `World3DStaticToggleGroup`
+- `WorldInteraction_Toggle_StaticGroup`
   - Project-side group for static toggles.
-- `PhysicalMenuNavigator`
+- `WorldInteraction_Menu_PhysicalNavigator`
   - Physical menu navigation target for MainMenu context.
 
 
@@ -1270,7 +1270,7 @@ Folder:
 
 `World3DLevelButton.cs`
 - Physical/world Level Select button.
-- Implements `IWorldUsable`.
+- Implements `IWorldInteraction_Press_Usable`.
 - Shows material state:
   - available
   - active
@@ -1283,7 +1283,7 @@ Folder:
   - `Refresh`
 
 `World3DActionButton.cs`
-- Bridge from generic `IWorldUsable` / `World3DStaticButton` into project actions.
+- Bridge from generic `IWorldInteraction_Press_Usable` / `WorldInteraction_Press_StaticButton` into project actions.
 - Supports actions for main menu, options, level select, reset, pack, recover, save/load and resolution apply.
 - APIs:
   - `Use`
@@ -1343,19 +1343,19 @@ Input separation:
 Folder:
 - `Assets/Runtime/Interaction`
 
-`SwingSurfaceResolver.cs`
+`WorldInteraction_Swing_SurfaceResolver.cs`
 - Resolves cursor/surface hit point.
 
-`SwingSystem.cs`
+`WorldInteraction_Swing_System.cs`
 - Applies impulses/callback style swing interaction around cursor surface point.
 
-`SwingInputController.cs`
+`WorldInteraction_Swing_InputController.cs`
 - Handles begin/update/end swing calls.
 - Disabled or redirected when context is MainMenu or when held-object logic has priority.
 
 Generic world interaction still exists:
-- `WorldInteractionController` from Template may be in scene for generic world UI/object interaction.
-- Puzzle pieces currently use the hand/holdable path, not generic `WorldDraggable`.
+- `WorldInteraction_Runtime_Controller` from Template may be in scene for generic world UI/object interaction.
+- Puzzle pieces currently use the hand/holdable path, not generic `WorldInteraction_Drag_Object`.
 
 
 ## 19. PixelVoxelPuzzle Save Runtime
@@ -1370,9 +1370,15 @@ Note:
 - Save data model:
   - `PixelVoxelPuzzleSaveData`
   - `PixelVoxelPuzzleLevelSaveData`
-  - `PixelVoxelPuzzleSessionSaveData`
-  - `PixelVoxelPuzzlePieceSaveData`
+  - `PixelVoxelPuzzleStartedSessionSaveData`
+  - `PixelVoxelPuzzleStartedPieceSaveData`
+  - `PixelVoxelPuzzleDiskSaveData`
   - vector/quaternion serializable structs
+- Current save version is 5.
+- Disk state is persisted separately from started sessions:
+  - `HomeSlot`
+  - `WorldLoose`
+  - `BoardAreaDiskInsert`
 - Bootstrap defaults:
   - Level 1 open
   - Levels 2-5 locked
@@ -1420,7 +1426,7 @@ Generator responsibilities:
 - Bake meshes/colliders.
 - Create/update `PixelPuzzleAsset`.
 - Export generated level prefab.
-- Optionally instantiate/configure `Assets/Prefabs/Box.prefab` next to the preview placement area.
+- Optionally instantiate/configure `Assets/Prefabs/Base/Box/Box.prefab` next to the preview placement area.
 
 Important APIs:
 - `GeneratePreview`
@@ -1467,7 +1473,7 @@ Level selection:
 
 Puzzle session:
 1. `PuzzleSessionFactory` resolves BoardArea and spawns pieces/optional box.
-2. Pieces are held through `HandController` and `PuzzlePieceHoldable`.
+2. Pieces are held through `WorldInteraction_Hand_Controller` and `PuzzlePieceHoldable`.
 3. `PuzzlePlacementService` previews and validates placement.
 4. `PuzzlePlacementArea` writes occupancy.
 5. `PuzzleCompletionService` checks target completion.
@@ -1562,7 +1568,7 @@ Project materials:
   - `PixelVoxelPuzzleHoverOutline.shader`
 
 Project prefabs:
-- `Assets/Prefabs/Box.prefab`
+- `Assets/Prefabs/Base/Box/Box.prefab`
 
 Resources:
 - `Assets/Resources/Puzzles`
@@ -1620,7 +1626,7 @@ Before changing architecture:
 
 When changing input:
 - Do not put puzzle rules into `InputManager`.
-- Use `InputContextRouter`, `InputContextStack`, `HandInputController`, camera bridge or physical menu navigator.
+- Use `InputContextRouter`, `InputContextStack`, `WorldInteraction_Hand_InputController`, camera bridge or physical menu navigator.
 
 When changing camera:
 - Prefer `DanieloZ.CameraSystem`.
@@ -1697,4 +1703,4 @@ PixelVoxelPuzzle ownership:
 - Editor setup/tooling: `Assets/Editor`
 - Materials: `Assets/Art/Materials`
 - Main puzzle resources: `Assets/Resources/Puzzles`
-- Box prefab: `Assets/Prefabs/Box.prefab`
+- Box prefab: `Assets/Prefabs/Base/Box/Box.prefab`

@@ -40,7 +40,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6c7b5b9f34e841e69eea27b21957bc55, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.World3DSlider
+  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.WorldInteraction_Control_Slider
   handleTransform: {fileID: 500201}
   trackSpace: {fileID: 500001}
   axis: 0
@@ -147,5 +147,5 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7c3ec5d94ac84aa98746897e42adc3bb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PixelLust.PixelVoxelPuzzle.HandHoldableWorld3DSliderHandle
+  m_EditorClassIdentifier: Assembly-CSharp::DanieloZ.WorldInteraction.WorldInteraction_Hand_SliderBridge
   slider: {fileID: 500002}
