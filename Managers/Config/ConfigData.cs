@@ -58,7 +58,9 @@ namespace DanieloZ.Config
 
         void HandleCustomSettings(Dictionary<string, string> customStuff)
         {
-            customSettings = customStuff;
+            customSettings ??= new SerializedDictionary<string, string>();
+            customSettings.Clear();
+            customSettings.AddRange(customStuff);
         }
     }
 
