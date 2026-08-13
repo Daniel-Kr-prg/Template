@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.Serialization;
-using UnityEditor;
 using UnityEngine;
 
 namespace DanieloZ.Transitions

@@ -1,7 +1,6 @@
 using DanieloZ.Transitions;
 using System;
 using System.Reflection;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
 
