@@ -34,36 +34,26 @@ namespace DanieloZ.Managers.Sound
 
         public SoundManager_LocalAudioSource SpawnSound_AtPoint(AudioClip clip, Vector3 position, AudioSourceSettings settings = null, SFXSettings SFX = null)
         {
+            if (!Initialized || pool == null || clip == null) return null;
+
             var audioSource = pool.Get();
-
-            if (clip != null)
+            audioSource.PlayClip_AtPoint(clip, position, settings, SFX, new System.Action(() =>
             {
-                audioSource.PlayClip_AtPoint(clip, position, settings, SFX, new System.Action(() =>
-                {
-                    pool.ReturnToPool(audioSource);
-                }));
-
-                return audioSource;
-            }
-
-            return null;
+                pool.ReturnToPool(audioSource);
+            }));
+            return audioSource;
         }
 
         public SoundManager_LocalAudioSource SpawnSound_FollowTransform(AudioClip clip, Transform transformToFollow, bool stopOnTransformDeactivate = false, AudioSourceSettings settings = null, SFXSettings SFX = null)
         {
+            if (!Initialized || pool == null || clip == null || transformToFollow == null) return null;
+
             var audioSource = pool.Get();
-
-            if (clip != null)
+            audioSource.PlayClip_FollowTransform(clip, transformToFollow, stopOnTransformDeactivate, settings, SFX, new System.Action(() =>
             {
-                audioSource.PlayClip_FollowTransform(clip, transformToFollow, stopOnTransformDeactivate, settings, SFX, new System.Action(() =>
-                {
-                    pool.ReturnToPool(audioSource);
-                }));
-
-                return audioSource;
-            }
-
-            return null;
+                pool.ReturnToPool(audioSource);
+            }));
+            return audioSource;
         }
     }
 }

@@ -14,7 +14,9 @@ public class SoundManager_LocalAudioSource : MonoBehaviour
     private bool stopOnTransformDisable;
     private Action onFinish;
 
+    private bool initialized;
     private float defaultVolume;
+    private AudioMixerGroup defaultMixerGroup;
     private float delayTime = 0f;
 
     // SFX
@@ -23,8 +25,12 @@ public class SoundManager_LocalAudioSource : MonoBehaviour
 
     public void Init()
     {
+        if (initialized) return;
+
         audioSource ??= GetComponent<AudioSource>();
         defaultVolume = audioSource.volume;
+        defaultMixerGroup = audioSource.outputAudioMixerGroup;
+        initialized = true;
     }
 
     void PlayClip(AudioClip clip, AudioSourceSettings settings = null, SFXSettings SFX = null, Action onFinish = null)
@@ -42,7 +48,7 @@ public class SoundManager_LocalAudioSource : MonoBehaviour
             audioSource.Play();
             ApplySFX(SFX);
 
-            StartCoroutine(HandleClipCompletion(clip.length));
+            StartCoroutine(HandleClipCompletion());
         }
     }
     public void PlayClipWithDelay(AudioClip clip, float delay, SFXSettings SFX = null, Action onFinish = null)
@@ -57,8 +63,7 @@ public class SoundManager_LocalAudioSource : MonoBehaviour
         audioSource.Play();
         ApplySFX(SFX);
 
-        // Schedule callback for when the clip finishes playing
-        StartCoroutine(HandleClipCompletion(clip.length));
+        StartCoroutine(HandleClipCompletion());
     }
 
     public void PlayClip_AtPoint(AudioClip clip, Vector3 point, AudioSourceSettings settings = null, SFXSettings SFX = null, Action onFinish = null)
@@ -94,15 +99,15 @@ public class SoundManager_LocalAudioSource : MonoBehaviour
 
     private void ApplySettings(AudioSourceSettings settings)
     {
+        settings ??= new AudioSourceSettings();
         audioSource.loop = settings.loop;
         audioSource.volume = settings.volume;
+        audioSource.pitch = settings.pitch;
+        audioSource.priority = Mathf.Clamp(settings.priority, 0, 256);
+        audioSource.spatialBlend = Mathf.Clamp01(settings.spatialBlend);
+        audioSource.outputAudioMixerGroup = settings.group != null ? settings.group : defaultMixerGroup;
         defaultVolume = settings.volume;
         delayTime = settings.delayTime;
-
-        if (settings.group != null)
-        {
-            audioSource.outputAudioMixerGroup = settings.group;
-        }
     }
 
     private void ApplySFX(SFXSettings settings)
@@ -185,14 +190,14 @@ public class SoundManager_LocalAudioSource : MonoBehaviour
     /// <summary>
     /// Handles clip completion and invokes the callback.
     /// </summary>
-    private IEnumerator HandleClipCompletion(float clipLength)
+    private IEnumerator HandleClipCompletion()
     {
-        yield return new WaitForSeconds(clipLength);
+        while (audioSource != null && audioSource.isPlaying)
+        {
+            yield return null;
+        }
 
-        if (audioSource.isPlaying)
-            yield break; // Prevent double invocation if manually stopped
-
-        transformToFollow = null; // Reset follow behavior
+        transformToFollow = null;
         onFinish?.Invoke();
         onFinish = null;
     }

@@ -68,6 +68,8 @@ namespace DanieloZ.Managers.Sound
                 Debug.LogError("[SoundManager] Master Mixer is not assigned!");
             }
 
+            mixerGroups ??= new SerializedDictionary<AudioMixerGroupName, AudioMixerGroup>();
+
             localAudioSourcePool ??= GetComponentInChildren<SoundManager_SourcePool>();
             if (localAudioSourcePool != null)
             {
@@ -313,35 +315,59 @@ namespace DanieloZ.Managers.Sound
             globalFollowPoint = followTransform;
         }
 
+        public SoundManager_LocalAudioSource PlayGlobalClip(AudioClip clip, AudioMixerGroupName groupName = AudioMixerGroupName.Effects, AudioSourceSettings settings = null, SFXSettings SFX = null)
+        {
+            Vector3 position = globalSoundPoint != null ? globalSoundPoint.position : transform.position;
+            return SpawnSound_AtPoint(clip, position, groupName, settings, SFX);
+        }
+
         public SoundManager_LocalAudioSource SpawnSound_AtPoint(SoundCategory category, SoundName soundName, Vector3 position, AudioMixerGroupName groupName = AudioMixerGroupName.NONE, AudioSourceSettings settings = null, SFXSettings SFX = null)
         {
-            if (poolInitialized)
-            {
-                settings ??= new AudioSourceSettings() { loop = false, volume = 1f, group = GetAudioMixerGroup(groupName) };
-                settings.group ??= GetAudioMixerGroup(groupName);
+            AudioClip clip = soundLibrary != null ? soundLibrary.GetSound(category, soundName) : null;
+            return SpawnSound_AtPoint(clip, position, groupName, settings, SFX);
+        }
 
-                return localAudioSourcePool.SpawnSound_AtPoint(soundLibrary.GetSound(category, soundName), position, settings, SFX);
-            }
+        public SoundManager_LocalAudioSource SpawnSound_AtPoint(AudioClip clip, Vector3 position, AudioMixerGroupName groupName = AudioMixerGroupName.NONE, AudioSourceSettings settings = null, SFXSettings SFX = null)
+        {
+            if (!poolInitialized || clip == null) return null;
 
-            return null;
+            settings ??= new AudioSourceSettings();
+            settings.group ??= GetAudioMixerGroup(groupName);
+            return localAudioSourcePool.SpawnSound_AtPoint(clip, position, settings, SFX);
         }
 
         public SoundManager_LocalAudioSource SpawnSound_FollowTransform(SoundCategory category, SoundName soundName, Transform transformToFollow, bool stopOnTransformDeactivate = false, AudioMixerGroupName groupName = AudioMixerGroupName.NONE, AudioSourceSettings settings = null, SFXSettings SFX = null)
         {
-            if (poolInitialized)
-            {
-                settings ??= new AudioSourceSettings() { loop = false, volume = 1f, group = GetAudioMixerGroup(groupName) };
-                settings.group ??= GetAudioMixerGroup(groupName);
+            AudioClip clip = soundLibrary != null ? soundLibrary.GetSound(category, soundName) : null;
+            return SpawnSound_FollowTransform(clip, transformToFollow, stopOnTransformDeactivate, groupName, settings, SFX);
+        }
 
-                return localAudioSourcePool.SpawnSound_FollowTransform(soundLibrary.GetSound(category, soundName), transformToFollow, stopOnTransformDeactivate, settings, SFX);
-            }
+        public SoundManager_LocalAudioSource SpawnSound_FollowTransform(AudioClip clip, Transform transformToFollow, bool stopOnTransformDeactivate = false, AudioMixerGroupName groupName = AudioMixerGroupName.NONE, AudioSourceSettings settings = null, SFXSettings SFX = null)
+        {
+            if (!poolInitialized || clip == null || transformToFollow == null) return null;
 
-            return null;
+            settings ??= new AudioSourceSettings();
+            settings.group ??= GetAudioMixerGroup(groupName);
+            return localAudioSourcePool.SpawnSound_FollowTransform(clip, transformToFollow, stopOnTransformDeactivate, settings, SFX);
         }
 
         public static AudioMixerGroup GetAudioMixerGroup(AudioMixerGroupName name)
         {
-            if (Instance.mixerGroups.TryGetValue(name, out var group)) return group;
+            if (!HaveInstance()) return null;
+            if (Instance.mixerGroups != null && Instance.mixerGroups.TryGetValue(name, out AudioMixerGroup group)) return group;
+            if (Instance.masterMixer == null || name == AudioMixerGroupName.NONE) return null;
+
+            string mixerGroupName = name == AudioMixerGroupName.VC ? "VoiceChat" : name.ToString();
+            AudioMixerGroup[] matchingGroups = Instance.masterMixer.FindMatchingGroups(mixerGroupName);
+            for (int index = 0; index < matchingGroups.Length; index++)
+            {
+                group = matchingGroups[index];
+                if (group != null && group.name == mixerGroupName)
+                {
+                    Instance.mixerGroups[name] = group;
+                    return group;
+                }
+            }
 
             return null;
         }
@@ -361,6 +387,9 @@ namespace DanieloZ.Managers.Sound
         public float delayTime = 0;
         public bool loop = false;
         public float volume = 1f;
+        public float pitch = 1f;
+        public int priority = 128;
+        public float spatialBlend = 0f;
         public AudioMixerGroup group;
     }
 
