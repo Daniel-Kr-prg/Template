@@ -26,7 +26,7 @@ namespace DanieloZ.Managers.Config
 
         bool IsInitialized = false;
 
-        private const int MinimumTargetFrameRate = 75;
+        private const int TargetFrameRate = 60;
         public const string TEXTURE_MIPMAP_GROUP_NAME = "MIPMAP_TEXTURES_GROUP";
 
         private void Start()
@@ -643,20 +643,17 @@ namespace DanieloZ.Managers.Config
         public void SetLimitRefreshRate(bool limit)
         {
             configData.GraphicsSettings.LimitRefreshRate = true;
-            configData.GraphicsSettings.RefreshRate = Mathf.Max(
-                MinimumTargetFrameRate,
-                configData.GraphicsSettings.RefreshRate);
-            Application.targetFrameRate = configData.GraphicsSettings.RefreshRate;
-            Debug.Log($"[M] ConfigManager: Target frame rate set to {configData.GraphicsSettings.RefreshRate}");
+            configData.GraphicsSettings.RefreshRate = TargetFrameRate;
+            Application.targetFrameRate = TargetFrameRate;
+            Debug.Log($"[M] ConfigManager: Target frame rate set to {TargetFrameRate}");
         }
 
         public void SetRefreshRate(int rate)
         {
-            int targetFrameRate = Mathf.Max(MinimumTargetFrameRate, rate);
             configData.GraphicsSettings.LimitRefreshRate = true;
-            configData.GraphicsSettings.RefreshRate = targetFrameRate;
-            Application.targetFrameRate = targetFrameRate;
-            Debug.Log($"[M] ConfigManager: Refresh rate set to {targetFrameRate}");
+            configData.GraphicsSettings.RefreshRate = TargetFrameRate;
+            Application.targetFrameRate = TargetFrameRate;
+            Debug.Log($"[M] ConfigManager: Refresh rate set to {TargetFrameRate}");
         }
 
         public void SetVSync(int vSyncValue)
@@ -821,6 +818,7 @@ namespace DanieloZ.Managers.Config
         // Post-Processing Settings
         public void SetBloom(ConfigAvailableSettings.Bloom bloom)
         {
+            bloom = ConfigAvailableSettings.Bloom.Disabled;
             configData.PostProcessingSettings.Bloom = bloom;
 
             if (volumeProfile.TryGet(out UnityEngine.Rendering.Universal.Bloom bloomComponent))
@@ -849,6 +847,7 @@ namespace DanieloZ.Managers.Config
 
         public void SetMotionBlur(ConfigAvailableSettings.MotionBlur motionBlur)
         {
+            motionBlur = ConfigAvailableSettings.MotionBlur.Disabled;
             configData.PostProcessingSettings.MotionBlur = motionBlur;
 
             if (volumeProfile.TryGet(out UnityEngine.Rendering.Universal.MotionBlur blurComponent))
@@ -1304,7 +1303,8 @@ namespace DanieloZ.Managers.Config
                 return;
             }
 
-            var bloom = configData.PostProcessingSettings.Bloom;
+            var bloom = ConfigAvailableSettings.Bloom.Disabled;
+            configData.PostProcessingSettings.Bloom = bloom;
             if (volumeProfile.TryGet<UnityEngine.Rendering.Universal.Bloom>(out var bloomComponent))
             {
                 switch (bloom)
@@ -1337,7 +1337,8 @@ namespace DanieloZ.Managers.Config
                 return;
             }
 
-            var motionBlur = configData.PostProcessingSettings.MotionBlur;
+            var motionBlur = ConfigAvailableSettings.MotionBlur.Disabled;
+            configData.PostProcessingSettings.MotionBlur = motionBlur;
             if (volumeProfile.TryGet<UnityEngine.Rendering.Universal.MotionBlur>(out var blurComponent))
             {
                 switch (motionBlur)
