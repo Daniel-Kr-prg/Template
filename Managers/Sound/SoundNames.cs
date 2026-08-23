@@ -43,5 +43,20 @@ public enum SoundName
     Level_unlock_1,
     Title_spawn_1,
     Title_unlock_1,
-    Save_autosave_1
+    Save_autosave_1,
+    StickPuzzle_UI_press_1,
+    StickPuzzle_Level_select_press_1,
+    StickPuzzle_Stick_select_1,
+    StickPuzzle_Stick_confirm_1,
+    StickPuzzle_Stick_confirm_2,
+    StickPuzzle_Star_achieved_1,
+    StickPuzzle_Star_achieved_2,
+    StickPuzzle_Star_achieved_3,
+    StickPuzzle_Stick_place_1,
+    StickPuzzle_Layer_complete_1,
+    StickPuzzle_Level_locked_press_1,
+    StickPuzzle_Stick_select_2,
+    StickPuzzle_Stick_select_3,
+    StickPuzzle_Stick_confirm_3,
+    StickPuzzle_Stick_deselect_1
 }

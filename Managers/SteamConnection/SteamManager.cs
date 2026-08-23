@@ -1,3 +1,4 @@
+#if UNITY_STANDALONE || UNITY_EDITOR
 using DanieloZ.Managers;
 using Sirenix.OdinInspector;
 using Steamworks;
@@ -158,6 +159,34 @@ public class SteamManager : SingletonManager<SteamManager>
 
     #endregion
 }
+#else
+using System;
+using UnityEngine;
+
+public class SteamManager : SingletonManager<SteamManager>
+{
+    [SerializeField] private uint appID;
+    [SerializeField] private bool UseSteam;
+
+    public bool Active = false;
+    public bool IsInitialized => false;
+    public bool IsInLobby => false;
+
+    private void Start()
+    {
+        StagesManager.Instance.AppStages.RegisterStageStartAction(AppStageName.ConnectServices, "SteamConnection", () =>
+        {
+            StagesManager.Instance.AppStages.currentStage.SatisfyCondition("SteamConnection_Success");
+        });
+        StagesManager.Instance.AppStages.RegisterStageChangeCondition(
+            AppStageName.ConnectServices,
+            "SteamConnection_Success",
+            new StageCondition(new Func<bool>(() => true)));
+
+        StagesManager.Instance.AppStages.currentStage.SatisfyCondition("StagesManager_SteamManagerReady");
+    }
+}
+#endif
 
 
 

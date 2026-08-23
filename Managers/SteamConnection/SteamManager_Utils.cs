@@ -1,3 +1,4 @@
+#if UNITY_STANDALONE || UNITY_EDITOR
 using Steamworks;
 using UnityEngine;
 
@@ -40,3 +41,4 @@ public class SteamManager_Utils
         return result;
     }
 }
+#endif

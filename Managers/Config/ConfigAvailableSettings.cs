@@ -266,8 +266,8 @@ public class ConfigAvailableSettings
     ),
     new SettingsPreset(
         "High",
-        ConfigAvailableSettings.MSAA_Sampling.x4,
-        AntialiasingMode.SubpixelMorphologicalAntiAliasing,
+        ConfigAvailableSettings.MSAA_Sampling.Disabled,
+        AntialiasingMode.FastApproximateAntialiasing,
         ConfigAvailableSettings.ShadowResolution.High,
         ConfigAvailableSettings.ShadowCascades.Four,
         150, // ShadowsDistance
@@ -282,8 +282,8 @@ public class ConfigAvailableSettings
 
         ConfigAvailableSettings.Bloom.High,
         ConfigAvailableSettings.MotionBlur.Low,
-        ConfigAvailableSettings.DepthOfField.Enabled,
-        ConfigAvailableSettings.AmbientOcclusion.SSAO,
+        ConfigAvailableSettings.DepthOfField.Disabled,
+        ConfigAvailableSettings.AmbientOcclusion.Disabled,
         true
     )
 };

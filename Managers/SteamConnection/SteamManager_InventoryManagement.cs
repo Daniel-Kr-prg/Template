@@ -1,3 +1,4 @@
+#if UNITY_STANDALONE || UNITY_EDITOR
 using Steamworks;
 using System.Threading.Tasks;
 
@@ -38,3 +39,4 @@ public class SteamManager_InventoryManagement
         }
     }
 }
+#endif

@@ -321,6 +321,12 @@ namespace DanieloZ.Managers.Sound
             return SpawnSound_AtPoint(clip, position, groupName, settings, SFX);
         }
 
+        public SoundManager_LocalAudioSource PlayGlobalSound(SoundCategory category, SoundName soundName, AudioMixerGroupName groupName = AudioMixerGroupName.Effects, AudioSourceSettings settings = null, SFXSettings SFX = null)
+        {
+            Vector3 position = globalSoundPoint != null ? globalSoundPoint.position : transform.position;
+            return SpawnSound_AtPoint(category, soundName, position, groupName, settings, SFX);
+        }
+
         public SoundManager_LocalAudioSource SpawnSound_AtPoint(SoundCategory category, SoundName soundName, Vector3 position, AudioMixerGroupName groupName = AudioMixerGroupName.NONE, AudioSourceSettings settings = null, SFXSettings SFX = null)
         {
             AudioClip clip = soundLibrary != null ? soundLibrary.GetSound(category, soundName) : null;

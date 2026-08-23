@@ -10,7 +10,11 @@ using UnityEngine.UIElements;
 public class AddressablesManager : SingletonManager<AddressablesManager>
 {
     private bool isInitialized = false;
+    private bool initializationComplete;
     private bool readyConditionSatisfied;
+
+    public bool IsInitialized => isInitialized;
+    public bool IsInitializationComplete => initializationComplete;
 
     protected override void Awake()
     {
@@ -31,7 +35,13 @@ public class AddressablesManager : SingletonManager<AddressablesManager>
     private IEnumerator InitializeCoroutine()
     {
         var handle = Addressables.InitializeAsync();
-        if (handle.Status == AsyncOperationStatus.Succeeded)
+        yield return handle;
+        initializationComplete = true;
+
+        bool succeeded = handle.IsValid()
+            ? handle.Status == AsyncOperationStatus.Succeeded
+            : HasResourceLocators();
+        if (succeeded)
         {
             isInitialized = true;
             DebugMessage("Addressables initialized successfully.");
@@ -39,9 +49,18 @@ public class AddressablesManager : SingletonManager<AddressablesManager>
         }
         else
         {
-            DebugError("Addressables failed to initialize.");
+            DebugError($"Addressables failed to initialize. {(handle.IsValid() ? handle.OperationException?.Message : "Initialization handle became invalid before any resource locator was registered.")}");
         }
-        yield return handle;
+    }
+
+    private static bool HasResourceLocators()
+    {
+        foreach (var unused in Addressables.ResourceLocators)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private void SatisfyReadyCondition()

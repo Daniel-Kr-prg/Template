@@ -1,3 +1,4 @@
+#if UNITY_STANDALONE || UNITY_EDITOR
 using Newtonsoft.Json;
 using Steamworks;
 using System;
@@ -100,3 +101,17 @@ public static class SteamManager_IO
         return success;
     }
 }
+#else
+public static class SteamManager_IO
+{
+    public static bool IsCloudAvailable() => false;
+
+    public static void SaveToSteamCloud(string fileName, object savingObject)
+    {
+    }
+
+    public static T LoadFromSteamCloud<T>(string fileName) => default;
+
+    public static bool DeleteSteamCloudFile(string fileName) => false;
+}
+#endif

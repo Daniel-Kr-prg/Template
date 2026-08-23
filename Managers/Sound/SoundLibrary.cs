@@ -8,11 +8,17 @@ namespace DanieloZ.Managers.Sound
     {
         [SerializeField] private SerializedDictionary<SoundCategory, SoundList> categories;
 
+        public void SetSoundList(SoundCategory category, SoundList soundList)
+        {
+            categories ??= new SerializedDictionary<SoundCategory, SoundList>();
+            categories[category] = soundList;
+        }
+
         public AudioClip GetSound(SoundCategory categoryEnum, SoundName soundName)
         {
-            if (categories.TryGetValue(categoryEnum, out SoundList soundList))
+            if (categories != null && categories.TryGetValue(categoryEnum, out SoundList soundList) && soundList != null)
             {
-                if (soundList.sounds.TryGetValue(soundName, out AudioClip clip))
+                if (soundList.sounds != null && soundList.sounds.TryGetValue(soundName, out AudioClip clip))
                 {
                     return clip;
                 }

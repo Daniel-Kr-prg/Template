@@ -1,3 +1,4 @@
+#if UNITY_STANDALONE || UNITY_EDITOR
 using Steamworks;
 using UnityEngine;
 
@@ -27,3 +28,4 @@ public class SteamManager_UserData
         SteamManager_Utils.GetUserAvatar(CurrentUserId, (x) => { CurrentUserAvatar = x; });
     }
 }
+#endif

@@ -1,7 +1,6 @@
 using DanieloZ.InputManagement;
 using DanieloZ.Managers;
 using Newtonsoft.Json;
-using Steamworks;
 using System;
 using System.Collections;
 using System.Threading.Tasks;

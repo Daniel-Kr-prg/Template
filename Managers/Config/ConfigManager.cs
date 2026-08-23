@@ -6,7 +6,6 @@ using UnityEngine.Rendering.Universal;
 using DanieloZ.Config;
 using System.Linq;
 using DanieloZ.Managers.Sound;
-using Steamworks;
 using UnityEngine.Localization.Settings;
 
 namespace DanieloZ.Managers.Config
@@ -27,6 +26,7 @@ namespace DanieloZ.Managers.Config
 
         bool IsInitialized = false;
 
+        private const int MinimumTargetFrameRate = 75;
         public const string TEXTURE_MIPMAP_GROUP_NAME = "MIPMAP_TEXTURES_GROUP";
 
         private void Start()
@@ -642,26 +642,28 @@ namespace DanieloZ.Managers.Config
 
         public void SetLimitRefreshRate(bool limit)
         {
-            configData.GraphicsSettings.LimitRefreshRate = limit;
-            Application.targetFrameRate = limit ? configData.GraphicsSettings.RefreshRate : -1;
-            Debug.Log($"[M] ConfigManager: Limit refresh rate set to {limit}");
+            configData.GraphicsSettings.LimitRefreshRate = true;
+            configData.GraphicsSettings.RefreshRate = Mathf.Max(
+                MinimumTargetFrameRate,
+                configData.GraphicsSettings.RefreshRate);
+            Application.targetFrameRate = configData.GraphicsSettings.RefreshRate;
+            Debug.Log($"[M] ConfigManager: Target frame rate set to {configData.GraphicsSettings.RefreshRate}");
         }
 
         public void SetRefreshRate(int rate)
         {
-            configData.GraphicsSettings.RefreshRate = rate;
-            if (configData.GraphicsSettings.LimitRefreshRate)
-            {
-                Application.targetFrameRate = rate;
-            }
-            Debug.Log($"[M] ConfigManager: Refresh rate set to {rate}");
+            int targetFrameRate = Mathf.Max(MinimumTargetFrameRate, rate);
+            configData.GraphicsSettings.LimitRefreshRate = true;
+            configData.GraphicsSettings.RefreshRate = targetFrameRate;
+            Application.targetFrameRate = targetFrameRate;
+            Debug.Log($"[M] ConfigManager: Refresh rate set to {targetFrameRate}");
         }
 
         public void SetVSync(int vSyncValue)
         {
-            configData.GraphicsSettings.vSync = vSyncValue;
-            UnityEngine.QualitySettings.vSyncCount = vSyncValue;
-            Debug.Log($"[M] ConfigManager: VSync set to {vSyncValue}");
+            configData.GraphicsSettings.vSync = 0;
+            UnityEngine.QualitySettings.vSyncCount = 0;
+            Debug.Log("[M] ConfigManager: VSync disabled");
         }
 
         public void SetBrightness(float brightness)
@@ -726,6 +728,9 @@ namespace DanieloZ.Managers.Config
 
         public void SetAntiAliasing(AntialiasingMode mode)
         {
+            if (mode == AntialiasingMode.SubpixelMorphologicalAntiAliasing)
+                mode = AntialiasingMode.FastApproximateAntialiasing;
+
             configData.QualitySettings.AntiAliasing = mode;
 
             CameraManager.CurrentCamera.GetComponent<UniversalAdditionalCameraData>().antialiasing = mode;
@@ -735,6 +740,7 @@ namespace DanieloZ.Managers.Config
 
         public void SetMSAASamples(ConfigAvailableSettings.MSAA_Sampling samples)
         {
+            samples = ConfigAvailableSettings.MSAA_Sampling.Disabled;
             configData.QualitySettings.MSAA_Sampling = samples;
 
             UnityEngine.QualitySettings.antiAliasing = (int)samples;
@@ -868,6 +874,7 @@ namespace DanieloZ.Managers.Config
 
         public void SetDepthOfField(ConfigAvailableSettings.DepthOfField depthOfField)
         {
+            depthOfField = ConfigAvailableSettings.DepthOfField.Disabled;
             configData.PostProcessingSettings.DepthOfField = depthOfField;
 
             if (volumeProfile.TryGet(out UnityEngine.Rendering.Universal.DepthOfField dofComponent))
@@ -987,9 +994,7 @@ namespace DanieloZ.Managers.Config
         {
             if (configData?.GraphicsSettings.LimitRefreshRate != null)
             {
-                bool limit = configData.GraphicsSettings.LimitRefreshRate;
-                Application.targetFrameRate = limit ? configData.GraphicsSettings.RefreshRate : -1;
-                Debug.Log($"[M] ConfigManager: Limit refresh rate updated to {limit}");
+                SetLimitRefreshRate(true);
             }
             else
             {
@@ -1001,12 +1006,7 @@ namespace DanieloZ.Managers.Config
         {
             if (configData?.GraphicsSettings.RefreshRate != null)
             {
-                int refreshRate = configData.GraphicsSettings.RefreshRate;
-                if (configData.GraphicsSettings.LimitRefreshRate)
-                {
-                    Application.targetFrameRate = refreshRate;
-                }
-                Debug.Log($"[M] ConfigManager: Refresh rate updated to {refreshRate}");
+                SetRefreshRate(configData.GraphicsSettings.RefreshRate);
             }
             else
             {
@@ -1018,9 +1018,7 @@ namespace DanieloZ.Managers.Config
         {
             if (configData?.GraphicsSettings.vSync != null)
             {
-                int vSyncValue = configData.GraphicsSettings.vSync;
-                UnityEngine.QualitySettings.vSyncCount = vSyncValue;
-                Debug.Log($"[M] ConfigManager: VSync updated to {vSyncValue}");
+                SetVSync(0);
             }
             else
             {
@@ -1135,6 +1133,12 @@ namespace DanieloZ.Managers.Config
             if (configData?.QualitySettings.AntiAliasing != null)
             {
                 var mode = configData.QualitySettings.AntiAliasing;
+                if (mode == AntialiasingMode.SubpixelMorphologicalAntiAliasing)
+                {
+                    mode = AntialiasingMode.FastApproximateAntialiasing;
+                    configData.QualitySettings.AntiAliasing = mode;
+                }
+
                 CameraManager.CurrentCamera.GetComponent<UniversalAdditionalCameraData>().antialiasing = mode;
                 Debug.Log($"[M] ConfigManager: Anti-aliasing updated to {mode}");
             }
@@ -1148,7 +1152,8 @@ namespace DanieloZ.Managers.Config
         {
             if (configData?.QualitySettings.MSAA_Sampling != null)
             {
-                var samples = configData.QualitySettings.MSAA_Sampling;
+                var samples = ConfigAvailableSettings.MSAA_Sampling.Disabled;
+                configData.QualitySettings.MSAA_Sampling = samples;
                 UnityEngine.QualitySettings.antiAliasing = (int)samples;
                 Debug.Log($"[M] ConfigManager: MSAA samples updated to {samples}");
             }
@@ -1361,7 +1366,8 @@ namespace DanieloZ.Managers.Config
                 return;
             }
 
-            var depthOfField = configData.PostProcessingSettings.DepthOfField;
+            var depthOfField = ConfigAvailableSettings.DepthOfField.Disabled;
+            configData.PostProcessingSettings.DepthOfField = depthOfField;
             if (volumeProfile.TryGet<UnityEngine.Rendering.Universal.DepthOfField>(out var dofComponent))
             {
                 switch (depthOfField)

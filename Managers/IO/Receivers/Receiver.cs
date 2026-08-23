@@ -1,5 +1,7 @@
 using Newtonsoft.Json;
+#if UNITY_STANDALONE || UNITY_EDITOR
 using Steamworks;
+#endif
 using System;
 using System.IO;
 using System.Text;
@@ -17,6 +19,7 @@ public abstract class FileReceiver<T>
     public virtual bool FileExists() { return true; }
 }
 
+#if UNITY_STANDALONE || UNITY_EDITOR
 public class FileReceiver_Steam<T> : FileReceiver<T>
 {
     protected string path;
@@ -107,6 +110,32 @@ public class FileReceiver_Steam<T> : FileReceiver<T>
         });
     }
 }
+#else
+public class FileReceiver_Steam<T> : FileReceiver<T>
+{
+    public FileReceiver_Steam(string path)
+    {
+    }
+
+    public override bool FileExists() => false;
+
+    public override T LoadFile() => default;
+
+    public override void SaveFile(T objectToSave)
+    {
+    }
+
+    public override void LoadFileAsync(Action<T> onSuccess, Action<string> onFailure)
+    {
+        onFailure?.Invoke("Steam Cloud is unavailable on this platform.");
+    }
+
+    public override void SaveFileAsync(T objectToSave, Action onSuccess, Action<string> onFailure)
+    {
+        onFailure?.Invoke("Steam Cloud is unavailable on this platform.");
+    }
+}
+#endif
 
 public class FileReceiver_Local<T> : FileReceiver<T>
 {
