@@ -616,6 +616,20 @@ Purpose:
 - Editor utility for template synchronization.
 - Should not be referenced by runtime gameplay code.
 
+### DanieloZ.PlayModeChanges
+
+Path:
+- `Assets/Template/Modules/DanieloZ.PlayModeChanges`
+
+README:
+- `Assets/Template/Modules/DanieloZ.PlayModeChanges/README.md`
+
+Purpose:
+- Editor-only tool for explicitly keeping serialized component state after leaving Play Mode.
+- Adds component context-menu actions, a compact Inspector header control and Hierarchy status indicators.
+- Stores queued snapshots in `SessionState`, restores them through Undo and marks affected scenes dirty without saving them automatically.
+- Supports existing scene components and stable asset/scene references. Runtime-created objects, removals and hierarchy changes are intentionally outside the first version.
+
 
 ## 7. Template Plugins
 
@@ -1688,6 +1702,7 @@ Template reusable ownership:
 - Generic pool utility: `Assets/Template/Modules/DanieloZ.Collections`
 - Promise helpers: `Assets/Template/Modules/DanieloZ.InstancePromise`
 - Migration helpers: `Assets/Template/Modules/DanieloZ.DataMigration`
+- Play Mode component state persistence: `Assets/Template/Modules/DanieloZ.PlayModeChanges`
 
 PixelVoxelPuzzle ownership:
 - Runtime data: `Assets/Runtime/Data`

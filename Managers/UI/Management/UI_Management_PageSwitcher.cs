@@ -18,10 +18,18 @@ public class UI_Management_PageSwitcher : MonoBehaviour
 
     private void Start()
     {
+        foreach (UI_Elements_Page page in pages.Values)
+        {
+            if (page != null && page != PageToShowAtStart)
+            {
+                page.Hide(true);
+            }
+        }
+
         if (PageToShowAtStart != null && pages.Values.Contains(PageToShowAtStart))
         {
             currentPage = PageToShowAtStart;
-            currentPage.Show();
+            currentPage.Show(true);
         }
     }
 
