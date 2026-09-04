@@ -58,5 +58,6 @@ public enum SoundName
     StickPuzzle_Stick_select_2,
     StickPuzzle_Stick_select_3,
     StickPuzzle_Stick_confirm_3,
-    StickPuzzle_Stick_deselect_1
+    StickPuzzle_Stick_deselect_1,
+    StickPuzzle_Pedestal_resize_1
 }
